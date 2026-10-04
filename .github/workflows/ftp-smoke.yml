@@ -25,7 +25,7 @@ jobs:
       FTP_PASSWORD: ${{ secrets.FTP_PASSWORD_RESIDIM_IR }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Validate secret presence
         shell: bash
@@ -41,7 +41,7 @@ jobs:
           set -euo pipefail
           printf 'residim-smoke=ok\ncommit=%s\nbuilt=%s\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > smoke/health.txt
 
-      - name: Upload isolated smoke landing over explicit FTPS
+      - name: Upload isolated smoke landing over explicit FTPS (smoke only; self-signed cert)
         shell: bash
         run: |
           set -euo pipefail
@@ -55,7 +55,7 @@ jobs:
             curl --fail --show-error --silent \
               --connect-timeout 20 --max-time 90 \
               --retry 2 --retry-delay 2 \
-              --ftp-pasv --ftp-create-dirs --ssl-reqd \
+              --ftp-pasv --ftp-create-dirs --ssl-reqd --insecure \
               --user "$FTP_USERNAME:$FTP_PASSWORD" \
               --upload-file "$file" \
               "ftp://$server/residim-smoke/$base"
