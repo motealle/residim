@@ -1,0 +1,113 @@
+name: Deploy Residim product
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "landing/**"
+      - "app/**"
+      - "BACKLOG.md"
+      - "README.md"
+      - ".github/workflows/deploy-production.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: residim-production-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FTP_SERVER: ${{ secrets.FTP_SERVER_RESIDIM }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME_RESIDIM }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD_RESIDIM_IR }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Validate source and secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FTP_SERVER" || { echo "FTP_SERVER_RESIDIM is empty"; exit 1; }
+          test -n "$FTP_USERNAME" || { echo "FTP_USERNAME_RESIDIM is empty"; exit 1; }
+          test -n "$FTP_PASSWORD" || { echo "FTP_PASSWORD_RESIDIM_IR is empty"; exit 1; }
+          test -f landing/index.html
+          test -f app/index.html
+          test -f app/manifest.webmanifest
+          test -f app/sw.js
+          test -f app/api/index.php
+
+      - name: Syntax checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check landing/landing.js
+          node --check app/app.js
+          if command -v php >/dev/null 2>&1; then
+            find app/api -maxdepth 1 -name '*.php' ! -name 'config.local.php' -print0 | xargs -0 -n1 php -l
+          fi
+          python - <<'PY'
+          import json
+          json.load(open('app/manifest.webmanifest', encoding='utf-8'))
+          print('manifest ok')
+          PY
+
+      - name: Build deploy markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'residim=ok\ncommit=%s\nbuilt=%s\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/residim-health.txt
+
+      - name: Upload landing to FTP root and PWA to /app
+        shell: bash
+        run: |
+          set -euo pipefail
+          server="$FTP_SERVER"
+          server="${server#ftp://}"
+          server="${server#ftps://}"
+          server="${server%/}"
+
+          upload() {
+            local src="$1" dst="$2"
+            curl --fail --show-error --silent \
+              --connect-timeout 20 --max-time 120 \
+              --retry 2 --retry-delay 2 \
+              --ftp-pasv --ftp-create-dirs --ssl-reqd --insecure \
+              --user "$FTP_USERNAME:$FTP_PASSWORD" \
+              --upload-file "$src" \
+              "ftp://$server/$dst"
+          }
+
+          upload landing/index.html index.html
+          upload landing/landing.css assets/landing.css
+          upload landing/landing.js assets/landing.js
+          upload landing/residim-mark.svg assets/residim-mark.svg
+          upload /tmp/residim-health.txt health.txt
+
+          while IFS= read -r -d '' file; do
+            rel="${file#app/}"
+            [[ "$rel" == "storage/.gitkeep" ]] && continue
+            [[ "$rel" == "api/config.local.php" ]] && continue
+            upload "$file" "app/$rel"
+          done < <(find app -type f -print0)
+          upload /tmp/residim-health.txt app/health.txt
+
+      - name: Verify FTP read-back
+        shell: bash
+        run: |
+          set -euo pipefail
+          server="$FTP_SERVER"
+          server="${server#ftp://}"
+          server="${server#ftps://}"
+          server="${server%/}"
+          check="$(curl --fail --show-error --silent --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD" "ftp://$server/health.txt")"
+          grep -F "commit=$GITHUB_SHA" <<< "$check"
+          appcheck="$(curl --fail --show-error --silent --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD" "ftp://$server/app/health.txt")"
+          grep -F "commit=$GITHUB_SHA" <<< "$appcheck"
+          echo "Residim landing and /app FTP read-back passed."
