@@ -84,11 +84,13 @@ jobs:
               "ftp://$server/$dst"
           }
 
-          upload landing/index.html index.html
+          # Small marker first: confirms root is writable before touching the landing.
+          upload /tmp/residim-health.txt health.txt
           upload landing/landing.css assets/landing.css
           upload landing/landing.js assets/landing.js
           upload landing/residim-mark.svg assets/residim-mark.svg
-          upload /tmp/residim-health.txt health.txt
+          # Publish the HTML last so users never see a page before its assets exist.
+          upload landing/index.html index.html
 
           while IFS= read -r -d '' file; do
             rel="${file#app/}"
