@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0f766e">
+  <title>رسیدیم | هم‌سرویس خانواده‌ها</title>
+  <style>
+    :root{--bg:#f7faf9;--card:#fff;--ink:#16302d;--muted:#637370;--brand:#0f766e;--brand2:#14b8a6;--line:#d8e6e2;--ok:#16a34a;--warn:#d97706;--danger:#dc2626}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:Tahoma,"Vazirmatn",system-ui,sans-serif;line-height:1.7}
+    .wrap{width:min(1120px,calc(100% - 28px));margin:auto}.top{display:flex;align-items:center;justify-content:space-between;padding:22px 0}.brand{font-size:1.45rem;font-weight:900;color:var(--brand)}
+    .pill{border:1px solid #b9d8d1;background:#ecfdf8;color:#0b6a62;border-radius:999px;padding:7px 12px;font-size:.83rem}
+    .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:34px;align-items:center;padding:48px 0 36px}
+    h1{font-size:clamp(2.2rem,6vw,4.8rem);line-height:1.12;margin:0 0 18px}.accent{color:var(--brand)}
+    .lead{font-size:1.1rem;color:var(--muted);max-width:640px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 20px;border-radius:15px;font-weight:800;text-decoration:none;border:1px solid var(--line);color:var(--ink);background:#fff}
+    .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+    .mock{background:#fff;border:1px solid var(--line);border-radius:26px;box-shadow:0 24px 60px rgba(19,55,49,.12);padding:18px;overflow:hidden}
+    .mock-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:14px}.next{background:#ecfdf8;border:1px solid #b9d8d1;border-radius:18px;padding:14px;margin-bottom:14px}.next b{display:block;font-size:1.05rem}
+    .quick{display:grid;grid-template-columns:1fr 1fr;gap:10px}.quick button{min-height:50px;border:0;border-radius:14px;font:inherit;font-weight:800}.yes{background:#dcfce7;color:#166534}.no{background:#fff7ed;color:#9a3412}
+    .table-scroll{overflow:auto;border:1px solid var(--line);border-radius:16px}table{width:100%;border-collapse:collapse;min-width:620px;font-size:.9rem}th,td{padding:11px 10px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}th:first-child,td:first-child{position:sticky;right:0;background:#fff;text-align:right;font-weight:800}thead th{background:#f3f8f6}.slot{display:inline-block;padding:4px 7px;border-bottom:4px solid var(--ok);border-radius:8px}.done:before{content:"✓ ";color:var(--ok);font-weight:900}.empty{color:#9ba9a6}
+    .balance{display:flex;align-items:end;justify-content:space-between;gap:14px;margin-top:14px;padding:15px;border-radius:16px;background:#f7faf9}.money{font-size:1.25rem;font-weight:900;color:#166534}
+    .section{padding:44px 0}.section h2{font-size:clamp(1.55rem,4vw,2.35rem);margin:0 0 8px}.sub{color:var(--muted);margin:0 0 24px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px}.card b{display:block;font-size:1.08rem;margin-bottom:6px}.n{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#ecfdf8;color:var(--brand);font-weight:900;margin-bottom:12px}
+    .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.flow .card{text-align:center}.footer{padding:36px 0 54px;color:var(--muted);text-align:center}.smoke{font-size:.78rem;color:#78908b}
+    @media(max-width:820px){.hero{grid-template-columns:1fr;padding-top:24px}.grid,.flow{grid-template-columns:1fr}.mock{border-radius:20px}.top{padding:16px 0}.hero{gap:24px}.actions .btn{flex:1}.wrap{width:min(100% - 20px,1120px)}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top"><div class="brand">رسیدیم</div><div class="pill">نمونه اولیه · هم‌سرویس</div></header>
+    <section class="hero">
+      <div>
+        <h1>نوبت‌ها روشن،<br><span class="accent">حساب‌ها صاف.</span></h1>
+        <p class="lead">رسیدیم، «هم‌سرویس» خانواده‌هاست: برنامه رفت‌وبرگشت مشترک، جایگزینی ساده، ثبت انجام و حساب عادلانه؛ بدون گم‌شدن بین پیام‌های گروه.</p>
+        <div class="actions"><a class="btn primary" href="#demo">دیدن نمونه هفته</a><a class="btn" href="#how">چطور کار می‌کند؟</a></div>
+      </div>
+      <div class="mock" id="demo">
+        <div class="mock-head"><b>هم‌سرویس مدرسه آفتاب</b><span class="pill">۱۲ تا ۱۷ مهر</span></div>
+        <div class="next"><b>سفر بعدی شما: فردا · رفت · ۷:۱۰</b><span>مسئول برنامه: بابای محمدحسین</span><div class="quick"><button class="yes">✓ آماده‌ام</button><button class="no">نمی‌تونم</button></div></div>
+        <div class="table-scroll"><table><thead><tr><th>خانواده</th><th>شنبه رفت</th><th>شنبه برگشت</th><th>یکشنبه رفت</th><th>یکشنبه برگشت</th></tr></thead><tbody>
+          <tr><td>محمدحسین</td><td><span class="slot done">قرار</span></td><td class="empty">—</td><td class="empty">—</td><td><span class="slot">قرار</span></td></tr>
+          <tr><td>سبحان</td><td class="empty">—</td><td><span class="slot done">قرار</span></td><td class="empty">—</td><td class="empty">—</td></tr>
+          <tr><td>مرتضی</td><td class="empty">—</td><td class="empty">—</td><td><span class="slot">قرار</span></td><td class="empty">—</td></tr>
+        </tbody></table></div>
+        <div class="balance"><div><b>بیلان این ماه</b><div class="smoke">حساب تا امروز</div></div><div><div class="money">+ ۳۰۰٬۰۰۰ تومان</div><div class="smoke">طلب شما</div></div></div>
+      </div>
+    </section>
+    <section class="section"><h2>همه‌چیز دور سه سؤال ساده</h2><p class="sub">فردا چه کسی می‌برد؟ اگر نتوانست چه می‌شود؟ آخر ماه چه کسی به چه کسی بدهکار است؟</p>
+      <div class="grid"><div class="card"><div class="n">۱</div><b>هفته</b><span>جدول روشن رفت و برگشت، قرار قطعی و تیک انجام‌شده.</span></div><div class="card"><div class="n">۲</div><b>جایگزین</b><span>«نمی‌تونم» را بزن؛ سیستم داوطلب بعدی را پیدا می‌کند.</span></div><div class="card"><div class="n">۳</div><b>حساب</b><span>هرکس به اندازه استفاده سهم دارد و به اندازه مشارکت اعتبار می‌گیرد.</span></div></div>
+    </section>
+    <section class="section" id="how"><h2>جریان یک نوبت</h2><p class="sub">کم‌دکمه، واضح و مناسب انگشت روی موبایل.</p>
+      <div class="flow"><div class="card"><b>برنامه پیشنهادی</b><span>تقسیم نوبت‌ها</span></div><div class="card"><b>تأیید شب قبل</b><span>آماده‌ام / نمی‌تونم</span></div><div class="card"><b>ثبت انجام</b><span>تیک + زمان واقعی</span></div><div class="card"><b>تسویه روشن</b><span>طلب / بدهی</span></div></div>
+    </section>
+    <footer class="footer"><b>رسیدیم</b> · چند خانواده، یک مسیر، نوبت و حساب روشن.<div class="smoke">FTP smoke landing · static prototype</div></footer>
+  </main>
+</body>
+</html>
