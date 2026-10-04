@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fa" dir="rtl" data-theme="black">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#09090b">
+  <meta name="description" content="رسیدیم؛ برنامه، جایگزینی و حساب روشن برای رفت‌وآمد مشارکتی خانواده‌ها.">
+  <title>رسیدیم | نوبت‌ها روشن، خیال‌ها جمع</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/sahel-font@v3.4.0/dist/font-face.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/daisyui.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="/assets/landing.css?v=1">
+  <link rel="icon" href="/assets/residim-mark.svg" type="image/svg+xml">
+</head>
+<body>
+  <div class="ambient ambient-a" aria-hidden="true"></div>
+  <div class="ambient ambient-b" aria-hidden="true"></div>
+
+  <header class="shell navbar-wrap">
+    <nav class="navbar product-nav" aria-label="ناوبری اصلی">
+      <a class="brand" href="#top" aria-label="رسیدیم، صفحه اصلی">
+        <img src="/assets/residim-mark.svg" alt="" width="38" height="38">
+        <span>رسیدیم</span>
+      </a>
+      <div class="nav-links">
+        <a href="#product">محصول</a>
+        <a href="#flow">چطور کار می‌کند</a>
+        <a href="#trust">اعتماد و حریم خصوصی</a>
+      </div>
+      <a class="btn btn-primary btn-soft-glow" href="/app/">ورود به رسیدیم</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="shell hero">
+      <div class="hero-copy">
+        <div class="badge badge-outline hero-badge">برای خانواده‌هایی که می‌خواهند رفت‌وآمد را با هم حل کنند</div>
+        <h1 class="hero-title">رسیدیم؛<br><span>نوبت‌ها روشن،</span><br>خیال‌ها جمع.</h1>
+        <p class="hero-lead">یک هم‌سرویس بسازید، برنامه رفت‌وبرگشت را ببندید، اگر کسی نتوانست جایگزین پیدا کنید و آخر ماه بدون حساب‌وکتاب دستی بدانید چه کسی بدهکار یا طلبکار است.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary btn-lg btn-soft-glow" href="/app/">شروع با رسیدیم</a>
+          <a class="btn btn-ghost btn-lg" href="/app/?demo=1">دیدن نسخه نمایشی</a>
+        </div>
+        <div class="proof-row" aria-label="مزیت‌های محصول">
+          <span><i></i> برنامه هفتگی واضح</span>
+          <span><i></i> جایگزینی سریع</span>
+          <span><i></i> حساب عادلانه</span>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-label="نمایش تصویری جریان رسیدیم">
+        <div class="route-stage card">
+          <div class="stage-top">
+            <div><small>هم‌سرویس فعال</small><strong>مسیر صبح</strong></div>
+            <span class="badge badge-success badge-outline">برنامه قطعی</span>
+          </div>
+          <svg class="route-svg" viewBox="0 0 760 520" role="img" aria-label="مسیر چند خانه تا مقصد مشترک">
+            <defs>
+              <linearGradient id="routeGradient" x1="0" x2="1"><stop offset="0" stop-color="#22c55e"/><stop offset="0.55" stop-color="#5eead4"/><stop offset="1" stop-color="#67e8f9"/></linearGradient>
+              <filter id="glow"><feGaussianBlur stdDeviation="5" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <path class="route-ghost" d="M92 392 C170 332 190 250 286 266 S410 376 510 300 S590 126 680 112"/>
+            <path class="route-main" d="M92 392 C170 332 190 250 286 266 S410 376 510 300 S590 126 680 112"/>
+            <g class="node node-home" transform="translate(92 392)"><circle r="23"/><path d="M-10 2 0-8 10 2v12H-6V4h12v10"/></g>
+            <g class="node node-home" transform="translate(286 266)"><circle r="20"/><path d="M-9 1 0-7 9 1v11H-5V3h10v9"/></g>
+            <g class="node node-home" transform="translate(510 300)"><circle r="20"/><path d="M-9 1 0-7 9 1v11H-5V3h10v9"/></g>
+            <g class="node node-school" transform="translate(680 112)"><circle r="29"/><path d="M-15 14V-8h30v22M-20-8 0-20 20-8M-6 14V2H6v12"/></g>
+            <circle class="signal signal-a" r="8" cx="92" cy="392" filter="url(#glow)"/>
+            <circle class="signal signal-b" r="5" cx="286" cy="266" filter="url(#glow)"/>
+          </svg>
+          <div class="stage-metrics">
+            <div><span>سفر بعدی</span><strong>فردا · ۷:۱۰</strong></div>
+            <div><span>وضعیت</span><strong class="ok">آماده و تأییدشده</strong></div>
+            <button class="btn btn-sm btn-outline" type="button" disabled>مسیر پیشنهادی</button>
+          </div>
+        </div>
+        <div class="floating-card floating-week card"><span class="eyebrow">این هفته</span><strong>۴ نوبت مشارکت</strong><small>۲ نوبت بیشتر از سهم پیش‌بینی‌شده</small></div>
+        <div class="floating-card floating-balance card"><span class="eyebrow">حساب تا امروز</span><strong>طلب شما</strong><b>+۳۰۰٬۰۰۰ تومان</b></div>
+      </div>
+    </section>
+
+    <section class="shell problem-strip" aria-label="مسئله‌های حل‌شده">
+      <div class="problem-item"><span>۰۱</span><strong>فردا چه کسی می‌برد؟</strong><p>در جدول هفته مشخص است؛ بدون پیام‌های پراکنده.</p></div>
+      <div class="problem-item"><span>۰۲</span><strong>اگر نتوانست چه؟</strong><p>درخواست جایگزین به همیاران واجد شرایط می‌رود.</p></div>
+      <div class="problem-item"><span>۰۳</span><strong>آخر ماه چه می‌شود؟</strong><p>اعتبار واقعی سفرها و سهم استفاده خودکار تسویه می‌شوند.</p></div>
+    </section>
+
+    <section class="shell section product-section" id="product">
+      <div class="section-heading reveal">
+        <div class="section-kicker">محصول، نه یک گروه پیام‌رسان دیگر</div>
+        <h2>رسیدیم، همان چیزی را که هر روز لازم دارید جلوی چشم می‌گذارد.</h2>
+        <p>صفحه اول بعد از ورود، خودِ هفته است. تصمیم‌های مهم بزرگ و قابل لمس‌اند و جزئیات فقط وقتی لازم است باز می‌شوند.</p>
+      </div>
+      <div class="product-grid">
+        <article class="feature-card card reveal">
+          <div class="feature-icon">هفته</div><h3>جدول قرار و انجام</h3>
+          <p>خط سبز یعنی قرار قطعی؛ تیک یعنی انجام شده. اگر فرد دیگری جایگزین شد، سابقه قرار و اجرا هر دو می‌مانند.</p>
+          <div class="mini-week" aria-hidden="true">
+            <div class="mini-row head"><span></span><b>ش</b><b>ی</b><b>د</b><b>س</b></div>
+            <div class="mini-row"><span>شما</span><i class="slot done"></i><i></i><i></i><i class="slot"></i></div>
+            <div class="mini-row"><span>همیار ۱</span><i></i><i class="slot done"></i><i></i><i></i></div>
+            <div class="mini-row"><span>همیار ۲</span><i></i><i></i><i class="slot"></i><i></i></div>
+          </div>
+        </article>
+        <article class="feature-card card reveal">
+          <div class="feature-icon">جایگزین</div><h3>«نمی‌تونم» یک دکمه است</h3>
+          <p>رسیدیم درخواست را ثبت می‌کند، واجد شرایط‌ها را خبر می‌کند و اولین پذیرش معتبر را روی سرور قطعی می‌کند.</p>
+          <div class="swap-demo"><div class="chat-bubble">فردا نوبت شماست. آماده‌اید؟</div><div class="swap-actions"><button class="btn btn-success btn-sm">آماده‌ام</button><button class="btn btn-ghost btn-sm">نمی‌تونم</button></div></div>
+        </article>
+        <article class="feature-card card reveal">
+          <div class="feature-icon">حساب</div><h3>عدد آخر قابل توضیح است</h3>
+          <p>هر خانواده بابت استفاده سهم دارد و بابت خدمتی که واقعاً انجام داده اعتبار می‌گیرد. پیش‌بینی آینده از بدهی قطعی جداست.</p>
+          <div class="balance-demo stats shadow"><div class="stat"><div class="stat-title">بیلان تا امروز</div><div class="stat-value">+۳۰۰k</div><div class="stat-desc">طلب شما · ۳ سفر ثبت‌شده</div></div></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="shell section flow-section" id="flow">
+      <div class="section-heading reveal"><div class="section-kicker">جریان روزانه</div><h2>رسیدیم، از شب قبل تا رسیدن.</h2></div>
+      <div class="timeline" aria-label="مراحل یک سفر">
+        <article class="timeline-step reveal"><span>۱</span><div><strong>برنامه پیشنهاد می‌شود</strong><p>نوبت‌ها، ساعت و مسیر قابل بررسی‌اند.</p></div></article>
+        <article class="timeline-step reveal"><span>۲</span><div><strong>شب قبل تأیید می‌کنید</strong><p>آماده‌ام یا جایگزین می‌خواهم.</p></div></article>
+        <article class="timeline-step reveal"><span>۳</span><div><strong>در لحظه، وضعیت ثبت می‌شود</strong><p>شروع، رسیدن، انجام و موقعیت رویدادمحور.</p></div></article>
+        <article class="timeline-step reveal"><span>۴</span><div><strong>حساب خودش به‌روز می‌شود</strong><p>اعتبار به انجام‌دهنده واقعی می‌رسد.</p></div></article>
+      </div>
+    </section>
+
+    <section class="shell section trust-section" id="trust">
+      <div class="trust-card card reveal">
+        <div><div class="section-kicker">اعتماد از قابلیت مهم‌تر است</div><h2>موقعیت کودک، کالای تبلیغاتی نیست.</h2><p>رسیدیم برای نسخه اولیه موقعیت رویدادمحور راننده را با رضایت ثبت می‌کند؛ نه ردیابی دائمی کودک. آدرس دقیق و وضعیت سفر فقط باید برای اعضای مجاز همان هم‌سرویس قابل دسترسی باشد.</p></div>
+        <ul class="trust-list">
+          <li><span>✓</span> آدرس دقیق در جست‌وجوی عمومی نمایش داده نمی‌شود.</li>
+          <li><span>✓</span> زمان سرور و زمان دستگاه جداگانه ثبت می‌شوند.</li>
+          <li><span>✓</span> تحویل کودک فقط با GPS «اثبات» نمی‌شود.</li>
+          <li><span>✓</span> تغییرات مالی با سابقه قابل ردیابی اصلاح می‌شوند.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="shell final-cta reveal">
+      <img src="/assets/residim-mark.svg" alt="" width="64" height="64">
+      <h2>رسیدیم؛ هفته را ببند، بقیه‌اش با ما.</h2>
+      <p>از یک هم‌سرویس کوچک شروع کنید. برنامه، جایگزینی و حساب را یک‌جا نگه دارید.</p>
+      <div class="hero-actions center"><a class="btn btn-primary btn-lg btn-soft-glow" href="/app/">ورود به اپ رسیدیم</a><a class="btn btn-ghost btn-lg" href="/app/?demo=1">نسخه نمایشی</a></div>
+    </section>
+  </main>
+
+  <footer class="shell footer">
+    <div class="brand"><img src="/assets/residim-mark.svg" alt="" width="30" height="30"><span>رسیدیم</span></div>
+    <p>رفت‌وآمد مشارکتی، با برنامه و حساب روشن.</p>
+    <small>نسخه محصولی اولیه · حریم خصوصی و ایمنی، پیش‌فرض طراحی هستند.</small>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+  <script src="/assets/landing.js?v=1" defer></script>
+</body>
+</html>
