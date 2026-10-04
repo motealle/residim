@@ -32,11 +32,11 @@
 - [x] شروع سفر + موقعیت رویدادمحور اختیاری با رضایت کاربر.
 - [x] دفترکل دوطرفه: سهم استفاده منفی + اعتبار انجام سفر مثبت.
 - [x] جلوگیری از اعتبار مالی تکراری با کلید یکتا در دفترکل.
-- [x] Deploy فقط-افزایشی به FTP؛ لندینگ در روت و اپ در `/app/`؛ بدون Delete کور فایل‌های هاست.
+- [x] Deploy فقط-افزایشی به FTP؛ لندینگ در روت و اپ در `/app/`؛ بدون Delete کور فایل‌های هاست. **Run #6 با Read-back بایت‌به‌بایت موفق شد.**
 - [ ] **فعال‌سازی Secret واقعی سرویس پیامک روی هاست** (`RESIDIM_KAVENEGAR_API_KEY` + Template یا Webhook). کد آماده است، Credential هنوز در ریپو وجود ندارد و نباید هم وجود داشته باشد.
 - [ ] **تأیید Driver دیتابیس Production**: SQLite PDO روی هاست یا DSN امن MySQL در `config.local.php`/Environment.
 - [ ] **رفع گواهی Self-signed سرویس FTPS** و حذف `--insecure` از Workflow قبل از انتشار عمومی.
-- [ ] Smoke Test وب روی دامنه نهایی: `/`, `/app/`, `/app/api/index.php?action=health`, Manifest و Service Worker.
+- [ ] Smoke Test وب روی دامنه نهایی: `/`, `/app/`, `/app/api/index.php?action=health`, Manifest و Service Worker. **FTP root و `/app` تأیید شده‌اند؛ دامنه عمومی هنوز از اطلاعات موجود قابل تعیین/Resolve نیست.**
 - [ ] تست واقعی WebOTP با قالب پیامک سازگار (شماره دامنه در متن SMS مطابق استاندارد WebOTP).
 
 ## P1 — MVP قابل تحویل به گروه واقعی
@@ -91,3 +91,14 @@
 6. داده حساس فقط به Scope لازم همان گروه/سفر برسد.
 7. Migration/Schema و Rollback یا مسیر اصلاح داده مشخص باشد.
 8. README و BACKLOG در همان Commit به‌روز شوند.
+
+
+## آخرین وضعیت استقرار — 2026-10-04
+
+- **FTP Production Deploy: PASS**
+- GitHub Actions Run: `37210950199`
+- Commit منتشرشده: `ba61feeafd4f79ab9b8393cdfed64aee2804c8fc`
+- Document root توسط Read-back تأیید شد: ریشه خود حساب FTP (`.`)
+- لندینگ در روت و اپ در `/app/` با مقایسه بایت فایل سلامت تأیید شدند.
+- علت خطاهای قبلی مشخص شد: هاست بعد از پذیرش STOR گاهی اتصال کنترل را طوری می‌بست که curl کد 56 می‌داد؛ فایل در واقع آپلود شده بود. Workflow اکنون در این حالت Read-back انجام می‌دهد و فقط اگر بایت مقصد با مبدأ برابر بود عملیات را موفق می‌داند.
+- Demo تاریخی نیز از هر نام شخصی پاک‌سازی شد.
