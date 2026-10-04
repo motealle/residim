@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="fa" dir="rtl" data-theme="black">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#09090b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="اپ رسیدیم؛ مدیریت برنامه، جایگزینی و حساب هم‌سرویس خانوادگی.">
+  <title>رسیدیم | اپ هم‌سرویس</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/sahel-font@v3.4.0/dist/font-face.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/daisyui.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="./styles.css?v=1">
+</head>
+<body>
+  <div id="offlineBar" class="offline-bar" hidden>اینترنت قطع است؛ آخرین اطلاعات ذخیره‌شده را می‌بینید.</div>
+
+  <section id="authView" class="auth-view" hidden>
+    <a class="auth-brand" href="/"><img src="./icon.svg" width="46" height="46" alt=""><strong>رسیدیم</strong></a>
+    <div class="auth-card card">
+      <div id="authPhoneStep">
+        <span class="badge badge-outline">ورود بدون رمز عبور</span>
+        <h1>به رسیدیم خوش آمدید.</h1>
+        <p>شماره موبایل را وارد کنید. یک رمز یکبارمصرف برایتان می‌فرستیم.</p>
+        <label class="form-control">
+          <span class="label-text">شماره موبایل</span>
+          <input id="phoneInput" class="input input-bordered input-lg ltr" inputmode="tel" autocomplete="tel" placeholder="09xxxxxxxxx" maxlength="13">
+        </label>
+        <button id="requestOtpBtn" class="btn btn-primary btn-lg full">دریافت کد ورود</button>
+        <div class="auth-note">در گوشی‌های پشتیبانی‌شده، مرورگر می‌تواند با اجازه شما همین پیامک یکبارمصرف را بخواند و کد را خودکار وارد کند.</div>
+      </div>
+
+      <div id="authOtpStep" hidden>
+        <span class="badge badge-success badge-outline">کد ارسال شد</span>
+        <h1>کد ۶ رقمی را وارد کنید.</h1>
+        <p id="otpHint">پیامک برای شماره شما ارسال شده است.</p>
+        <input id="otpInput" class="input input-bordered input-lg otp-input ltr" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••">
+        <button id="verifyOtpBtn" class="btn btn-primary btn-lg full">ورود به رسیدیم</button>
+        <button id="backToPhoneBtn" class="btn btn-ghost full">اصلاح شماره</button>
+      </div>
+
+      <div class="divider">یا</div>
+      <a class="btn btn-ghost full" href="./?demo=1">دیدن نسخه نمایشی بدون ثبت‌نام</a>
+      <div id="authMessage" class="auth-message" aria-live="polite"></div>
+    </div>
+    <small>با ورود، شما فقط به هم‌سرویس‌هایی دسترسی دارید که عضو مجاز آن‌ها هستید.</small>
+  </section>
+
+  <section id="onboardingView" class="auth-view" hidden>
+    <a class="auth-brand" href="/"><img src="./icon.svg" width="46" height="46" alt=""><strong>رسیدیم</strong></a>
+    <div class="auth-card card">
+      <span class="badge badge-outline">شروع در کمتر از یک دقیقه</span>
+      <h1>اولین هم‌سرویس را بسازید.</h1>
+      <p>بعداً اعضای دیگر را با کد دعوت اضافه می‌کنید. حساب هر عضو فقط از تاریخ شروع خودش محاسبه می‌شود.</p>
+      <label class="form-control"><span class="label-text">نام هم‌سرویس</span><input id="groupNameInput" class="input input-bordered" placeholder="مثلاً مسیر مدرسه"></label>
+      <label class="form-control"><span class="label-text">ارزش هر نوبت</span><input id="tripValueInput" class="input input-bordered ltr" inputmode="numeric" value="100000"></label>
+      <label class="form-control"><span class="label-text">تاریخ شروع شما</span><input id="groupStartInput" type="date" class="input input-bordered"></label>
+      <button id="createGroupBtn" class="btn btn-primary btn-lg full">ساخت هم‌سرویس</button>
+      <div class="divider">یا کد دعوت دارید؟</div>
+      <div class="join-row"><input id="inviteCodeInput" class="input input-bordered ltr" maxlength="8" placeholder="کد دعوت"><button id="joinGroupBtn" class="btn btn-outline">پیوستن</button></div>
+      <div id="onboardingMessage" class="auth-message" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <div id="appShell" class="app-shell" hidden>
+    <header class="app-topbar">
+      <div class="topbar-inner">
+        <div class="brand-small"><img src="./icon.svg" width="36" height="36" alt=""><strong>رسیدیم</strong></div>
+        <button id="groupSwitcher" class="group-switcher btn btn-ghost" type="button"><span id="groupName">هم‌سرویس</span><span>⌄</span></button>
+        <div class="top-actions">
+          <button id="installBtn" class="icon-btn" type="button" title="نصب اپ" hidden>↓</button>
+          <button id="notifyBtn" class="icon-btn" type="button" title="اعلان‌ها">◌</button>
+          <button id="profileBtn" class="avatar-btn" type="button" title="حساب کاربری">ش</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section id="weekPanel" class="panel active-panel" data-panel="week">
+        <div class="week-hero card">
+          <div class="next-trip-copy">
+            <span class="eyebrow">سفر بعدی شما</span>
+            <h1 id="nextTripTitle">فردا · رفت · ۷:۱۰</h1>
+            <div id="nextTripMeta" class="next-meta">برنامه قطعی · هم‌سرویس فعال</div>
+          </div>
+          <div class="next-trip-actions">
+            <button id="readyBtn" class="btn btn-success btn-lg">✓ آماده‌ام</button>
+            <button id="cantBtn" class="btn btn-ghost btn-lg">نمی‌تونم</button>
+          </div>
+          <div class="trip-progress" aria-label="وضعیت سفر">
+            <div class="progress-step on"><i></i><span>برنامه</span></div>
+            <div class="progress-line"></div>
+            <div class="progress-step"><i></i><span>اجرا</span></div>
+            <div class="progress-line"></div>
+            <div class="progress-step"><i></i><span>تحویل</span></div>
+          </div>
+        </div>
+
+        <div class="panel-heading">
+          <div><span class="eyebrow">برنامه هفتگی</span><h2>این هفته چه کسی کدام نوبت را دارد؟</h2></div>
+          <div class="week-nav"><button id="todayBtn" class="btn btn-sm btn-outline">امروز</button><span id="weekLabel">هفته جاری</span></div>
+        </div>
+
+        <div class="schedule-wrap card">
+          <div id="scheduleGrid" class="schedule-grid" role="table" aria-label="برنامه هفتگی رفت و برگشت"></div>
+          <div class="schedule-legend"><span><i class="legend-line"></i> قرار قطعی</span><span><i class="legend-done">✓</i> انجام‌شده</span><span><i class="legend-warn"></i> جایگزین لازم است</span></div>
+        </div>
+
+        <div class="quick-grid">
+          <button id="startTripBtn" class="quick-card card" type="button"><span class="quick-icon">↗</span><div><strong>شروع سفر</strong><small>ثبت زمان و موقعیت اختیاری</small></div></button>
+          <button id="locationBtn" class="quick-card card" type="button"><span class="quick-icon">◎</span><div><strong>ثبت موقعیت</strong><small id="locationStatus">فقط با اجازه شما</small></div></button>
+        </div>
+      </section>
+
+      <section id="accountPanel" class="panel" data-panel="account">
+        <div class="panel-heading"><div><span class="eyebrow">حساب روشن</span><h2>مشارکت واقعی، نتیجه قابل توضیح.</h2></div></div>
+        <div class="account-stats stats shadow">
+          <div class="stat"><div class="stat-title">مانده تا امروز</div><div id="balanceValue" class="stat-value positive">+۳۰۰٬۰۰۰</div><div id="balanceLabel" class="stat-desc">طلب شما</div></div>
+          <div class="stat"><div class="stat-title">نوبت انجام‌شده</div><div id="doneCount" class="stat-value">۴</div><div class="stat-desc">اعتبار فقط برای اجرای واقعی</div></div>
+          <div class="stat"><div class="stat-title">پیش‌بینی پایان دوره</div><div id="forecastValue" class="stat-value small-value">+۱۰۰٬۰۰۰</div><div class="stat-desc">پیش‌بینی است، بدهی قطعی نیست</div></div>
+        </div>
+
+        <div class="account-grid">
+          <article class="card account-card"><div class="card-head"><div><span class="eyebrow">تسویه پیشنهادی</span><h3>کمترین تعداد پرداخت</h3></div><span class="badge badge-outline">شفاف</span></div><div id="settlementList" class="list-stack"></div></article>
+          <article class="card account-card"><div class="card-head"><div><span class="eyebrow">دفترکل</span><h3>چرا این عدد؟</h3></div></div><div id="ledgerList" class="ledger-list"></div></article>
+        </div>
+      </section>
+
+      <section id="groupPanel" class="panel" data-panel="group">
+        <div class="panel-heading"><div><span class="eyebrow">هم‌سرویس</span><h2>آدم‌ها، قواعد و دسترسی‌ها.</h2></div></div>
+        <div class="group-grid">
+          <article class="card group-card"><div class="card-head"><div><span class="eyebrow">اعضا</span><h3 id="membersTitle">۴ خانواده</h3></div><button id="copyInviteBtn" class="btn btn-sm btn-outline">کپی کد دعوت</button></div><div id="membersList" class="member-list"></div></article>
+          <article class="card group-card"><div class="card-head"><div><span class="eyebrow">قرارهای جمع ما</span><h3>توافق‌های کوتاه و واضح</h3></div></div><div class="agreement-list">
+            <label><input type="checkbox" class="toggle toggle-success" checked> <span><b>حرکت سر وقت</b><small>حداکثر انتظار طبق توافق گروه</small></span></label>
+            <label><input type="checkbox" class="toggle toggle-success" checked> <span><b>تحویل به فرد مجاز</b><small>تغییر تحویل‌گیرنده باید اطلاع داده شود</small></span></label>
+            <label><input type="checkbox" class="toggle toggle-success"> <span><b>فضای آرام خودرو</b><small>موسیقی خاموش یا ملایم طبق ترجیح گروه</small></span></label>
+          </div></article>
+          <article class="card group-card privacy-card"><div><span class="eyebrow">حریم خصوصی</span><h3>لوکیشن فقط وقتی لازم است.</h3><p>ردیابی دائمی کودک در نسخه اولیه وجود ندارد. موقعیت رویدادمحور راننده با اجازه کاربر ثبت می‌شود.</p></div><button id="privacyLocationBtn" class="btn btn-outline full">بررسی دسترسی موقعیت</button></article>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="منوی اصلی">
+      <button class="nav-item active" data-tab="week" type="button"><span>▦</span><b>هفته</b></button>
+      <button class="nav-item" data-tab="account" type="button"><span>◒</span><b>حساب</b></button>
+      <button class="nav-item" data-tab="group" type="button"><span>◎</span><b>گروه</b></button>
+    </nav>
+  </div>
+
+  <dialog id="tripDialog" class="modal trip-dialog">
+    <div class="modal-box">
+      <button class="btn btn-sm btn-circle btn-ghost modal-close" type="button">✕</button>
+      <span class="eyebrow">جزئیات نوبت</span>
+      <h3 id="dialogTitle">شنبه · رفت</h3>
+      <div id="dialogMeta" class="dialog-meta"></div>
+      <div id="dialogActions" class="dialog-actions"></div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>بستن</button></form>
+  </dialog>
+
+  <div id="toast" class="toast toast-center" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="./app.js?v=1" defer></script>
+</body>
+</html>
