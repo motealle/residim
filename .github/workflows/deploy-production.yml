@@ -58,13 +58,13 @@ jobs:
           print('manifest ok')
           PY
 
-      - name: Build deploy markers
+      - name: Build deploy marker
         shell: bash
         run: |
           set -euo pipefail
           printf 'residim=ok\ncommit=%s\nbuilt=%s\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/residim-health.txt
 
-      - name: Upload landing to FTP root and PWA to /app
+      - name: Detect writable web root and deploy
         shell: bash
         run: |
           set -euo pipefail
@@ -73,24 +73,43 @@ jobs:
           server="${server#ftps://}"
           server="${server%/}"
 
+          common=(--fail --show-error --silent --connect-timeout 20 --max-time 120 --retry 4 --retry-delay 2 --retry-all-errors --ftp-pasv --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD")
+
+          # Do not list the FTP account in public logs. Probe only common web-root paths,
+          # without creating them, and keep the selected path in the runner environment.
+          root=""
+          for candidate in "" "public_html" "www" "htdocs" "domains/residim.ir/public_html"; do
+            prefix=""
+            [[ -n "$candidate" ]] && prefix="$candidate/"
+            if curl "${common[@]}" --upload-file /tmp/residim-health.txt "ftp://$server/${prefix}residim-probe.txt" >/dev/null 2>&1; then
+              root="$candidate"
+              break
+            fi
+          done
+          if [[ -z "$root" ]]; then
+            # Empty root is represented by a sentinel so it can still be distinguished
+            # from "no candidate succeeded".
+            if curl "${common[@]}" --upload-file /tmp/residim-health.txt "ftp://$server/residim-probe.txt" >/dev/null 2>&1; then
+              root="."
+            else
+              echo "No writable web-root candidate found. FTP credentials work for the isolated smoke directory, but not the expected web root."
+              exit 1
+            fi
+          fi
+
+          if [[ "$root" == "." ]]; then base=""; else base="$root/"; fi
+          echo "Selected deploy root: ${root}"
+
           upload() {
             local src="$1" dst="$2"
-            curl --fail --show-error --silent \
-              --connect-timeout 20 --max-time 120 \
-              --retry 2 --retry-delay 2 \
-              --ftp-pasv --ftp-create-dirs --ssl-reqd --insecure \
-              --user "$FTP_USERNAME:$FTP_PASSWORD" \
-              --upload-file "$src" \
-              "ftp://$server/$dst"
+            curl "${common[@]}" --ftp-create-dirs --upload-file "$src" "ftp://$server/${base}${dst}"
           }
 
-          # Small marker first: confirms root is writable before touching the landing.
+          # Assets first, HTML last: users never see a landing page whose assets are missing.
           upload /tmp/residim-health.txt health.txt
           upload landing/landing.css assets/landing.css
           upload landing/landing.js assets/landing.js
           upload landing/residim-mark.svg assets/residim-mark.svg
-          # Publish the HTML last so users never see a page before its assets exist.
-          upload landing/index.html index.html
 
           while IFS= read -r -d '' file; do
             rel="${file#app/}"
@@ -99,17 +118,10 @@ jobs:
             upload "$file" "app/$rel"
           done < <(find app -type f -print0)
           upload /tmp/residim-health.txt app/health.txt
+          upload landing/index.html index.html
 
-      - name: Verify FTP read-back
-        shell: bash
-        run: |
-          set -euo pipefail
-          server="$FTP_SERVER"
-          server="${server#ftp://}"
-          server="${server#ftps://}"
-          server="${server%/}"
-          check="$(curl --fail --show-error --silent --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD" "ftp://$server/health.txt")"
+          check="$(curl "${common[@]}" "ftp://$server/${base}health.txt")"
           grep -F "commit=$GITHUB_SHA" <<< "$check"
-          appcheck="$(curl --fail --show-error --silent --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD" "ftp://$server/app/health.txt")"
+          appcheck="$(curl "${common[@]}" "ftp://$server/${base}app/health.txt")"
           grep -F "commit=$GITHUB_SHA" <<< "$appcheck"
           echo "Residim landing and /app FTP read-back passed."
