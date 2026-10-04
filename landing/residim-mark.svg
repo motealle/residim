@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="نشان رسیدیم">
+  <defs><linearGradient id="g" x1="8" y1="54" x2="55" y2="7" gradientUnits="userSpaceOnUse"><stop stop-color="#22c55e"/><stop offset="1" stop-color="#67e8f9"/></linearGradient></defs>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="#101116" stroke="#2b2d35"/>
+  <path d="M15 43c8-2 8-13 18-13 8 0 8-11 16-12" fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="15" cy="43" r="5" fill="#22c55e"/><circle cx="49" cy="18" r="6" fill="#67e8f9"/>
+  <path d="m46 18 2 2 4-5" fill="none" stroke="#06110d" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
