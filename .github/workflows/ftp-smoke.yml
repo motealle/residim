@@ -1,0 +1,65 @@
+name: FTP smoke deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "smoke/**"
+      - ".github/workflows/ftp-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: residim-ftp-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FTP_SERVER: ${{ secrets.FTP_SERVER_RESIDIM }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME_RESIDIM }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD_RESIDIM_IR }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate secret presence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FTP_SERVER" || { echo "FTP_SERVER_RESIDIM is empty"; exit 1; }
+          test -n "$FTP_USERNAME" || { echo "FTP_USERNAME_RESIDIM is empty"; exit 1; }
+          test -n "$FTP_PASSWORD" || { echo "FTP_PASSWORD_RESIDIM_IR is empty"; exit 1; }
+
+      - name: Build smoke marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'residim-smoke=ok\ncommit=%s\nbuilt=%s\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > smoke/health.txt
+
+      - name: Upload isolated smoke landing over explicit FTPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          server="$FTP_SERVER"
+          server="${server#ftp://}"
+          server="${server#ftps://}"
+          server="${server%/}"
+
+          for file in smoke/index.html smoke/health.txt; do
+            base="$(basename "$file")"
+            curl --fail --show-error --silent \
+              --connect-timeout 20 --max-time 90 \
+              --retry 2 --retry-delay 2 \
+              --ftp-pasv --ftp-create-dirs --ssl-reqd \
+              --user "$FTP_USERNAME:$FTP_PASSWORD" \
+              --upload-file "$file" \
+              "ftp://$server/residim-smoke/$base"
+          done
+
+      - name: Report
+        run: echo "FTP smoke upload completed to isolated folder /residim-smoke/"
