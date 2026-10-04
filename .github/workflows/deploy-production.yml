@@ -76,26 +76,36 @@ jobs:
           common=(--fail --show-error --silent --connect-timeout 20 --max-time 120 --retry 4 --retry-delay 2 --retry-all-errors --ftp-pasv --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD")
           probe_common=(--fail --silent --connect-timeout 8 --max-time 15 --ftp-pasv --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD")
 
-          # Do not list the FTP account in public logs. Probe only common web-root paths,
-          # without creating them, and keep the selected path in the runner environment.
+          # First test FTP command styles against the account root. Some shared hosts
+          # reject STOR at root with curl's default CWD strategy but accept singlecwd/nocwd.
           root=""
-          for candidate in "" "public_html" "www" "htdocs" "domains/residim.ir/public_html"; do
-            prefix=""
-            [[ -n "$candidate" ]] && prefix="$candidate/"
-            if curl "${probe_common[@]}" --upload-file /tmp/residim-health.txt "ftp://$server/${prefix}residim-probe.txt" >/dev/null 2>&1; then
-              root="$candidate"
-              break
-            fi
-          done
+          ftp_extra=()
+          if curl "${probe_common[@]}" --ftp-method singlecwd --upload-file /tmp/residim-health.txt "ftp://$server/residim-probe.txt" >/dev/null 2>&1; then
+            root="."
+            ftp_extra=(--ftp-method singlecwd)
+          elif curl "${probe_common[@]}" --ftp-method nocwd --upload-file /tmp/residim-health.txt "ftp://$server/residim-probe.txt" >/dev/null 2>&1; then
+            root="."
+            ftp_extra=(--ftp-method nocwd)
+          elif curl "${probe_common[@]}" --disable-epsv --upload-file /tmp/residim-health.txt "ftp://$server/residim-probe.txt" >/dev/null 2>&1; then
+            root="."
+            ftp_extra=(--disable-epsv)
+          fi
+
+          # If direct root still cannot accept a file, probe common document-root folders.
+          # No directory listing is printed to this public workflow log.
           if [[ -z "$root" ]]; then
-            # Empty root is represented by a sentinel so it can still be distinguished
-            # from "no candidate succeeded".
-            if curl "${probe_common[@]}" --upload-file /tmp/residim-health.txt "ftp://$server/residim-probe.txt" >/dev/null 2>&1; then
-              root="."
-            else
-              echo "No writable web-root candidate found. FTP credentials work for the isolated smoke directory, but not the expected web root."
-              exit 1
-            fi
+            for candidate in "public_html" "public_html/residim.ir" "public_html/residim" "www" "htdocs" "httpdocs" "residim.ir" "domains/residim.ir/public_html"; do
+              if curl "${probe_common[@]}" --ftp-method singlecwd --upload-file /tmp/residim-health.txt "ftp://$server/$candidate/residim-probe.txt" >/dev/null 2>&1; then
+                root="$candidate"
+                ftp_extra=(--ftp-method singlecwd)
+                break
+              fi
+            done
+          fi
+
+          if [[ -z "$root" ]]; then
+            echo "No writable web-root candidate found. Isolated-folder FTPS works, but the account's document-root path is still unknown."
+            exit 1
           fi
 
           if [[ "$root" == "." ]]; then base=""; else base="$root/"; fi
@@ -103,7 +113,7 @@ jobs:
 
           upload() {
             local src="$1" dst="$2"
-            curl "${common[@]}" --ftp-create-dirs --upload-file "$src" "ftp://$server/${base}${dst}"
+            curl "${common[@]}" "${ftp_extra[@]}" --ftp-create-dirs --upload-file "$src" "ftp://$server/${base}${dst}"
           }
 
           # Assets first, HTML last: users never see a landing page whose assets are missing.
@@ -121,8 +131,8 @@ jobs:
           upload /tmp/residim-health.txt app/health.txt
           upload landing/index.html index.html
 
-          check="$(curl "${common[@]}" "ftp://$server/${base}health.txt")"
+          check="$(curl "${common[@]}" "${ftp_extra[@]}" "ftp://$server/${base}health.txt")"
           grep -F "commit=$GITHUB_SHA" <<< "$check"
-          appcheck="$(curl "${common[@]}" "ftp://$server/${base}app/health.txt")"
+          appcheck="$(curl "${common[@]}" "${ftp_extra[@]}" "ftp://$server/${base}app/health.txt")"
           grep -F "commit=$GITHUB_SHA" <<< "$appcheck"
           echo "Residim landing and /app FTP read-back passed."
