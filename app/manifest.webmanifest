@@ -1,0 +1,20 @@
+{
+  "name": "رسیدیم | هم‌سرویس خانواده‌ها",
+  "short_name": "رسیدیم",
+  "description": "برنامه، جایگزینی و حساب روشن برای رفت‌وآمد مشارکتی خانواده‌ها",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "categories": ["productivity", "navigation", "family"],
+  "icons": [
+    {"src":"/app/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ],
+  "shortcuts": [
+    {"name":"هفته","short_name":"هفته","url":"/app/#week","icons":[{"src":"/app/icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"حساب","short_name":"حساب","url":"/app/#account","icons":[{"src":"/app/icon.svg","sizes":"any","type":"image/svg+xml"}]}
+  ]
+}
