@@ -74,6 +74,7 @@ jobs:
           server="${server%/}"
 
           common=(--fail --show-error --silent --connect-timeout 20 --max-time 120 --retry 4 --retry-delay 2 --retry-all-errors --ftp-pasv --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD")
+          probe_common=(--fail --silent --connect-timeout 8 --max-time 15 --ftp-pasv --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD")
 
           # Do not list the FTP account in public logs. Probe only common web-root paths,
           # without creating them, and keep the selected path in the runner environment.
@@ -81,7 +82,7 @@ jobs:
           for candidate in "" "public_html" "www" "htdocs" "domains/residim.ir/public_html"; do
             prefix=""
             [[ -n "$candidate" ]] && prefix="$candidate/"
-            if curl "${common[@]}" --upload-file /tmp/residim-health.txt "ftp://$server/${prefix}residim-probe.txt" >/dev/null 2>&1; then
+            if curl "${probe_common[@]}" --upload-file /tmp/residim-health.txt "ftp://$server/${prefix}residim-probe.txt" >/dev/null 2>&1; then
               root="$candidate"
               break
             fi
@@ -89,7 +90,7 @@ jobs:
           if [[ -z "$root" ]]; then
             # Empty root is represented by a sentinel so it can still be distinguished
             # from "no candidate succeeded".
-            if curl "${common[@]}" --upload-file /tmp/residim-health.txt "ftp://$server/residim-probe.txt" >/dev/null 2>&1; then
+            if curl "${probe_common[@]}" --upload-file /tmp/residim-health.txt "ftp://$server/residim-probe.txt" >/dev/null 2>&1; then
               root="."
             else
               echo "No writable web-root candidate found. FTP credentials work for the isolated smoke directory, but not the expected web root."
