@@ -37,7 +37,8 @@ jobs:
           server="${server%/}"
           # The account document root was byte-verified as . on 2026-10-04.
           # Retain the existing dev FTPS certificate exception; no host files are deleted.
-          common=(--fail --silent --show-error --connect-timeout 15 --max-time 75 --retry 2 --retry-delay 2 --ftp-pasv --ftp-method singlecwd --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD")
+          common=(--fail --silent --show-error --connect-timeout 15 --max-time 75 --retry 2 --retry-delay 2 --ftp-pasv --ftp-method multicwd --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD")
+          # multicwd creates each parent directory; singlecwd cannot create a new nested tree.
           upload_verified() {
             local source="$1" target="$2" temp rc=0
             temp="$(mktemp)"
