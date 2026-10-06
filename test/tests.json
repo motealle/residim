@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "title": "مدار آرام",
+    "direction": "خلاق تیره",
+    "sha256": "42ae1733b53df4d229dec0455aa0efcbaa3806b52f3bd1fdec1e854acefb8042"
+  },
+  {
+    "id": 2,
+    "title": "استودیوی همراه",
+    "direction": "DaisyUI",
+    "sha256": "2eddcb3572c525a7038053b00e4c566cece4ec83184d96ab0fb51a767b2495f1"
+  },
+  {
+    "id": 3,
+    "title": "هفته روشن",
+    "direction": "الهام از Material",
+    "sha256": "bad1930540762664a0868bfe570d4521bf7b6f93ef26d43f1751a3a262b18f5a"
+  }
+]

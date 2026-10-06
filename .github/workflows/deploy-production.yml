@@ -6,6 +6,8 @@ on:
     paths:
       - "landing/**"
       - "app/**"
+      - "test/**"
+      - "scripts/design_lab.py"
       - "BACKLOG.md"
       - "README.md"
       - ".github/workflows/deploy-production.yml"
@@ -49,6 +51,9 @@ jobs:
           set -euo pipefail
           node --check landing/landing.js
           node --check app/app.js
+          node --check test/assets/v1/lab.js
+          node --check test/sw.js
+          python3 scripts/design_lab.py --check
           if command -v php >/dev/null 2>&1; then
             find app/api -maxdepth 1 -name '*.php' ! -name 'config.local.php' -print0 | xargs -0 -n1 php -l
           fi
@@ -200,6 +205,24 @@ jobs:
 
           upload /tmp/residim-health.txt app/health.txt
           upload landing/index.html index.html
+
+          # Keep /test snapshots, publish dependencies then pages and index last.
+          while IFS= read -r -d '' file; do
+            upload "$file" "$file"
+          done < <(find test -type f ! -name '*.html' ! -name '*.md' ! -name 'hashes.json' ! -name 'tests.json' -print0)
+          while IFS= read -r -d '' file; do
+            upload "$file" "$file"
+          done < <(find test -mindepth 2 -type f -name '*.html' -print0)
+          upload test/offline.html test/offline.html
+          upload test/index.html test/index.html
+
+          # Successful STOR also needs byte-for-byte read-back for test files.
+          while IFS= read -r -d '' file; do
+            tmp_test="$(mktemp)"
+            curl "${probe_common[@]}" "${method_args[@]}" --output "$tmp_test" "ftp://$server/${base}${file}"
+            cmp -s "$file" "$tmp_test" || { echo "Test read-back mismatch: $file"; rm -f "$tmp_test"; exit 1; }
+            rm -f "$tmp_test"
+          done < <(find test -type f ! -name '*.md' ! -name 'hashes.json' ! -name 'tests.json' -print0)
 
           tmp_root="$(mktemp)"
           tmp_app="$(mktemp)"
