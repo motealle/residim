@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "رسیدیم — آزمایشگاه طراحی",
+  "short_name": "طرح‌های رسیدیم",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101524",
+  "theme_color": "#101524",
+  "icons": [
+    {
+      "src": "assets/v1/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/v1/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

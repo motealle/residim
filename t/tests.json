@@ -1,0 +1,31 @@
+[
+  {
+    "id": 1,
+    "folder": "01",
+    "title": "قرار مشترک",
+    "direction": "لندینگ + تجربه هفته، حساب و گروه",
+    "files": {
+      "app/app.css": "f6a01eaa3c893a794216d7b1986cecaad8823d0a3194584da426ab90347e0866",
+      "app/app.js": "4c0e8fdd174484357cf61107895adbceaedfa7eccda10635e2fb119bc89c1aa3",
+      "app/index.html": "ca968b0db6eab704661dacdbafe1dba5c915a29ee9ddf658cb5180a7e3817434",
+      "assets/DAISYUI-LICENSE.txt": "8709e3ac65c84637c422dc8082b893d9997fce093751c77b2f1983bf29dbf9ea",
+      "assets/SAHEL-LICENSE.txt": "4de56cc5fc458113a5704ec4d850191e640396008a6e45ff2a70d67ea6c5c74f",
+      "assets/VAZIRMATN-LICENSE.txt": "17e355067c8284f47743a1ee3b1ef7ff684ff0601eda357f9353b10b3016ab31",
+      "assets/daisyui.css": "309e92e81b263900c37dd3c7c688f92b7efe38a7ee2af982f249353283a63fd5",
+      "assets/gsap.min.js": "96c01b81f44a3290e2b4532f55e2c9534b2adc43273a19f3756b2cb41f0fd0b6",
+      "assets/icon-192.png": "8dd8d9a202504729b1e729ffc7e1be77d14868688c91117127bcb8abe4092ec4",
+      "assets/icon-512.png": "a9afb89b80450416613a8c0a95cfee599d92c4a875668bda51ac257f9ac48a25",
+      "assets/icon.svg": "aaf7e2727da44fb8fa642aff77666961ffae11a90034abcf7fa0e05384dde3ac",
+      "assets/route.svg": "c52ca3ac4d378ce270fdd38372e408221388aa0012054f3728aaaa1fac5d7c7c",
+      "assets/sahel-bold.woff2": "162c05c4a6c2e975b07390f923425bb5e170e00c8bd3deccd784f6cb4326d289",
+      "assets/site.js": "58d092d6b139cde3928a472fc1a62cdf5d0ab08439b2dd853d8bb24a9507fbba",
+      "assets/styles.css": "6f529e5ff4c88ac007328e951dc62e6746368cb9f331405edd8bffb585e46e53",
+      "assets/vazirmatn.woff2": "e382101336c6eb32cfb31381c027d02d2e0354bad08f6a395d4088beb3db3d91",
+      "index.htm": "f83f6805c3a02e17b6c3a91e2c6b8878c7a8ef3cfb2937ff4042e9f5203291e0",
+      "index.html": "f83f6805c3a02e17b6c3a91e2c6b8878c7a8ef3cfb2937ff4042e9f5203291e0",
+      "manifest.webmanifest": "1bc90a29bc3417657a4ad159e5ae4a6aa96e50a0989aac4b10836c99ff85a992",
+      "offline.html": "24ecc70330f6b928d09f3cfe97c0b7b8deb798298650ce2ab6e734755025c3d1",
+      "sw.js": "068f0243ab89ba5134a8b4ac1e78a6fc430ba84f8c4b127fbb2e2eff517e6604"
+    }
+  }
+]
