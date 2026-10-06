@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "رسیدیم — تجربه نمونه ۰۱",
+  "short_name": "رسیدیم ۰۱",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "app/",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#15151a",
+  "theme_color": "#15151a",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ]
+}
