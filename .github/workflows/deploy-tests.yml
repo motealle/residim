@@ -19,14 +19,18 @@ jobs:
       FTP_PASSWORD: ${{ secrets.FTP_PASSWORD_RESIDIM_IR }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: Check immutable tests and source
+        env:
+          BASE_REF: ${{ github.event.before }}
         run: |
           set -euo pipefail
           python3 scripts/design_lab.py --check
-          node --check t/01/assets/site.js
-          node --check t/01/app/app.js
-          node --check t/01/sw.js
-          python3 -c 'import json; json.load(open("t/01/manifest.webmanifest"))'
+          if [ -z "$BASE_REF" ] || [[ "$BASE_REF" =~ ^0+$ ]]; then BASE_REF="HEAD^"; fi
+          python3 scripts/design_lab.py --check --base-ref "$BASE_REF"
+          while IFS= read -r -d '' file; do node --check "$file"; done < <(find t -name '*.js' -print0)
+          python3 -c 'import json,pathlib; [json.loads(p.read_text()) for p in pathlib.Path("t").rglob("*.webmanifest")]'
       - name: Publish only numbered test folders and index
         shell: bash
         run: |
@@ -42,6 +46,24 @@ jobs:
           upload_verified() {
             local source="$1" target="$2" temp rc=0
             temp="$(mktemp)"
+            # Frozen snapshots are read-only once present, even for identical content.
+            if [[ "$target" =~ ^t/[0-9]+/ ]]; then
+              if curl "${common[@]}" --output "$temp" "ftp://$server/$target"; then
+                if cmp -s "$source" "$temp"; then
+                  echo "Unchanged, no write: $target"
+                  rm -f "$temp"
+                  return 0
+                fi
+                rm -f "$temp"
+                echo "Refusing to overwrite immutable remote file: $target"
+                return 1
+              else
+                rc=$?
+                # curl 78 means the remote file does not exist; other errors must stop.
+                if [ "$rc" -ne 78 ]; then rm -f "$temp"; return "$rc"; fi
+                rc=0
+              fi
+            fi
             curl "${common[@]}" --ftp-create-dirs --upload-file "$source" "ftp://$server/$target" || rc=$?
             # Some servers return code 56 after successfully accepting STOR.
             if curl "${common[@]}" --output "$temp" "ftp://$server/$target" && cmp -s "$source" "$temp"; then

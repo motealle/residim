@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Freeze numbered /t/NN snapshots and build a newest-first three-column index."""
-import argparse,hashlib,html,json,shutil,tempfile
+import argparse,hashlib,html,json,shutil,tempfile,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];LAB=ROOT/'t'
 def hashes(folder):return {p.relative_to(folder).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(folder.rglob('*')) if p.is_file()}
@@ -11,13 +11,20 @@ def read():
   if row['folder']!=f"{row['id']:02d}":raise ValueError('Use zero-padded folder numbers')
   if hashes(LAB/row['folder'])!=row['files']:raise ValueError('Frozen test changed: '+row['folder'])
  return rows
+def check_base(rows,ref):
+ old=json.loads(subprocess.check_output(['git','show',ref+':t/tests.json'],cwd=ROOT,text=True))
+ if rows[:len(old)]!=old:raise ValueError('Frozen registry entries changed')
+ for row in old:
+  changed=subprocess.check_output(['git','diff','--name-only',ref,'HEAD','--','t/'+row['folder']+'/'],cwd=ROOT,text=True)
+  if changed.strip():raise ValueError('Previously published snapshot changed: '+row['folder'])
 def render(rows):
  p=LAB/'index.html';s=p.read_text();start=s.index('<nav class="test-grid"');end=s.index('</nav>',start)+len('</nav>')
  links=''.join('<a class="test-button" href="'+row['folder']+'/"><span class="test-number">'+row['folder'].translate(str.maketrans('0123456789','۰۱۲۳۴۵۶۷۸۹'))+'</span><strong>'+html.escape(row['title'])+'</strong><small>'+html.escape(row['direction'])+'</small></a>' for row in reversed(rows))
  s=s[:start]+'<nav class="test-grid" aria-label="تست‌های رسیدیم">'+links+'</nav>'+s[end:]
  p.write_text(s);(LAB/'index.htm').write_text(s)
 def main():
- a=argparse.ArgumentParser(description=__doc__);a.add_argument('--source',type=Path);a.add_argument('--title');a.add_argument('--direction');a.add_argument('--check',action='store_true');args=a.parse_args();rows=read()
+ a=argparse.ArgumentParser(description=__doc__);a.add_argument('--source',type=Path);a.add_argument('--title');a.add_argument('--direction');a.add_argument('--check',action='store_true');a.add_argument('--base-ref');args=a.parse_args();rows=read()
+ if args.base_ref:check_base(rows,args.base_ref)
  if args.check:print(f'PASS: {len(rows)} immutable numbered tests');return
  if args.source:
   source=args.source.resolve()

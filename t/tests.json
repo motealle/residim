@@ -27,5 +27,35 @@
       "offline.html": "24ecc70330f6b928d09f3cfe97c0b7b8deb798298650ce2ab6e734755025c3d1",
       "sw.js": "068f0243ab89ba5134a8b4ac1e78a6fc430ba84f8c4b127fbb2e2eff517e6604"
     }
+  },
+  {
+    "id": 2,
+    "folder": "02",
+    "title": "هفته رنگی",
+    "direction": "Material واقعی · اپ‌مانند · فیروزه‌ای و نیلی",
+    "files": {
+      "BUILD.md": "e2230b1fdad573352e99c91b3a7b8354201d8e8cf4dccdc70e8f11c22d4f91ab",
+      "assets/LIT-LICENSES.txt": "5dc572b2087ecf8a61e4d2667fd48276412d1eceaf54bfe0c97a3fe27803c7e9",
+      "assets/MATERIAL-LICENSE.txt": "295cdb4364b782931c914f5ca8c47fac87c732fa7e448b788a47aa5b25728212",
+      "assets/SAHEL-LICENSE.txt": "4de56cc5fc458113a5704ec4d850191e640396008a6e45ff2a70d67ea6c5c74f",
+      "assets/VAZIRMATN-LICENSE.txt": "17e355067c8284f47743a1ee3b1ef7ff684ff0601eda357f9353b10b3016ab31",
+      "assets/app.css": "d82d7e2a3ef6c959b9132a46939803efea77e0a8678cdfade4552953209d4520",
+      "assets/app.js": "35f0e327b46fb395b034cfe6ce8207f8aeec7c5d104fc9ae3b4f292a0be4ef00",
+      "assets/icon-192.png": "a187baf0281bdafd6003417749901e49d3c9b236a89a3c3c46b7b5aabc631eea",
+      "assets/icon-512.png": "34f5021d625f99e65198e99404061006628c3213392c539094b12b6e04a39844",
+      "assets/icon.svg": "086bc1be966daa457df8de4d779141212fe15e2fb6f49cfbd151bc248210fab2",
+      "assets/material.js": "b80899ecef332125b183b572efd1dc58f1f622d434e11184f58ceb870f78cb46",
+      "assets/model.js": "5af2e5610d303d7b90e636f8e8147867f3a0686b07e988625d8041909003bb38",
+      "assets/sahel-bold.woff2": "162c05c4a6c2e975b07390f923425bb5e170e00c8bd3deccd784f6cb4326d289",
+      "assets/tokens.css": "f373a23e7ae9837c7b657edc6637d26bc3b05dec2906361519041ef724ae2964",
+      "assets/vazirmatn.woff2": "e382101336c6eb32cfb31381c027d02d2e0354bad08f6a395d4088beb3db3d91",
+      "build/entry.js": "ba9ecca5f88e87c4f3b60aa05137a3ac94078ced9b470657f02690ced3239994",
+      "build/package-lock.json": "fe3432534a4b8bca3f8703ef80cdc68a3f869e16fec75319fa92723217b5b62e",
+      "build/package.json": "4785597218af301753e8e2999de02239d6593265ca8a7adae0af825d9e64b221",
+      "index.htm": "3470945ea4cf13b5c90d38694a98939354bda35903e3657461ce9feed9111b11",
+      "index.html": "3470945ea4cf13b5c90d38694a98939354bda35903e3657461ce9feed9111b11",
+      "manifest.webmanifest": "177aa6039425f1162d01fe873851038f1a808070bc143e4e5e346c4748b129f1",
+      "sw.js": "d11d295fa1bf9c12bf975fde7c8019b375ec01a2ebbc1f61ad3ec41ab62110ad"
+    }
   }
 ]

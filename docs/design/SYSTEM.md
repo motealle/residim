@@ -47,3 +47,7 @@
 - [GSAP](https://gsap.com/docs/v3/GSAP/)، [Three.js](https://threejs.org/docs/)، [PWA](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
 
 این مقایسه فهرست مسیرهای آزمایش است، نه رتبه‌بندی اثبات‌شده بهترین سیستم جهان.
+
+## نسخه‌های رسمی /t/
+
+جدول طرح‌های بالاتر مربوط به پیش‌نویس‌های تاریخی test/ است. نسخه رسمی ۰۱ «قرار مشترک» با DaisyUI و GSAP منتشر و ثابت شده است. نسخه رسمی ۰۲ «هفته رنگی» مستقیماً به هفته باز می‌شود و @material/web 2.5.0 واقعی، پالت Teal/Indigo/Amber، منطق مستقل و پوسته PWA محلی دارد. تیره/روشن فقط تغییر توکن است. Material Web در maintenance است؛ تثبیت نسخه آزمایش به معنی انتخاب نهایی چارچوب تولید نیست.
