@@ -1,0 +1,50 @@
+name: Verify public numbered test snapshots
+on:
+  workflow_run:
+    workflows: ["Publish Residim numbered tests"]
+    types: [completed]
+  push:
+    branches: [main]
+    paths: [".github/workflows/check-tests-public.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - name: Compare HTTPS files with every immutable snapshot
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from concurrent.futures import ThreadPoolExecutor
+          import json, subprocess, time
+          root = Path('.')
+          rows = json.loads((root/'t/tests.json').read_text())
+          def fetch(path):
+              return subprocess.run(['curl','--fail','--silent','--show-error','--connect-timeout','15','--max-time','45','--retry','2','https://residim.ir/'+path],capture_output=True)
+          # A push to this check's own workflow may precede an ongoing deployment.
+          for attempt in range(24):
+              response = fetch('t/index.html')
+              if response.returncode == 0 and response.stdout == (root/'t/index.html').read_bytes():
+                  break
+              if attempt == 23:
+                  raise SystemExit('Public launcher did not match the release')
+              time.sleep(5)
+          paths = ['t/'+row['folder']+'/'+name for row in rows for name in row['files'] if not name.endswith('.md')]
+          paths += ['t/index.html','t/index.htm']
+          def check(path):
+              response = fetch(path)
+              if response.returncode or response.stdout != (root/path).read_bytes():
+                  raise RuntimeError('HTTPS mismatch or unavailable: '+path)
+              print('Verified HTTPS: '+path, flush=True)
+          with ThreadPoolExecutor(max_workers=5) as pool:
+              list(pool.map(check,paths))
+          print('PASS: '+str(len(paths))+' public files byte-identical; previous snapshots unchanged')
+          PY
