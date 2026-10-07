@@ -42,12 +42,20 @@ jobs:
           # The account document root was byte-verified as . on 2026-10-04.
           # Retain the existing dev FTPS certificate exception; no host files are deleted.
           common=(--fail --silent --show-error --connect-timeout 15 --max-time 75 --retry 2 --retry-delay 2 --ftp-pasv --ftp-method multicwd --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD")
+          # The published launcher identifies already released folders. Never infer
+          # that a previous release is missing from a failed connection/CWD request.
+          curl "${common[@]}" --output /tmp/residim-published-index.html "ftp://$server/t/index.html"
+          published_folders="$(python3 -c 'import re,pathlib; print(" ".join(re.findall(r"class=\"test-button\" href=\"([0-9]+)/\"", pathlib.Path("/tmp/residim-published-index.html").read_text())))')"
+          test -n "$published_folders"
           # multicwd creates each parent directory; singlecwd cannot create a new nested tree.
           upload_verified() {
-            local source="$1" target="$2" temp rc=0
+            local source="$1" target="$2" temp folder rc=0
             temp="$(mktemp)"
             # Frozen snapshots are read-only once present, even for identical content.
             if [[ "$target" =~ ^t/[0-9]+/ ]]; then
+              folder="${target#t/}"
+              folder="${folder%%/*}"
+              echo "Read-only probe: $target"
               if curl "${common[@]}" --output "$temp" "ftp://$server/$target"; then
                 if cmp -s "$source" "$temp"; then
                   echo "Unchanged, no write: $target"
@@ -59,8 +67,11 @@ jobs:
                 return 1
               else
                 rc=$?
-                # curl 78 means the remote file does not exist; other errors must stop.
-                if [ "$rc" -ne 78 ]; then rm -f "$temp"; return "$rc"; fi
+                # A published snapshot must be readable; no failed read authorizes writes.
+                if [[ " $published_folders " == *" $folder "* ]]; then rm -f "$temp"; return "$rc"; fi
+                # New folders: 78 = absent file, 9 = absent parent (this host).
+                # Upload still must succeed and read back; connection/auth errors stop.
+                if [ "$rc" -ne 78 ] && [ "$rc" -ne 9 ]; then rm -f "$temp"; return "$rc"; fi
                 rc=0
               fi
             fi
