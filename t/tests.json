@@ -97,5 +97,26 @@
       "manifest.webmanifest": "33fe0e20e0afa1b879173c81586ad171a65b145b63f112999c0dba753b3e0cdc",
       "sw.js": "5a478c25676d0b97fd476611cf3dd395c1a46aa23a0e0c96538d862f12b9b7b3"
     }
+  },
+  {
+    "id": 5,
+    "folder": "05",
+    "title": "مامان، بابا، رسیدیم!",
+    "direction": "فاز صفر: لینک مدرسه، ویزارد، نقشه و تیم‌سازی · سبز · روز و شب",
+    "files": {
+      "assets/QRCODE-LICENSE.txt": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
+      "assets/VAZIRMATN-LICENSE.txt": "17e355067c8284f47743a1ee3b1ef7ff684ff0601eda357f9353b10b3016ab31",
+      "assets/app.css": "2bce18a6f3e12583d4498dac42945e10b05f124b13dcede5266a3124881b4b0b",
+      "assets/app.js": "bffa640796788a6d02eeeb0f62b16be6cc959397983545c838e13f6f3c43de7e",
+      "assets/icon-192.png": "05d6a8a17b5995a5b704bacc3814ab52d43eda95225d2a3f8186b4a748a8aab6",
+      "assets/icon-512.png": "8d2ede49583155cb2796a44a67342acccb8600dc9937eb7bb21407d74d68c8a0",
+      "assets/icon.svg": "f2db2a40617725684d63cd7f299ee754f54e0ed6143e9ea11adad0e49292dc38",
+      "assets/qrcode.js": "79ec86f82856005b1c887905cfccfcfbec3821ca61c7fd5a952faa5f778f791c",
+      "assets/vazirmatn.woff2": "e382101336c6eb32cfb31381c027d02d2e0354bad08f6a395d4088beb3db3d91",
+      "index.html": "ec487048719a99f601f13265f8a246217207c75acf502cbcc73a2ef6866b5963",
+      "manifest.webmanifest": "72c5b742b51d6b33936d0c4f1f58cd90be4f5f261d2fe766f63a10eb0b85efac",
+      "radio.json": "f66283bfaed30624763716902e299d7f48b1aad5ff9773d29ebd089ad495b501",
+      "sw.js": "8fa51a7895691c29b44f9b0deb41120d02b63c6fae77e12328dd269777a2979e"
+    }
   }
 ]

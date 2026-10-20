@@ -47,7 +47,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --check landing/landing.js
+          node --check landing/assets/app.js
+          node --check landing/sw.js
           node --check app/app.js
           if command -v php >/dev/null 2>&1; then
             find app/api -maxdepth 1 -name '*.php' ! -name 'config.local.php' -print0 | xargs -0 -n1 php -l
@@ -187,9 +188,12 @@ jobs:
 
           # Publish dependencies first and HTML last.
           upload /tmp/residim-health.txt health.txt
-          upload landing/landing.css assets/landing.css
-          upload landing/landing.js assets/landing.js
-          upload landing/residim-mark.svg assets/residim-mark.svg
+          # Root product (landing/**) except its HTML, which is published last.
+          while IFS= read -r -d '' file; do
+            rel="${file#landing/}"
+            [[ "$rel" == "index.html" ]] && continue
+            upload "$file" "$rel"
+          done < <(find landing -type f -print0)
 
           while IFS= read -r -d '' file; do
             rel="${file#app/}"
