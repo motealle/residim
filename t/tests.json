@@ -57,5 +57,25 @@
       "manifest.webmanifest": "177aa6039425f1162d01fe873851038f1a808070bc143e4e5e346c4748b129f1",
       "sw.js": "d11d295fa1bf9c12bf975fde7c8019b375ec01a2ebbc1f61ad3ec41ab62110ad"
     }
+  },
+  {
+    "id": 3,
+    "folder": "03",
+    "title": "مسیر امروز",
+    "direction": "یک نوبت بعدی روشن · شفاف · تیره و گرم · نصب‌پذیر",
+    "files": {
+      "assets/SAHEL-LICENSE.txt": "4de56cc5fc458113a5704ec4d850191e640396008a6e45ff2a70d67ea6c5c74f",
+      "assets/VAZIRMATN-LICENSE.txt": "17e355067c8284f47743a1ee3b1ef7ff684ff0601eda357f9353b10b3016ab31",
+      "assets/app.css": "5718ce7d3c703fe48010ee6930de5a423404c3a1a2c2b97af5ee43726cb8c0da",
+      "assets/app.js": "957bdb3f0f6f12ed4eb96e0783c36d21853654ad5cd7f7de90af1d2585e2cfee",
+      "assets/icon-192.png": "a187baf0281bdafd6003417749901e49d3c9b236a89a3c3c46b7b5aabc631eea",
+      "assets/icon-512.png": "34f5021d625f99e65198e99404061006628c3213392c539094b12b6e04a39844",
+      "assets/icon.svg": "086bc1be966daa457df8de4d779141212fe15e2fb6f49cfbd151bc248210fab2",
+      "assets/sahel-bold.woff2": "162c05c4a6c2e975b07390f923425bb5e170e00c8bd3deccd784f6cb4326d289",
+      "assets/vazirmatn.woff2": "e382101336c6eb32cfb31381c027d02d2e0354bad08f6a395d4088beb3db3d91",
+      "index.html": "e78ba3dcda0b75a8eddbfe674d332fca258343e9544d4cbbf4150ffbf5a9bbe6",
+      "manifest.webmanifest": "d954ec83984fbb9fb6c9c162863d6c23c8abe8e3c040a8f0ab0b7f90d164fb6c",
+      "sw.js": "8b452e03b4352adf7b02a8c0bb0fb79c4d1b5f044a3d878e5ec9ce9f5f2c4ed7"
+    }
   }
 ]
