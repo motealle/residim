@@ -77,5 +77,25 @@
       "manifest.webmanifest": "d954ec83984fbb9fb6c9c162863d6c23c8abe8e3c040a8f0ab0b7f90d164fb6c",
       "sw.js": "8b452e03b4352adf7b02a8c0bb0fb79c4d1b5f044a3d878e5ec9ce9f5f2c4ed7"
     }
+  },
+  {
+    "id": 4,
+    "folder": "04",
+    "title": "هم‌سفر",
+    "direction": "ارزش‌ها و حساب منصفانه · راهنمای ساخت گروه · شب و روز · PWA",
+    "files": {
+      "assets/SAHEL-LICENSE.txt": "4de56cc5fc458113a5704ec4d850191e640396008a6e45ff2a70d67ea6c5c74f",
+      "assets/VAZIRMATN-LICENSE.txt": "17e355067c8284f47743a1ee3b1ef7ff684ff0601eda357f9353b10b3016ab31",
+      "assets/app.css": "5e155b5bbeb4d0aa0260e2b1321794a1dabe7e0c354f92e8a0f5d9cfffdacdfc",
+      "assets/app.js": "1acc5348383ff99afcfcc8f597ffe3c2b485ec8dd55813942822cc05f553c8a5",
+      "assets/icon-192.png": "a187baf0281bdafd6003417749901e49d3c9b236a89a3c3c46b7b5aabc631eea",
+      "assets/icon-512.png": "34f5021d625f99e65198e99404061006628c3213392c539094b12b6e04a39844",
+      "assets/icon.svg": "086bc1be966daa457df8de4d779141212fe15e2fb6f49cfbd151bc248210fab2",
+      "assets/sahel-bold.woff2": "162c05c4a6c2e975b07390f923425bb5e170e00c8bd3deccd784f6cb4326d289",
+      "assets/vazirmatn.woff2": "e382101336c6eb32cfb31381c027d02d2e0354bad08f6a395d4088beb3db3d91",
+      "index.html": "2f142d020005f09f6598acbecd03cac03ebff6b5d48a50e6d0a9b319ea4f5175",
+      "manifest.webmanifest": "33fe0e20e0afa1b879173c81586ad171a65b145b63f112999c0dba753b3e0cdc",
+      "sw.js": "5a478c25676d0b97fd476611cf3dd395c1a46aa23a0e0c96538d862f12b9b7b3"
+    }
   }
 ]

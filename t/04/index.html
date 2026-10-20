@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07070a" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3efe7" media="(prefers-color-scheme: light)">
+<meta name="description" content="رسیدیم؛ نوبت‌ها روشن، خیال‌ها جمع. رفت‌وآمد مشترک خانواده‌ها، همکاران و هم‌دانشگاهی‌ها با حساب شفاف و احترام به ارزش‌های هر خانواده.">
+<meta name="robots" content="noindex,nofollow">
+<title>رسیدیم · هم‌سفر</title>
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="assets/app.css">
+<script>try{var t=JSON.parse(localStorage.getItem('residim-04-v1')||'{}').theme;if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<script src="assets/app.js" defer></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-today" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
+  <symbol id="i-week" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="4"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h2M14 14h2"/></symbol>
+  <symbol id="i-money" viewBox="0 0 24 24"><path d="M4 7.5h16v11H4zM4 7.5 12 4l8 3.5"/><circle cx="12" cy="13" r="2.5"/></symbol>
+  <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0M16 5a3 3 0 0 1 0 6M17.5 14.5a5 5 0 0 1 3 5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.2 4L19 7"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.1 9.6 4.5 4.5 0 0 0 7 18.5Z"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15ZM10 20.5a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10Z"/></symbol>
+</svg>
+
+<div class="grain" aria-hidden="true"></div>
+
+<div class="app">
+  <header class="bar">
+    <a class="brand" href="../" aria-label="رسیدیم؛ فهرست طرح‌ها">
+      <img src="assets/icon.svg" width="34" height="34" alt="">
+      <span><b>رسیدیم</b><small id="group-name">هم‌سفر</small></span>
+    </a>
+    <div class="bar-tools">
+      <button class="sync" id="sync" data-a="sync" aria-label="وضعیت ذخیره و همگام‌سازی"><i></i><span>روی گوشی ذخیره شد</span></button>
+      <button class="icon-btn" data-a="wizard" aria-label="راهنمای ساخت گروه"><svg><use href="#i-spark"/></svg></button>
+      <button class="icon-btn" data-a="theme" aria-label="تغییر حالت شب و روز"><svg><use href="#i-moon"/></svg></button>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1"></main>
+
+  <nav class="dock" aria-label="منوی اصلی">
+    <button data-tab="today"><svg><use href="#i-today"/></svg><span>امروز</span></button>
+    <button data-tab="week"><svg><use href="#i-week"/></svg><span>هفته</span></button>
+    <button data-tab="money"><svg><use href="#i-money"/></svg><span>حساب</span></button>
+    <button data-tab="group"><svg><use href="#i-people"/></svg><span>هم‌سفرها</span></button>
+  </nav>
+</div>
+
+<div id="sheet-root"></div>
+<div id="intro-root"></div>
+<p class="toast" id="toast" role="status" aria-live="polite"></p>
+<noscript><p style="padding:24px">برای استفاده از رسیدیم، جاوااسکریپت مرورگر را فعال کنید.</p></noscript>
+</body>
+</html>
