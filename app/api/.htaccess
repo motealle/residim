@@ -1,5 +1,5 @@
 Options -Indexes
-<FilesMatch "^(bootstrap|config\.example|config\.local)\.php$">
+<FilesMatch "^((bootstrap|config\.example|config\.local)\.php|quiz_pack\.json)$">
   Require all denied
 </FilesMatch>
 <IfModule mod_headers.c>
