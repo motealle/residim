@@ -12,14 +12,14 @@
 </IfModule>
 # END cPanel-generated php ini directives, do not edit
 
-# BEGIN Residim (short links: residim.ir/ABCD2345 -> app)
+# BEGIN Residim (short links: residim.ir/ABCD2345 -> app with link preview)
 Options -Indexes
 <IfModule mod_rewrite.c>
 RewriteEngine On
 RewriteBase /
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^([A-Z2-9]{8})/?$ index.html [L]
+RewriteRule ^([A-Za-z2-9]{8})/?$ app/api/share.php?c=$1 [L,QSA]
 </IfModule>
 <IfModule mod_mime.c>
 AddType application/manifest+json .webmanifest

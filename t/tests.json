@@ -142,5 +142,30 @@
       "radio.json": "f66283bfaed30624763716902e299d7f48b1aad5ff9773d29ebd089ad495b501",
       "sw.js": "08a2a32bfbb056a051016ba0a80da0ade44bec7af1da1a723d6c41f249e0c06f"
     }
+  },
+  {
+    "id": 7,
+    "folder": "07",
+    "title": "مسیرک‌ها، بدون بن‌بست",
+    "direction": "تأیید شماره‌ی منعطف · انتخاب روی نقشه · گفتگوی تیم · لینک کوتاه با پیش‌نمایش",
+    "files": {
+      "assets/MAPLIBRE-LICENSE.txt": "ee5fc05a0677eaf69601d2c7db0d9ecd6cc27c3abc1d0733bc9ed34707cf8ef2",
+      "assets/QRCODE-LICENSE.txt": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
+      "assets/VAZIRMATN-LICENSE.txt": "17e355067c8284f47743a1ee3b1ef7ff684ff0601eda357f9353b10b3016ab31",
+      "assets/app.css": "fc1cfbeee4a952e0a60fccc8a3550bbb0e27ee826bfddcad4e3b4329300b22a2",
+      "assets/app.js": "a02c0dc56013951384c546ee34400660eb0c52a79da279de9c1d6f13d23e340a",
+      "assets/icon-192.png": "85c13beb4d19a25568e8dbbc09485ebbd85002adc2e243f8f1fe07898c0e4856",
+      "assets/icon-512.png": "86afeb01c1de08ab11f9d9d70309c4b41744dae3abbb66626d03c338d63fe727",
+      "assets/icon.svg": "3e5ef4d6f5a3ffeed967d922f30875731000f0591b1a906f49b9cf2da2c54c8d",
+      "assets/maplibre-gl.css": "792ac997dcf6ae6f643eb4e2dee4630c85e7056526bd8fb85ffe83c67d6c41b4",
+      "assets/maplibre-gl.js": "07e6ca71a5b6d835a7c3803fb484f0a6e5f0dcbfa131407666edb9e9316564f9",
+      "assets/og.png": "75b0f6b274d07f2c9930f1d25a25f0bd67f4b3b0c9d00d14697b1efd8200673a",
+      "assets/qrcode.js": "79ec86f82856005b1c887905cfccfcfbec3821ca61c7fd5a952faa5f778f791c",
+      "assets/vazirmatn.woff2": "e382101336c6eb32cfb31381c027d02d2e0354bad08f6a395d4088beb3db3d91",
+      "index.html": "073b2c87dd96fa6a284ce1a68c4fc589d4a083ff442108a37831e4adf7b192e8",
+      "manifest.webmanifest": "845a76baa6e1ea86899dd0eff044ca476a05b171419dd7b162b679e4c9010fc4",
+      "radio.json": "f66283bfaed30624763716902e299d7f48b1aad5ff9773d29ebd089ad495b501",
+      "sw.js": "9073984aa38739fc25b2cc3958af0d25bcaca3075984ca4ff1f30a1220e24a05"
+    }
   }
 ]

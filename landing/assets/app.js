@@ -34,7 +34,8 @@ const COLORS = [
   { c: '#22C55E', i: '#04140B' }, { c: '#2563EB', i: '#FFFFFF' }, { c: '#F97316', i: '#1A0D00' }, { c: '#DB2777', i: '#FFFFFF' },
   { c: '#7C3AED', i: '#FFFFFF' }, { c: '#F59E0B', i: '#1A1400' }, { c: '#0D9488', i: '#FFFFFF' }, { c: '#DC2626', i: '#FFFFFF' }
 ];
-const VALUES = { religious: 'خانواده‌ای مذهبی باشند', nomusic: 'موسیقی پخش نشود', parent: 'راننده حتماً از والدین باشد', samegender: 'راننده هم‌جنس فرزندم باشد', quiet: 'گفتگوی کم و محترمانه' };
+const VALUES = { religious: 'خانواده‌ای مذهبی باشند', nomusic: 'موسیقی پخش نشود', parent: 'راننده حتماً از والدین باشد', samegender: 'راننده هم‌جنس فرزندم باشد', quiet: 'تعامل و گفتگوی محترمانه' };
+const PICKUP = { door: 'دمِ در خانه سوار شویم', flex: 'تا سر کوچه (حدود ۱۰۰ متر) هم می‌آییم' };
 const CITIES = ['تهران','کرج','مشهد','اصفهان','شیراز','تبریز','قم','اهواز','رشت','کرمان','یزد','ارومیه','همدان','سایر'];
 const HOOK = {
   child: 'اگر هم‌محله و هم‌مسیریم، چرا هر کدام جدا؟ بچه‌ها را نوبتی ببریم و بیاوریم؛ وقت آزاد، خرج نصف، خیال راحت.',
@@ -58,7 +59,7 @@ async function api(a, body, admin) {
   let j; try { j = await r.json(); } catch (e) { const er = new Error('سرور پاسخ درستی نداد.'); er.code = 'net'; throw er; }
   if (!j.ok) {
     if (j.error === 'auth' && !admin && S.token) { S.token = null; P = []; persist(); }
-    const er = new Error(j.message || 'خطا'); er.code = j.error; throw er;
+    const er = new Error(j.message || 'خطا'); er.code = j.error; er.pcode = j.pcode; throw er;
   }
   return j;
 }
@@ -310,10 +311,11 @@ function home() {
   const dr = S.drafts[0];
   return `<section class="hero-g"><span class="small" style="font-weight:800">سرویس مشارکتی!</span><h1>مامان، بابا،<br>رسیدیم!</h1>
     <p>هم‌مسیرهای نزدیک‌تان را پیدا کنید، تیم شوید و نوبتی ببرید و بیاورید؛ برای مدرسه، مهد، آموزشگاه، باشگاه، محل کار و دانشگاه.</p>
-    <div class="row wrap">${dr ? `<button class="btn" data-a="resume-draft">ادامه‌ی ثبت‌نام «${esc(dr.label || 'پرونده')}»</button>` : `<button class="btn" data-a="new-profile">شروع کنیم؛ ۲ دقیقه</button>`}<button class="btn line" data-a="login">قبلاً ثبت‌نام کرده‌ام</button></div>${artCar('deco')}</section>
+    <div class="row wrap">${dr ? `<button class="btn" data-a="resume-draft">ادامه‌ی ثبت‌نام «${esc(dr.label || 'مسیرک')}»</button>` : `<button class="btn" data-a="new-profile">شروع کنیم؛ ۲ دقیقه</button>`}<button class="btn line" data-a="login">قبلاً ثبت‌نام کرده‌ام</button></div>${artCar('deco')}</section>
   <section class="card stack" style="margin-top:14px"><h2>برای کجا هم‌مسیر می‌خواهید؟</h2>
     <div class="kinds">${Object.entries(KINDS).filter(([k]) => k !== 'other').map(([k, v]) => `<button class="choice" data-a="new-profile" data-kind="${k}">${kindIc(k, true)}${v.n}</button>`).join('')}</div></section>
-  <section class="card stack" style="margin-top:14px"><h2>کد یا لینک دعوت دارید؟</h2><div class="row"><div class="field grow"><label for="code" class="hide">کد</label><input id="code" dir="ltr" placeholder="مثلاً ABCD2345" maxlength="40"></div><button class="btn" data-a="go-code">برو</button></div></section>
+  <section class="card stack" style="margin-top:14px">${cityAnim('نوبتی می‌بریم، نوبتی می‌آوریم')}</section>
+  <section class="card stack" style="margin-top:14px"><h2>کد مدرسه یا مکان دارید؟</h2><p class="muted small">روی پوستر هر مدرسه، آموزشگاه یا شرکت یک کد ۸ حرفی و لینکی مثل <b dir="ltr">residim.ir/ABCD2345</b> هست. کد را بزنید تا مستقیم به ثبت‌نام همان‌جا بروید؛ مکانش از قبل تنظیم شده و فقط بقیه را پر می‌کنید.</p><div class="row"><div class="field grow"><label for="code" class="hide">کد</label><input id="code" dir="ltr" placeholder="ABCD2345 یا لینک کامل" maxlength="60"></div><button class="btn" data-a="go-code">برو</button></div></section>
   <section class="card" style="margin-top:14px"><h2 style="margin-bottom:10px">چطور کار می‌کند؟</h2><ol class="steps3"><li>چند سؤال ساده؛ کجا زندگی می‌کنید، کی می‌روید، چه سهمی دارید.</li><li>نزدیک‌ترین هم‌مسیرها را روی نقشه و فهرست می‌بینید؛ با یک تپ «هم‌مسیر شویم؟»</li><li>تیم که شدید، نوبت‌ها، رسیدن بچه‌ها و حساب‌ها روشن است.</li></ol></section>`;
 }
 function placeLanding(pl) {
@@ -327,15 +329,16 @@ function placeLanding(pl) {
 }
 function resumeCard(p) {
   const steps = wizSteps({ p, d: p.data || {}, kind: p.kind, link: null }), mk = missingStep(p), idx = Math.max(0, steps.findIndex(s => s.key === mk));
-  return `<section class="card empty">${kindIc(p.kind, true, true)}<h1 style="font-size:1.5rem">پرونده‌ی «${esc(p.label)}» نیمه‌کاره است</h1>
+  const why = mk ? '' : (!S.token ? ' (شماره هنوز وارد نشده)' : '');
+  return `<section class="card empty">${cityAnim('')}${kindIc(p.kind, true, true)}<h1 style="font-size:1.5rem">مسیرکِ «${esc(p.label)}» نیمه‌کاره است${why}</h1>
     <p class="muted">${fa(idx)} گام از ${fa(steps.length)} پاسخ داده‌اید. از همان‌جا ادامه دهید؛ چیزی از دست نرفته.</p>
     <div style="width:100%;max-width:340px" class="prog"><i style="width:${Math.round(idx / steps.length * 100)}%"></i></div>
-    <button class="btn ac" data-a="wiz-resume">ادامه‌ی پرونده</button></section>`;
+    <button class="btn ac" data-a="wiz-resume">ادامه‌ی مسیرک</button></section>`;
 }
 function peersTab(p) {
   const d = p.data, C = ui.cand, list = C ? C.list : null, t = p.team;
   const mk = missingStep(p);
-  const fix = mk ? `<div class="hint warn">${ic('warn')}<span class="grow">یک پاسخ مهم در پرونده مانده است.</span><button class="btn sm" data-a="wiz-fix">پاسخ می‌دهم</button></div>` : '';
+  const fix = mk ? `<div class="hint warn">${ic('warn')}<span class="grow">یک پاسخ مهم در مسیرک مانده است.</span><button class="btn sm" data-a="wiz-fix">پاسخ می‌دهم</button></div>` : '';
   if (!list) return `${fix}<div class="mapbox"><div id="peermap-slot" style="position:absolute;inset:0"></div><span class="badge-src" id="map-src"></span></div><p class="muted" style="text-align:center;margin-top:14px">در حال پیدا کردن هم‌مسیرهای نزدیک…</p>`;
   const avail = list.filter(m => m.rule_ok && !m.mate);
   const sorted = filtered(list).filter(m => !m.mate).sort((a, b) => (b.rule_ok - a.rule_ok) || ((a.dist ? a.dist.m : 9e9) - (b.dist ? b.dist.m : 9e9)));
@@ -350,7 +353,7 @@ function peersTab(p) {
         <div class="tools"><div class="chiprow">${[['all', 'همه'], ['free', 'بی‌تیم'], ['drivers', 'راننده‌ها'], ['teams', 'تیم‌ها']].map(([k, v]) => `<button class="fchip" data-a="filter" data-v="${k}" aria-pressed="${ui.filter === k}">${v}</button>`).join('')}</div></div>
         <button class="fab" data-a="fit" aria-label="نمایش همه‌ی هم‌مسیرها">${ic('locate')}</button><span class="badge-src" id="map-src"></span></div>
       <div class="legend" style="border:0;padding:0 4px">${ic('wheel')} رانندگی ${ic('coin')} هزینه ${ic('woman')} مادر ${ic('man')} پدر <span><i class="team-dot" style="background:#8E9892;box-shadow:none"></i>بی‌تیم</span></div>
-      ${!list.length ? `<div class="card empty">${artTeam()}<b>اینجا به‌زودی شلوغ می‌شود!</b><p class="muted small">پوستر و لینک ${esc(placeName(p))} را بفرستید؛ هر ثبت‌نام نزدیک شما را خبر می‌دهیم.</p><button class="btn ac" data-a="poster">${ic('share')}لینک و پوستر</button></div>` : ''}
+      ${!list.length ? `<div class="card empty">${cityAnim('هر خانواده‌ای که بیاید، مسیر کوتاه‌تر می‌شود')}<b>اینجا به‌زودی شلوغ می‌شود!</b><p class="muted small">پوستر و لینک ${esc(placeName(p))} را بفرستید؛ هر ثبت‌نام نزدیک شما را خبر می‌دهیم.</p><button class="btn ac" data-a="poster">${ic('share')}لینک و پوستر</button></div>` : ''}
     </div>
     <aside class="stack">
       ${sm ? `<div class="card stack"><div class="row between"><h2>${ic('spark')} چینش پیشنهادی برای شما</h2></div>
@@ -370,7 +373,7 @@ function candCard(p, m) {
   else if (t && p.team) act = `<span class="muted small">هر دو در تیم هستید</span>`;
   else act = `<button class="btn ac sm" data-a="invite" data-id="${m.id}">${t ? 'درخواست پیوستن' : 'هم‌مسیر شویم؟'}</button>`;
   return `<article class="cand ${m.rule_ok ? '' : 'blocked'}"><div class="head"><span class="av ${t ? '' : 'grey'}" style="${c ? `--pc:${c.c};--pi:${c.i}` : ''}">${esc(m.family[0] || '؟')}</span>
-    <span class="grow"><b>خانواده ${esc(m.family)}</b> <span class="roles">${m.role !== 'pay' ? ic('wheel') : ''}${m.role !== 'drive' ? ic('coin') : ''}${ic(m.pg === 'f' ? 'woman' : 'man')}</span><br>
+    <span class="grow"><b>خانواده ${esc(m.family)}</b>${m.verified === false ? ' <span class="tag warn" style="font-size:.66rem">تأییدنشده</span>' : ''} <span class="roles">${m.role !== 'pay' ? ic('wheel') : ''}${m.role !== 'drive' ? ic('coin') : ''}${ic(m.pg === 'f' ? 'woman' : 'man')}</span><br>
     <span class="meta">${m.dist ? `<span><b>${km1(m.dist.m / 1000)} کیلومتر</b> مسیر · ${mins(m.dist.s)} دقیقه</span>` : ''}<span>${esc(m.hood)}</span><span>${t ? teamName(t) : 'بی‌تیم'}</span></span></span>
     <span class="score">${fa(sc.score)}٪<small>هم‌خوانی</small></span></div>
     <div class="why">${sc.reasons.slice(1, 3).map(([x, ok]) => (ok ? '✓ ' : '! ') + esc(x)).join(' · ')}</div>
@@ -379,10 +382,11 @@ function candCard(p, m) {
 
 function teamTab(p) {
   const t = p.team;
-  if (!t) return `<section class="card empty">${artTeam()}<h1 style="font-size:1.5rem">هنوز تیم ندارید</h1><p class="muted" style="max-width:40ch">در «هم‌مسیرها» نزدیک‌ترین خانواده‌ها را ببینید و با یک تپ دعوت کنید. هر تیم دست‌کم یک راننده لازم دارد.</p><button class="btn ac" data-tab="peers">دیدن هم‌مسیرها</button></section>`;
+  if (!t) return `<section class="card empty">${cityAnim('')}<h1 style="font-size:1.5rem">هنوز تیم ندارید</h1><p class="muted" style="max-width:40ch">در «هم‌مسیرها» نزدیک‌ترین خانواده‌ها را ببینید و با یک تپ دعوت کنید. هر تیم دست‌کم یک راننده لازم دارد.</p><button class="btn ac" data-tab="peers">دیدن هم‌مسیرها</button></section>`;
   const T = ui.team; if (!T || !T.team) return `<p class="muted" style="text-align:center;padding:40px">در حال بارگذاری تیم…</p>`;
   const plan = planOf(T), x = focusSlot(T, plan), me = mem(T, p.id), issues = teamIssues(T);
   return `<div class="split"><div class="stack">${x ? todayCard(T, x, plan, p) : ''}${issues.map(i => `<div class="hint warn">${ic('warn')}<span>${esc(i)}</span></div>`).join('')}
+      <button class="card row" data-a="chat" style="text-align:right;border-color:var(--ac)">${ic('team')}<span class="grow"><b>گفتگوی تیم</b><br><span class="muted small">هماهنگی، خبر تأخیر، تشکر؛ کوتاه و محترمانه.</span></span>${ic('back')}</button>
       <button class="card row" data-a="quiz" style="text-align:right;border-color:var(--ac)">${ic('trophy')}<span class="grow"><b>لیگ راه ${esc(destWord(p))}</b><br><span class="muted small">معمای امروز را با هم حل کنید؛ پاسخ بعد از رسیدن.</span></span>${ic('back')}</button></div>
     <aside class="stack"><div class="card stack"><div class="row between"><h2>این هفته</h2><span class="muted small">بزنید تا جزئیات و جایگزین</span></div>${weekGrid(T, plan)}</div>
       <div class="card"><div class="row between" style="margin-bottom:6px"><h2><i class="team-dot"></i>${esc(teamName(t))}</h2><span class="tag ac">هر سفر ${money(T.team.price)}</span></div>
@@ -398,7 +402,7 @@ function teamIssues(T) {
 }
 function todayCard(T, x, plan, p) {
   const r = recOf(T, x, plan), ex = mem(T, r.exec), planned = mem(T, plan[x.id]), ks = ridersOf(T, x.dir), same = slotsOf(T.place).filter(y => y.d === x.d);
-  const rem = ex ? [...new Set(T.members.filter(m => m.id !== ex.id).flatMap(m => (m.values || []).filter(v => v !== 'samegender' && v !== 'parent').map(v => VALUES[v])))] : [];
+  const rem = ex ? [...new Set(T.members.filter(m => m.id !== ex.id).flatMap(m => [...(m.values || []).filter(v => v !== 'samegender' && v !== 'parent').map(v => VALUES[v]), ...(m.pickup === 'door' ? ['دمِ در خانه‌ی ' + m.family] : [])]))] : [];
   let body = '', act = '';
   if (r.status === 'pending') {
     body = `<div class="kids">${ks.map(k => `<span class="kid" style="--kc:var(--ac)"><i></i>${esc(kidName(k, mem(T, k.pid)))}</span>`).join('')}</div>`;
@@ -486,8 +490,8 @@ const kindIc = (k, big, anim) => { const K = KINDS[k] || KINDS.other, c = col(K.
 
 function switcher() {
   const ps = allProfiles();
-  sheet('پرونده‌های شما', `${ps.map(p => profRow(p)).join('')}<button class="btn line" data-a="new-profile">${ic('plus')}پرونده‌ی تازه</button>
-    <p class="muted small">برای هر جا یک پرونده: مدرسه، کلاس زبان بچه‌ها، باشگاه، محل کار… با یک تپ بین‌شان جابه‌جا شوید.</p>`);
+  sheet('مسیرک‌های شما', `${ps.map(p => profRow(p)).join('')}<button class="btn line" data-a="new-profile">${ic('plus')}مسیرکِ تازه</button>
+    <p class="muted small">برای هر جا یک مسیرک: مدرسه، کلاس زبان بچه‌ها، باشگاه، محل کار… با یک تپ بین‌شان جابه‌جا شوید.</p>`);
 }
 function profRow(p) {
   const c = profColor(p), mk = p.complete ? missingStep(p) : null;
@@ -500,14 +504,19 @@ function drawer() {
   const mi = (a, i, txt, extra = '') => `<button class="mi" data-a="${a}" ${extra}>${ic(i)}<span class="grow">${txt}</span></button>`;
   $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">
     <div class="row" style="padding:6px 6px 10px"><img src="assets/icon.svg" width="40" height="40" style="border-radius:12px" alt=""><span class="grow"><b>رسیدیم</b><br><span class="muted small" dir="ltr">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : 'هنوز وارد نشده‌اید'}</span></span><button class="icon-btn" data-a="theme" aria-label="شب و روز">${ic('moon')}</button><button class="icon-btn" data-a="close" aria-label="بستن">${ic('close')}</button></div>
-    <button class="sec-h" data-a="toggle" data-v="profiles" aria-expanded="${ui.open.profiles}"><span>پرونده‌ها (${fa(ps.length)})</span>${ic('down', 'i chev' + (ui.open.profiles ? ' open' : ''))}</button>
+    <button class="sec-h" data-a="toggle" data-v="profiles" aria-expanded="${ui.open.profiles}"><span>مسیرک‌ها (${fa(ps.length)})</span>${ic('down', 'i chev' + (ui.open.profiles ? ' open' : ''))}</button>
     ${p ? profRow(p) : ''}
-    <div class="plist ${ui.open.profiles ? '' : 'closed'}" style="max-height:${ui.open.profiles ? 600 : 0}px">${ps.filter(x => x.id !== S.active).map(profRow).join('')}<button class="mi" data-a="new-profile">${ic('plus')}<span class="grow">پرونده‌ی تازه</span></button></div>
-    ${p ? `<div class="pacts"><button class="btn line" data-a="wiz-review">مرور پاسخ‌ها</button>${p.complete && (p.place || p.placeDraft) ? `<button class="btn line" data-a="poster">${ic('share', 'i')}لینک و پوستر</button>` : ''}${p.team ? `<button class="btn line" data-a="leave">جدا شدن از تیم</button>` : ''}</div>` : ''}
+    <div class="plist ${ui.open.profiles ? '' : 'closed'}" style="max-height:${ui.open.profiles ? 600 : 0}px">${ps.filter(x => x.id !== S.active).map(profRow).join('')}<button class="mi" data-a="new-profile">${ic('plus')}<span class="grow">مسیرکِ تازه</span></button></div>
+    ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیرک دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
+    ${S.token && !S.phone ? `<div class="hint warn" style="margin:6px 0">${ic('phone')}<span class="grow small">شماره‌تان هنوز تأیید نشده؛ تا تأیید، شماره‌ی دیگران را نمی‌بینید.</span><button class="btn sm" data-a="verify">تأیید</button></div>` : ''}
+    ${p ? `<div class="tiles">${p.complete ? `<button class="tile" data-a="inbox">${ic('bell')}<span>دعوت‌ها و پیام‌ها</span>${ui.inbox && (ui.inbox.invites.length + ui.inbox.unread) ? `<i class="badge">${fa(ui.inbox.invites.length + ui.inbox.unread)}</i>` : ''}</button>` : ''}
+      ${p.team ? `<button class="tile" data-a="chat">${ic('team')}<span>گفتگوی تیم</span></button>` : ''}
+      ${p.complete && p.place ? `<button class="tile" data-a="poster">${ic('share')}<span>لینک و پوستر</span></button>` : ''}
+      <button class="tile" data-a="wiz-review">${ic('check')}<span>${p.complete ? 'مرور پاسخ‌ها' : 'ادامه‌ی ثبت‌نام'}</span></button>
+      ${p.team ? `<button class="tile" data-a="quiz">${ic('trophy')}<span>لیگ راه ${esc(destWord(p))}</span></button>` : ''}</div>` : ''}
+    ${p && p.team ? mi('leave', 'leave', 'جدا شدن از تیم') : ''}
     <div class="sep"></div>
-    ${p && p.complete ? mi('inbox', 'bell', 'دعوت‌ها و پیام‌ها') : ''}
-    ${p && p.team ? mi('quiz', 'trophy', 'لیگ راه ' + destWord(p)) : ''}
-    ${mi('radio', 'radio', 'رادیو رسیدیم')}
+    ${mi('radio', 'radio', 'رادیو رسیدیم · ' + fa(CFG.radio_votes || 0) + ' نفر منتظرند')}
     ${S.token ? mi('ticket', 'ticket', 'پشتیبانی و تیکت') : ''}
     ${mi('rules', 'shield', 'قوانین و حریم خصوصی')}
     ${mi('notify', 'bell', 'روشن کردن نوتیف')}
@@ -515,7 +524,7 @@ function drawer() {
     ${CFG.flags.test_tools ? `<div class="sep"></div><div class="test-zone"><button class="sec-h" data-a="toggle" data-v="test" aria-expanded="${ui.open.test}"><span>${ic('flask', 'i')} گزینه‌های آزمایشی</span>${ic('down', 'i chev' + (ui.open.test ? ' open' : ''))}</button>
       <div class="plist ${ui.open.test ? '' : 'closed'}" style="max-height:${ui.open.test ? 600 : 0}px">
       ${p && p.complete ? mi('t-fake5', 'plus', 'افزودن ۵ همسایه‌ی آزمایشی') + mi('t-fake1', 'car', 'افزودن ۱ راننده‌ی آزمایشی') + mi('t-invme', 'bell', 'یک همسایه به من پیشنهاد بدهد') + mi('t-clear', 'close', 'پاک کردن همسایه‌های آزمایشی') : ''}
-      ${p ? mi('t-delprof', 'close', 'پاک کردن کامل این پرونده') : ''}
+      ${p ? mi('t-delprof', 'close', 'پاک کردن کامل این مسیرک') : ''}
       ${mi('t-splash', 'spark', 'نمایش دوباره‌ی اسپلش')}
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
@@ -533,7 +542,8 @@ function famSheet(m) {
       ${t ? `<span class="tag" style="background:${c.c};color:${c.i};border-color:${c.c}">${esc(teamName(t))}</span>` : '<span class="tag">بی‌تیم</span>'}</div>
     ${(m.values || []).length ? `<div><span class="lbl">برای‌شان مهم است</span><div class="row wrap" style="margin-top:6px">${m.values.map(v => `<span class="tag">${VALUES[v]}</span>`).join('')}</div></div>` : ''}
     <div class="card stack" style="padding:14px"><div class="row between"><b>هم‌خوانی با شما</b><span class="score big">${fa(sc.score)}٪</span></div><ul class="reason">${sc.reasons.map(([x, ok]) => `<li class="${ok ? '' : 'x'}">${esc(x)}</li>`).join('')}</ul>${m.rule_ok ? '' : '<p class="note" style="color:var(--warn)">طبق قانون رسیدیم، دختران بالای ۸ و پسران بالای ۱۲ سال با غیرهم‌جنس در یک سرویس قرار نمی‌گیرند.</p>'}</div>
-    ${m.phone ? `<div class="row between card" style="padding:12px 14px"><span><span class="muted small">شماره</span><br><b class="num" dir="ltr">${esc(fa(m.phone))}</b></span><a class="icon-btn" href="tel:${esc(m.phone)}" aria-label="تماس">${ic('phone')}</a></div>` : '<p class="muted small">شماره‌شان بعد از هم‌تیمی شدن نمایش داده می‌شود.</p>'}
+    ${m.pickup ? `<span class="tag">${ic('pin')}${PICKUP[m.pickup]}</span>` : ''}${m.verified === false ? '<span class="tag warn">شماره‌شان هنوز تأیید نشده</span>' : ''}
+    ${m.phone ? `<div class="row between card" style="padding:12px 14px"><span><span class="muted small">شماره</span><br><b class="num" dir="ltr">${esc(fa(m.phone))}</b></span><a class="icon-btn" href="tel:${esc(m.phone)}" aria-label="تماس">${ic('phone')}</a></div>` : (!S.phone ? '<div class="hint warn">' + ic('phone') + '<span class="grow">برای دیدن شماره‌ی هم‌مسیرها، شماره‌ی خودتان را تأیید کنید.</span><button class="btn sm" data-a="verify">تأیید</button></div>' : `<p class="muted small">${m.contact === 'app' ? 'ترجیح داده‌اند ارتباط فقط از طریق اپ باشد؛ دعوت بفرستید.' : 'شماره‌شان بعد از هم‌تیمی شدن نمایش داده می‌شود.'}</p>`)}
     ${m.rule_ok && !m.mate ? (m.invite ? (m.invite.dir === 'in' ? `<button class="btn ac block" data-a="accept" data-id="${m.invite.id}">پذیرفتن دعوت‌شان</button>` : '<button class="btn line block" disabled>دعوت رفت؛ منتظر پاسخ…</button>') : (t && p.team ? '' : `<button class="btn ac block" data-a="invite" data-id="${m.id}">${t ? 'درخواست پیوستن به ' + esc(teamName(t)) : 'هم‌مسیر شویم؟'}</button>`)) : ''}
     <div class="navs"><a href="geo:${m.lat},${m.lng}?q=${m.lat},${m.lng}">مسیریاب گوشی</a><a href="https://neshan.org/maps/@${m.lat},${m.lng},16z,0p" target="_blank" rel="noopener">نشان</a><a href="https://balad.ir/location?latitude=${m.lat}&longitude=${m.lng}" target="_blank" rel="noopener">بلد</a></div>
     <p class="muted small">${m.exact ? '' : 'موقعیت تقریبی (حدود ۱۵۰ متر) است؛ نقطه‌ی دقیق فقط برای هم‌تیمی‌ها.'}</p>`,
@@ -548,7 +558,7 @@ async function inboxSheet() {
   paintBell();
 }
 function posterSheet() {
-  const p = active(); const pl = p && p.place; if (!pl) return toast('اول مکان را در پرونده انتخاب کنید.');
+  const p = active(); const pl = p && p.place; if (!pl) return toast('اول مکان را در مسیرک انتخاب کنید.');
   const link = `${location.origin}/${pl.code}`, pretty = `${location.host}/${pl.code}`, hook = isChild(p) ? HOOK.child : HOOK.adult, K = KINDS[pl.kind] || KINDS.other;
   const caption = `🚗 سرویس مشارکتی «${pl.name}»\n${hook}\n\nثبت‌نام در ۲ دقیقه و پیدا کردن هم‌مسیرهای نزدیک:\n${link}\n\n#رسیدیم`;
   ui.caption = caption;
@@ -558,9 +568,16 @@ function posterSheet() {
       <div class="car">${artCar('')}</div><h3 style="font-size:1.25rem">${esc(pl.name)}${pl.shift ? ' · ' + esc(pl.shift) : ''}</h3><div class="qr">${qr}</div>
       <p>QR را اسکن کنید یا وارد این لینک شوید:</p><p class="url">${esc(pretty)}</p><b>با رسیدیم همیشه ما زود می‌رسیم!</b></div>
     <div class="share-grid no-print"><button class="btn sm" data-a="share">${ic('share')}فرستادن</button><button class="btn line sm" data-a="copy-cap">${ic('copy')}کپی متن و لینک</button>
-      <button class="btn line sm" data-a="img">${ic('download')}عکس‌نوشت (PNG)</button><button class="btn line sm" data-a="print">${ic('print')}چاپ پوستر</button>
+      <button class="btn line sm" data-a="img">${ic('download')}عکس‌نوشت (PNG)</button><button class="btn line sm" data-a="print">${ic('print')}چاپ یا PDF</button>
       <a class="btn line sm" target="_blank" rel="noopener" href="https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(caption.replace(link, ''))}">تلگرام</a><a class="btn line sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(caption)}">واتساپ</a></div>
     <div class="caption no-print">${esc(caption)}</div>`, 'برای دیوار، بورد اعلانات، گروه کلاس و شبکه‌های اجتماعی');
+}
+function printPoster() {
+  const src = $('#poster'); if (!src) return;
+  let root = $('#print-root'); if (!root) { root = document.createElement('div'); root.id = 'print-root'; document.body.appendChild(root); }
+  root.innerHTML = src.outerHTML.replace('id="poster"', '');
+  const done = () => { root.innerHTML = ''; removeEventListener('afterprint', done); };
+  addEventListener('afterprint', done); setTimeout(() => window.print(), 80);
 }
 async function posterPng() {
   const p = active(), pl = p.place, link = `${location.origin}/${pl.code}`, hook = isChild(p) ? HOOK.child : HOOK.adult;
@@ -633,9 +650,9 @@ function wizSteps(w) {
   const all = [
     { key: 'place0', show: w => !!w.link && w.mode === 'new', art: () => kindIcWiz(w.link.kind), q: w => `«${esc(w.link.name)}» همان‌جایی است که می‌روید؟`, help: w => `${esc(w.link.city)}${w.link.shift ? ' · ' + esc(w.link.shift) : ''} · ورود ${clock(w.link.in)} · پایان ${clock(w.link.out)}`,
       body: w => `<div class="choices"><button class="choice" data-a="w-set" data-k="ok0" data-v="1" aria-pressed="${w.d.ok0 === 1}">بله، همین‌جاست ${ic('check')}</button><button class="choice" data-a="w-notthis">نه، جای دیگری است</button></div>`, ok: w => w.d.ok0 === 1 || 'اگر همین‌جاست «بله» را بزنید.' },
-    { key: 'kind', show: () => true, art: w => kindIcWiz(w.kind || 'school'), q: w => w.link ? 'اسم این پرونده چه باشد؟' : 'این پرونده برای کجاست؟', help: () => 'برای هر جا یک پرونده می‌سازید و با یک تپ بین‌شان جابه‌جا می‌شوید.',
+    { key: 'kind', show: () => true, art: w => kindIcWiz(w.kind || 'school'), q: w => w.link ? 'اسم این مسیرک چه باشد؟' : 'این مسیرک برای کجاست؟', help: () => 'برای هر جا یک مسیرک می‌سازید و با یک تپ بین‌شان جابه‌جا می‌شوید.',
       body: w => `${w.link ? '' : `<div class="kinds">${Object.entries(KINDS).map(([k, v]) => `<button class="choice" data-a="w-kind" data-v="${k}" aria-pressed="${w.kind === k}">${kindIc(k, true)}${v.n}</button>`).join('')}</div>`}
-        <div class="field"><label for="w-label">اسم پرونده (به انتخاب خودتان)</label><input id="w-label" data-w="label" value="${esc(w.label || '')}" placeholder="${esc((KINDS[w.kind] || KINDS.school).lbl || 'مثلاً کلاس زبان بچه‌ها')}"></div>
+        <div class="field"><label for="w-label">اسم مسیرک (به انتخاب خودتان)</label><input id="w-label" data-w="label" value="${esc(w.label || '')}" placeholder="${esc((KINDS[w.kind] || KINDS.school).lbl || 'مثلاً کلاس زبان بچه‌ها')}"></div>
         ${w.kind === 'other' ? `<span class="lbl">برای چه کسی؟</span><div class="chips"><button class="chip" data-a="w-set" data-k="forKids" data-v="1" aria-pressed="${w.d.forKids === 1}">برای فرزندانم</button><button class="chip" data-a="w-set" data-k="forKids" data-v="0" aria-pressed="${w.d.forKids === 0}">برای خودم</button></div>` : ''}`,
       ok: w => !w.kind ? 'یکی را انتخاب کنید.' : (w.kind === 'other' && w.d.forKids == null) ? 'برای فرزندان است یا خودتان؟' : true },
     { key: 'family', show: () => true, art: () => ART.family, q: () => 'فامیل شریف‌تان؟', help: w => wChild(w) ? 'روی نقشه با نام خانوادگی دیده می‌شوید؛ مثل «خانواده آسمان».' : 'هم‌مسیرها شما را با «خانم/آقای» و نام خانوادگی می‌بینند.',
@@ -650,12 +667,11 @@ function wizSteps(w) {
         ${g === 'f' || g === 'm' ? `<p class="note">${ic('check')}اینجا ${g === 'f' ? 'دخترانه' : 'پسرانه'} است؛ جنسیت را نمی‌پرسیم.</p>` : ''}`; },
       ok: w => { const ks = w.d.kids || [], g = placeGender(w); if (!ks.length) return 'دست‌کم یک فرزند.'; if (ks.some(k => !(k.first || '').trim())) return 'اسم همه را بنویسید.'; if (!(g === 'f' || g === 'm') && ks.some(k => !k.g)) return 'دختر یا پسر بودن را انتخاب کنید.'; if (ks.some(k => !k.by)) return 'سال تولد را انتخاب کنید.'; return true; } },
     { key: 'home', show: () => true, art: () => ART.home, q: () => 'کجا زندگی می‌کنید؟', help: () => 'نقشه را جابه‌جا کنید تا پین روی در خانه بنشیند. روی نقشه‌ی دیگران موقعیت شما تقریبی (حدود ۱۵۰ متر) دیده می‌شود.',
-      body: w => `<div class="mapbox" id="pick-home"><div class="mapc-holder" style="position:absolute;inset:0"></div><div class="picker-pin"><div class="head"></div><div class="dot"></div></div><button class="fab" data-a="w-locate" aria-label="موقعیت فعلی من">${ic('locate')}</button></div>
-        <p class="addr">${ic('pin')}<span id="w-addr">${w.d.lat ? (w.addr ? esc(w.addr) : 'موقعیت انتخاب شد') : 'نقشه را جابه‌جا کنید یا «موقعیت من» را بزنید'}</span></p>
+      body: w => `<div class="loc-card ${w.d.lat ? 'set' : ''}">${ic(w.d.lat ? 'check' : 'pin')}<span id="w-addr">${w.d.lat ? (w.addr ? esc(w.addr) : 'موقعیت خانه ثبت شد') : 'هنوز موقعیتی ثبت نشده'}</span></div>
+        <div class="choices two"><button class="choice col" data-a="w-locate">${ic('locate', 'emo')}موقعیت فعلی من<small>اگر الان خانه هستید</small></button><button class="choice col" data-a="w-mapick" data-t="home">${ic('map', 'emo')}انتخاب روی نقشه<small>پین را روی در خانه بگذارید</small></button></div>
         <div class="field"><label for="w-hood">نام محله</label><input id="w-hood" data-wd="hood" value="${esc(w.d.hood || '')}" placeholder="مثلاً نارون"></div>
         <details><summary class="small" style="cursor:pointer;font-weight:700">راه دیگر: چسباندن لینک موقعیت از نشان، بلد یا گوگل</summary><div class="row" style="margin-top:8px"><div class="field grow"><input id="w-paste" dir="ltr" placeholder="لینک یا مختصات"></div><button class="btn sm" data-a="w-paste">ثبت</button></div></details>`,
-      mount: w => mountPicker('#pick-home', w.d.lat ? [w.d.lat, w.d.lng] : (w.link ? [w.link.lat, w.link.lng] : [35.7, 51.39]), (la, ln) => { w.d.lat = la; w.d.lng = ln; reverseFill(w); }),
-      ok: w => !w.d.lat ? 'موقعیت خانه را روی نقشه مشخص کنید.' : !(w.d.hood || '').trim() ? 'نام محله را بنویسید.' : true },
+      ok: w => !w.d.lat ? 'موقعیت خانه را با «موقعیت فعلی من» یا «انتخاب روی نقشه» ثبت کنید.' : !(w.d.hood || '').trim() ? 'نام محله را بنویسید.' : true },
     { key: 'needs', show: () => true, art: () => ART.clock, q: () => 'کدام مسیرها را لازم دارید؟', help: w => w.link || w.place ? `ساعت‌ها: شروع ${clock((w.link || w.place).in)} و پایان ${clock((w.link || w.place).out)}.` : 'ساعت‌ها را بعداً از مکان می‌خوانیم.',
       body: w => `<div class="choices">${[['both', 'هر دو؛ رفت و برگشت'], ['out', 'فقط رفت'], ['back', 'فقط برگشت']].map(([k, v]) => `<button class="choice" data-a="w-needs" data-v="${k}" aria-pressed="${needKey(w.d) === k}">${v}</button>`).join('')}</div>`, ok: () => true },
     { key: 'role', show: () => true, art: () => ART.wheel, q: () => 'سهم شما در سرویس؟', help: () => 'تیمی که راننده نداشته باشد راه نمی‌افتد؛ حتی یک روز در هفته رانندگی کمک بزرگی است.',
@@ -664,25 +680,30 @@ function wizSteps(w) {
         <div class="stepper"><span class="lbl grow">صندلی خالی برای ${wChild(w) ? 'بچه‌ها' : 'هم‌مسیرها'}</span><button class="btn line" data-a="w-seats" data-v="-1" aria-label="کمتر">−</button><output>${fa(w.d.seats || 3)}</output><button class="btn line" data-a="w-seats" data-v="1" aria-label="بیشتر">+</button></div>` : ''}`,
       ok: w => !w.d.role ? 'یکی را انتخاب کنید.' : (w.d.role !== 'pay' && !(w.d.days || []).length) ? 'دست‌کم یک روز را انتخاب کنید.' : true },
     { key: 'values', show: () => true, art: () => ART.heart, q: () => 'چه چیزهایی برایتان مهم است؟', help: () => 'محترم‌اند و دلیل نمی‌خواهند. در پیشنهاد هم‌مسیر و یادآوری به راننده رعایت می‌شوند. اختیاری است.',
-      body: w => `<div class="chips">${Object.entries(VALUES).filter(([k]) => wChild(w) || (k !== 'samegender' && k !== 'parent')).map(([k, v]) => `<button class="chip" data-a="w-val" data-v="${k}" aria-pressed="${(w.d.values || []).includes(k)}">${v}</button>`).join('')}</div>`, ok: () => true },
+      body: w => `<div class="chips">${Object.entries(VALUES).filter(([k]) => wChild(w) || (k !== 'samegender' && k !== 'parent')).map(([k, v]) => `<button class="chip" data-a="w-val" data-v="${k}" aria-pressed="${(w.d.values || []).includes(k)}">${v}</button>`).join('')}</div>
+        <span class="lbl">سوار شدن</span><div class="choices">${Object.entries(PICKUP).map(([k, v]) => `<button class="choice" data-a="w-set" data-k="pickup" data-v="${k}" aria-pressed="${w.d.pickup === k}">${ic(k === 'door' ? 'pin' : 'team', 'emo')}${v}</button>`).join('')}</div>`, ok: () => true },
     { key: 'place', show: w => !w.link, art: w => kindIcWiz(w.kind), q: w => `کدام ${(KINDS[w.kind] || KINDS.other).n}؟`, help: () => 'از نزدیک‌ترین‌ها به خانه‌ی شما. اگر نیست، ثبتش کنید تا لینک و پوسترش ساخته شود.',
-      body: w => placeStep(w), mount: w => { if (!w.near) loadNear(w); if (w.newPlace) mountPicker('#pick-place', w.newPlace.lat ? [w.newPlace.lat, w.newPlace.lng] : [w.d.lat, w.d.lng], (la, ln) => { w.newPlace.lat = la; w.newPlace.lng = ln; checkDup(w); }); },
-      ok: w => { if (w.place) return true; const n = w.newPlace; if (!n) return 'یک مورد را انتخاب کنید یا مکان تازه ثبت کنید.'; if ((n.name || '').trim().length < 3) return 'نام را بنویسید.'; if (wChild(w) && !n.gender) return 'دخترانه، پسرانه یا دختر و پسر؟'; if (!n.lat) return 'موقعیت را روی نقشه مشخص کنید.'; if (n.dups && n.dups.length && !n.dupOk) return 'بگویید همین است یا جای دیگری.'; return true; } },
+      body: w => placeStep(w), mount: w => { if (!w.near) loadNear(w); },
+      ok: w => { if (w.place) return true; const n = w.newPlace; if (!n) return 'یک مورد را انتخاب کنید یا مکان تازه ثبت کنید.'; if ((n.name || '').trim().length < 3) return 'نام را بنویسید.'; if (wChild(w) && !n.gender) return 'دخترانه، پسرانه یا دختر و پسر؟'; if (!n.lat) return 'موقعیت در ورودی را ثبت کنید.'; if (n.dups && n.dups.length && !n.dupOk) return 'بگویید همین است یا جای دیگری.'; return true; } },
     { key: 'snapp', show: () => true, art: () => ART.coin, q: () => 'یک مسیر با اسنپ حدوداً چقدر می‌شود؟', help: () => 'سهم منصفانه‌ی هر سفر، ۶۰٪ میانگین برآورد اعضای تیم پیشنهاد می‌شود. عددی که بنویسید مبنا می‌شود.',
       body: w => { const tgt = w.link || w.place || w.newPlace; const r = w.route; return `${r ? `<p class="hint">${ic('car')}<span>از خانه تا ${esc(tgt ? tgt.name : 'مقصد')}: حدود <b>${km1(r.m / 1000)} کیلومتر</b> مسیر و ${mins(r.s)} دقیقه${r.src === 'road' ? '' : ' (تقریبی)'}.</span></p>` : ''}
         <span class="lbl">برای دیدن قیمت در اسنپ: الان کجایید؟</span><div class="chips"><button class="chip" data-a="w-snapp" data-v="home">کنار خانه</button><button class="chip" data-a="w-snapp" data-v="dest">کنار ${esc(destWord({ kind: w.kind }))}</button></div>
         <p class="note">${ic('copy')}نشانی طرف مقابل کپی می‌شود و اسنپ باز می‌شود؛ مقصد را بچسبانید، قیمت را ببینید و برگردید.</p>
-        <div class="field"><label for="w-snapp">مبلغ یک مسیر (تومان)</label><input id="w-snapp" data-wd="snapp" inputmode="numeric" value="${w.d.snapp ? fa(w.d.snapp) : ''}" placeholder="${r ? fa(estSnapp(r.m)) : 'مثلاً ۹۰٬۰۰۰'}"></div>
-        ${r && !w.d.snapp ? `<button class="link" data-a="w-est">از برآورد ما استفاده کن: ${money(estSnapp(r.m))}</button>` : ''}`; },
+        <div class="field"><label for="w-snapp">مبلغ یک مسیر (تومان)</label><input id="w-snapp" data-wd="snapp" inputmode="numeric" value="${w.d.snapp ? fa(w.d.snapp) : ''}" placeholder="${r ? fa(r.est || estSnapp(r.m)) : 'مثلاً ۹۰٬۰۰۰'}"></div>
+        ${r ? `<div class="note">${ic('spark')}<span>برآورد ما: <b>${money(r.est || estSnapp(r.m))}</b> — ${r.est_src === 'crowd' ? `از روی پاسخ ${fa(r.est_n)} خانواده در همین شهر.` : 'حدس اولیه از روی فاصله (۴۵ هزار تومان پایه + ۱۸ هزار به ازای هر کیلومتر). قیمت واقعی اسنپ دقیق‌تر است؛ عدد خودتان مبنا می‌شود.'}</span></div>${!w.d.snapp ? `<button class="link" data-a="w-est">از همین برآورد استفاده کن</button>` : ''}` : ''}`; },
       mount: w => routeFor(w), ok: w => +en(w.d.snapp) >= 10000 || 'یک عدد تقریبی بنویسید؛ مثلاً ۹۰٬۰۰۰.' },
     { key: 'rules', show: () => true, art: () => ART.shield, q: () => 'قول و قرار ما', help: () => 'کوتاه است؛ برای خیال راحت همه.',
       body: w => `${rulesHtml()}<label class="check" style="background:transparent"><input type="checkbox" data-a="w-rules" ${w.d.rules_at ? 'checked' : ''}>قوانین را خواندم و می‌پذیرم</label>
-        <label class="check" style="background:transparent"><input type="checkbox" data-a="w-show" ${w.d.phone_show ? 'checked' : ''}>شماره‌ام قبل از هم‌تیمی شدن هم به هم‌مسیرهای همین مکان نشان داده شود</label>`,
-      ok: w => w.d.rules_at ? true : 'برای ادامه، قوانین را بپذیرید.' },
-    { key: 'phone', show: () => !S.token, art: () => ART.phone, q: () => 'شماره همراه‌تان؟', help: () => 'کد تأیید پیامک می‌شود. با همین شماره همه‌ی پرونده‌هایتان در یک حساب می‌ماند.',
-      body: w => `<div class="field"><label for="w-ph">شماره همراه</label><input id="w-ph" data-w="phone" type="tel" inputmode="tel" dir="ltr" value="${esc(w.phone || '')}" placeholder="09121234567" autocomplete="tel"></div>
-        ${w.otpSent ? `<div class="field"><label for="w-otp">کد تأیید</label><input id="w-otp" class="otp" data-w="otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" value="${esc(w.otp || '')}"></div>${w.devCode ? `<p class="note">${ic('flask')}سرویس پیامک هنوز فعال نیست؛ کد آزمایشی: <b dir="ltr">${fa(w.devCode)}</b></p>` : '<p class="note">کد را پیامک کردیم.</p>'}<button class="link" data-a="w-resend">ارسال دوباره</button>` : ''}`,
-      ok: w => !w.otpSent ? 'otp-send' : (en(w.otp || '').length < 4 ? 'کد را وارد کنید.' : 'otp-verify') }
+        ${S.token ? contactHtml(w) : ''}`,
+      ok: w => !w.d.rules_at ? 'برای ادامه، قوانین را بپذیرید.' : (S.token && !w.d.contact) ? 'روش ارتباط را انتخاب کنید.' : true },
+    { key: 'phone', show: () => !S.token, art: () => ART.phone, q: () => 'شماره همراه‌تان؟', help: () => 'کد تأیید پیامک می‌شود. با همین شماره همه‌ی مسیرک‌هایتان در یک حساب می‌ماند.',
+      body: w => `<div class="field"><label for="w-ph">شماره همراه</label><input id="w-ph" data-w="phone" type="tel" inputmode="tel" dir="ltr" value="${esc(w.phone || '')}" placeholder="0912 123 4567" autocomplete="tel"></div>
+        <p class="note">${ic('check')}با ۰۹، ‎+98، ۰۰۹۸ یا بدون صفر؛ با رقم فارسی یا انگلیسی؛ هر طور راحتید.</p>
+        ${contactHtml(w)}
+        ${w.smsFail ? `<div class="hint warn" style="display:grid;gap:10px">${ic('warn')}<b>پیامک کد نرسید؛ مشکل از سمت ماست، نه شما.</b><span class="small">${w.smsFail.pcode ? 'کد خطای سرویس: ' + fa(w.smsFail.pcode) + ' · ' : ''}یکی از این راه‌ها را بزنید:</span>
+          <div class="choices"><button class="choice" data-a="w-resend">${ic('phone', 'emo')}دوباره با پیامک</button><button class="choice" data-a="w-call">${ic('bell', 'emo')}کد را با تماس صوتی بگیرم</button><button class="choice" data-a="w-guest">${ic('back', 'emo')}<span>فعلاً بدون شماره ادامه می‌دهم<small>بعداً از منو تأیید می‌کنید؛ تا آن موقع شماره‌ی دیگران را نمی‌بینید و کنار نام‌تان «تأییدنشده» می‌آید.</small></span></button></div></div>` : ''}
+        ${w.otpSent ? `<div class="field"><label for="w-otp">کد تأیید</label><input id="w-otp" class="otp" data-w="otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" value="${esc(w.otp || '')}"></div>${w.devCode ? `<p class="note">${ic('flask')}سرویس پیامک هنوز فعال نیست؛ کد آزمایشی: <b dir="ltr">${fa(w.devCode)}</b></p>` : `<p class="note">کد را ${w.channel === 'call' ? 'با تماس صوتی' : 'پیامک'} کردیم.</p>`}<div class="row wrap"><button class="link" data-a="w-resend">ارسال دوباره</button><button class="link" data-a="w-call">تماس صوتی</button><button class="link" data-a="w-guest">بدون شماره ادامه می‌دهم</button></div>` : (w.smsFail ? '' : '<button class="link" data-a="w-guest">فعلاً بدون شماره ادامه می‌دهم</button>')}`,
+      ok: w => !normPhone(w.phone) ? 'شماره را درست بنویسید؛ مثلاً ۰۹۱۲۱۲۳۴۵۶۷.' : !w.d.contact ? 'روش ارتباط را انتخاب کنید.' : !w.otpSent ? 'otp-send' : (en(w.otp || '').length < 4 ? 'کد را وارد کنید.' : 'otp-verify') }
   ];
   return all.filter(s => s.show(w));
 }
@@ -695,11 +716,10 @@ function placeStep(w) {
     <div class="field"><label for="w-pc">شهر</label><select id="w-pc" data-wp="city">${CITIES.map(c => `<option ${n.city === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
     ${wChild(w) ? `<span class="lbl">پذیرش</span><div class="chips">${[['f', 'دخترانه'], ['m', 'پسرانه'], ['fm', 'دختر و پسر']].map(([k, v]) => `<button class="chip" data-a="w-np" data-k="gender" data-v="${k}" aria-pressed="${n.gender === k}">${v}</button>`).join('')}</div>
       ${n.gender === 'fm' ? `<div class="chips">${['هم‌زمان', 'در شیفت‌های جدا'].map(v => `<button class="chip" data-a="w-np" data-k="mix" data-v="${v}" aria-pressed="${n.mix === v}">${v}</button>`).join('')}</div>` : ''}` : ''}
-    <span class="lbl">شیفت یا واحد</span><div class="chips">${['صبح', 'عصر', 'تمام‌وقت', 'شیفتی'].map(v => `<button class="chip" data-a="w-np" data-k="shift" data-v="${v}" aria-pressed="${n.shift === v}">${v}</button>`).join('')}</div>
+    <span class="lbl">شیفت یا واحد</span><div class="chips">${['صبح', 'عصر', 'شیفتی نیست'].map(v => `<button class="chip" data-a="w-np" data-k="shift" data-v="${v}" aria-pressed="${n.shift === v}">${v}</button>`).join('')}</div>
     <div class="row"><div class="field grow"><label for="w-pin">شروع</label><input id="w-pin" type="time" data-wp="in" value="${n.in || '07:30'}"></div><div class="field grow"><label for="w-pout">پایان</label><input id="w-pout" type="time" data-wp="out" value="${n.out || '13:30'}"></div></div>
-    <span class="lbl">موقعیت در ورودی</span><div class="mapbox" id="pick-place"><div class="mapc-holder" style="position:absolute;inset:0"></div><div class="picker-pin"><div class="head"></div><div class="dot"></div></div></div>
-    <p class="addr">${ic('pin')}<span>${n.lat ? 'موقعیت ثبت شد' : 'نقشه را روی در ورودی بیاورید'}</span></p>
-    <div class="row wrap"><button class="btn line sm" data-a="w-np-here">${ic('locate')}کنار در ورودی هستم</button></div>
+    <span class="lbl">موقعیت در ورودی</span><div class="loc-card ${n.lat ? 'set' : ''}" id="pick-place">${ic(n.lat ? 'check' : 'pin')}<span>${n.lat ? 'موقعیت ثبت شد' : 'هنوز موقعیتی ثبت نشده'}</span></div>
+    <div class="choices two"><button class="choice col" data-a="w-np-here">${ic('locate', 'emo')}کنار در ورودی هستم<small>موقعیت فعلی</small></button><button class="choice col" data-a="w-mapick" data-t="place">${ic('map', 'emo')}انتخاب روی نقشه<small>پین روی در ورودی</small></button></div>
     <details><summary class="small" style="cursor:pointer;font-weight:700">راه دیگر: چسباندن لینک موقعیت</summary><div class="row" style="margin-top:8px"><div class="field grow"><input id="w-np-paste" dir="ltr" placeholder="لینک یا مختصات"></div><button class="btn sm" data-a="w-np-paste">ثبت</button></div></details>
     ${(n.dups || []).map(d => `<div class="hint warn">${ic('warn')}<span>احتمالاً «${esc(d.name)}${d.shift ? ' · ' + esc(d.shift) : ''}» همین‌جا ثبت شده.<br><span class="row wrap" style="margin-top:8px"><button class="btn sm" data-a="w-pick" data-id="${d.id}">همین است</button><button class="btn line sm" data-a="w-dupok">نه، واحد یا شیفت دیگری است</button></span></span></div>`).join('')}
     <button class="link" data-a="w-np-cancel">بازگشت به فهرست</button>`;
@@ -709,7 +729,7 @@ function placeStep(w) {
 }
 async function loadNear(w) { try { const r = await api('place_near', { lat: w.d.lat, lng: w.d.lng, kind: w.kind === 'other' ? '' : w.kind, q: w.pq || '' }); w.near = r.places; } catch (e) { w.near = []; } if (ui.wiz === w) wizRender(); }
 async function checkDup(w) { try { const r = await api('place_near', { lat: w.newPlace.lat, lng: w.newPlace.lng }); const d = r.places.filter(x => x.d < 250); const had = (w.newPlace.dups || []).length; w.newPlace.dups = d; if (d.length !== had && ui.wiz === w) wizRender(); } catch (e) {} }
-async function routeFor(w) { const t = w.link || w.place || w.newPlace; if (!t || !t.lat || !w.d.lat || (w.route && w.route.key === t.lat + ',' + w.d.lat)) return; try { const r = await api('route', { a: [w.d.lat, w.d.lng], b: [t.lat, t.lng] }); w.route = { ...r, key: t.lat + ',' + w.d.lat }; } catch (e) { const m = hav(w.d.lat, w.d.lng, t.lat, t.lng) * 1.3; w.route = { m, s: m / 6.5, src: 'est', key: t.lat + ',' + w.d.lat }; } if (ui.wiz === w) wizRender(); }
+async function routeFor(w) { const t = w.link || w.place || w.newPlace; if (!t || !t.lat || !w.d.lat || (w.route && w.route.key === t.lat + ',' + w.d.lat)) return; try { const r = await api('route', { a: [w.d.lat, w.d.lng], b: [t.lat, t.lng], city: t.city || '' }); w.route = { ...r, key: t.lat + ',' + w.d.lat }; } catch (e) { const m = hav(w.d.lat, w.d.lng, t.lat, t.lng) * 1.3; w.route = { m, s: m / 6.5, src: 'est', key: t.lat + ',' + w.d.lat }; } if (ui.wiz === w) wizRender(); }
 let revT; function reverseFill(w) { clearTimeout(revT); revT = setTimeout(async () => { try { const r = await api('reverse', { lat: w.d.lat, lng: w.d.lng }); if (r.address) { w.addr = r.address; const a = $('#w-addr'); if (a) a.textContent = r.address; } if (r.hood && (!w.d.hood || w.autoHood)) { w.d.hood = r.hood; w.autoHood = true; const h = $('#w-hood'); if (h) h.value = r.hood; } else { const a = $('#w-addr'); if (a && !r.address) a.textContent = 'موقعیت انتخاب شد'; } } catch (e) { const a = $('#w-addr'); if (a) a.textContent = 'موقعیت انتخاب شد'; } }, 650); }
 
 function wizOpen(p, opts = {}) {
@@ -725,8 +745,10 @@ function wizOpen(p, opts = {}) {
   { const g = placeGender(w); if (g === 'f' || g === 'm') w.d.kids.forEach(k => k.g = g); }
   const steps = wizSteps(w);
   if (opts.at) w.step = Math.max(0, steps.findIndex(s => s.key === opts.at));
-  else if (w.mode === 'resume' && p) { const mk = missingStep(p); w.step = Math.max(0, steps.findIndex(s => s.key === mk)); }
+  else if (w.mode === 'resume' && p) { const mk = missingStep(p); const mi = Math.max(0, steps.findIndex(s => s.key === mk)); w.step = Math.min(steps.length - 1, Math.max(mi, +p.step || 0)); }
   ui.wiz = w; wizRender();
+  if (w.mode === 'resume' && w.step > 0) toast(`از گام ${fa(w.step + 1)} ادامه می‌دهیم؛ پاسخ‌های قبلی سر جایشان است.`);
+  if (w.mode === 'review') toast('حالت مرور: با «بعدی» سریع جلو بروید؛ هر تغییری ذخیره می‌شود.');
 }
 function wizRender() {
   const w = ui.wiz; if (!w) { $('#wiz-root').innerHTML = ''; return; }
@@ -742,25 +764,27 @@ function wizRender() {
   root.innerHTML = `<div class="wiz ${same ? '' : 'enter'}" role="dialog" aria-modal="true" aria-labelledby="wq">
     <div class="wiz-top"><button class="icon-btn" data-a="w-close" aria-label="بستن">${ic('close')}</button><div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${w.step + 1}"><i style="width:${Math.max(6, Math.round((w.step + 1) / total * 100))}%"></i></div><span class="wiz-count">${review ? '<span class="review-tag">مرور</span> ' : ''}گام ${fa(w.step + 1)} از ${fa(total)}</span></div>
     <div class="wiz-body">${typeof st.art === 'function' ? st.art(w) : ''}<h1 class="wiz-q" id="wq">${st.q(w)}</h1><p class="wiz-help">${st.help(w)}</p>${st.body(w)}<p class="err" role="alert">${esc(w.err)}</p></div>
-    <div class="wiz-foot"><button class="btn block" data-a="w-next" ${w.busy ? 'disabled' : ''}>${w.busy ? 'لطفاً صبر کنید…' : nextLabel(w, st, steps)}</button>${w.step > 0 ? '<button class="btn line block" data-a="w-prev">قبلی</button>' : ''}</div></div>`;
+    <div class="scroll-hint" aria-hidden="true">${HAND}</div>
+    <div class="wiz-foot"><div class="foot-row"><button class="btn line" data-a="w-prev" ${w.step > 0 && !w.busy ? '' : 'disabled'}>قبلی</button><button class="btn" data-a="w-next" ${w.busy ? 'disabled' : ''}>${w.busy ? 'لطفاً صبر کنید…' : nextLabel(w, st, steps)}</button></div></div></div>`;
+  watchScrollHint();
   if (same) { $('.wiz-body').scrollTop = sc; const n = sel && root.querySelector(sel); if (n) n.focus({ preventScroll: true }); }
   else { const f = root.querySelector('.wiz-body input:not([type=checkbox]), .wiz-body .choice, [data-a="w-next"]'); f && f.focus({ preventScroll: true }); }
   if (st.mount) st.mount(w);
 }
 function nextLabel(w, st, steps) {
-  if (st.key === 'phone') return w.otpSent ? 'تأیید و ساخت پرونده' : 'ارسال کد';
+  if (st.key === 'phone') return w.otpSent ? 'تأیید و ساخت مسیرک' : 'ارسال کد';
   if (w.step === steps.length - 1) return w.mode === 'review' ? 'پایان مرور' : 'تمام؛ بسازیم!';
   return w.mode === 'review' ? 'بعدی' : 'ادامه';
 }
 function wizDone(w) {
   const p = active();
   return `<div class="wiz" role="dialog" aria-modal="true" aria-labelledby="wq"><div class="wiz-body" style="text-align:center;justify-items:center;align-content:center;flex:1">${ART.party}
-    <h1 class="wiz-q" id="wq">پرونده‌ی «${esc(p ? p.label : '')}» آماده است!</h1>
+    <h1 class="wiz-q" id="wq">مسیرکِ «${esc(p ? p.label : '')}» آماده است!</h1>
     <p class="wiz-help">حالا نزدیک‌ترین هم‌مسیرها را می‌بینید. اگر هنوز کسی نیست، لینک و پوستر ${esc(p ? destWord(p) : '')} را بفرستید تا بقیه بیایند؛ هر ثبت‌نام نزدیک را خبر می‌دهیم.</p>
     <button class="btn line" data-a="notify">${ic('bell')}نوتیف را روشن کن</button></div>
     <div class="wiz-foot"><button class="btn block" data-a="w-finish">دیدن هم‌مسیرها</button><button class="btn line block" data-a="w-poster">${ic('share')}لینک و پوستر</button></div></div>`;
 }
-function draftOf(w) { return { id: w.pid || ('d' + uid()), label: (w.label || '').trim() || (KINDS[w.kind] || KINDS.other).lbl || 'پرونده', kind: w.kind || 'school', color: (KINDS[w.kind] || KINDS.other).c, data: w.d, step: w.step, complete: 0, place: w.link || w.place || null, placeDraft: w.newPlace || null, team: null }; }
+function draftOf(w) { return { id: w.pid || ('d' + uid()), label: (w.label || '').trim() || (KINDS[w.kind] || KINDS.other).lbl || 'مسیرک', kind: w.kind || 'school', color: (KINDS[w.kind] || KINDS.other).c, data: w.d, step: w.step, complete: 0, place: w.link || w.place || null, placeDraft: w.newPlace || null, team: null }; }
 async function wizSave(w, complete) {
   { const g = placeGender(w) || (w.newPlace && w.newPlace.gender); if (g === 'f' || g === 'm') (w.d.kids || []).forEach(k => k.g = g); }
   const dp = draftOf(w);
@@ -791,7 +815,7 @@ async function wizNext() {
     w.busy = true; wizRender();
     try { await wizSave(w, true); } catch (e) { w.busy = false; w.err = e.message; return wizRender(); }
     w.busy = false;
-    if (w.mode === 'fix' || last) { ui.wiz = null; wizRender(); applyAccent(); render(); loadPeers(); return toast(w.mode === 'fix' ? 'ممنون؛ پرونده کامل شد.' : 'مرور تمام شد؛ تغییرات ذخیره شد.'); }
+    if (w.mode === 'fix' || last) { ui.wiz = null; wizRender(); applyAccent(); render(); loadPeers(); return toast(w.mode === 'fix' ? 'ممنون؛ مسیرک کامل شد.' : 'مرور تمام شد؛ تغییرات ذخیره شد.'); }
     w.step++; return wizRender();
   }
   if (!last) { w.step++; wizRender(); wizSave(w, false).catch(() => {}); return; }
@@ -803,16 +827,86 @@ async function finishWizard(w) {
   w.busy = false; w.done = true; ui.linkPlace = null; if (location.pathname !== BASE) history.replaceState(null, '', BASE);
   applyAccent(); wizRender(); render(); loadPeers(); loadInbox();
 }
-async function otpSend(w) {
+async function otpSend(w, channel) {
   w.busy = true; w.err = ''; wizRender();
-  try { const r = await api('otp_send', { phone: en(w.phone || '') }); w.otpSent = true; w.devCode = r.dev_code || null; } catch (e) { w.err = e.message; }
+  try { const r = await api('otp_send', { phone: normPhone(w.phone), channel: channel || 'sms' }); w.otpSent = true; w.smsFail = null; w.channel = channel || 'sms'; w.devCode = r.dev_code || null; }
+  catch (e) { if (e.code === 'sms') { w.smsFail = { pcode: e.pcode }; w.otpSent = false; } else w.err = e.message; }
   w.busy = false; wizRender();
+}
+async function guestStart(w) {
+  w.busy = true; w.err = ''; wizRender();
+  try { const r = await api('guest_start'); S.token = r.token; S.phone = null; persist(); await refreshMe(); }
+  catch (e) { w.busy = false; w.err = e.message; return wizRender(); }
+  w.busy = false; await finishWizard(w); toast('مسیرک ساخته شد. هر وقت خواستید شماره را از منو تأیید کنید.');
+}
+function normPhone(v) {
+  let p = en(v).replace(/\D/g, '');
+  if (p.startsWith('0098')) p = '0' + p.slice(4); else if (p.startsWith('98') && p.length === 12) p = '0' + p.slice(2); else if (p.startsWith('9') && p.length === 10) p = '0' + p;
+  return /^09\d{9}$/.test(p) ? p : '';
+}
+function contactHtml(w) {
+  return `<span class="lbl">ارتباط با هم‌مسیرها</span><div class="choices">
+    <button class="choice" data-a="w-contact" data-v="phone" aria-pressed="${w.d.contact === 'phone'}">${ic('phone', 'emo')}<span>شماره‌ام به خانواده‌های همین ${esc(destWord({ kind: w.kind }))} نشان داده شود</span></button>
+    <button class="choice" data-a="w-contact" data-v="app" aria-pressed="${w.d.contact === 'app'}">${ic('team', 'emo')}<span>ارتباط‌مان فقط از طریق همین اپ باشد<small>دعوت و گفتگوی تیم داخل رسیدیم؛ گاهی سر بزنید</small></span></button></div>`;
 }
 async function otpVerify(w) {
   w.busy = true; w.err = ''; wizRender();
-  try { const r = await api('otp_verify', { phone: en(w.phone || ''), code: en(w.otp || '') }); S.token = r.token; S.phone = r.phone; persist(); await refreshMe(); }
+  try { const r = await api('otp_verify', { phone: normPhone(w.phone), code: en(w.otp || '') }); S.token = r.token; S.phone = r.phone; persist(); await refreshMe(); }
   catch (e) { w.busy = false; w.err = e.message; return wizRender(); }
   w.busy = false; await finishWizard(w);
+}
+
+
+/* ═════════ v07 building blocks ═════════ */
+const HAND = `<svg viewBox="0 0 64 80" width="46" height="58"><g fill="#FFE1C4" stroke="#04140B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M26 6c3 0 5 2 5 5v28l2-1V24c0-3 2-5 5-5s5 2 5 5v14l2-1v-8c0-3 2-5 5-5s5 2 5 5v20c0 16-10 26-24 26S12 64 10 52L6 38c-1-3 1-6 4-7 2-1 5 0 6 2l5 9V11c0-3 2-5 5-5Z" transform="rotate(180 32 40)"/></g><path d="M22 70c4 3 16 3 20 0" stroke="#04140B" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".25"/></svg>`;
+function watchScrollHint() {
+  const b = $('.wiz-body'), h = $('.scroll-hint'); if (!b || !h) return;
+  const upd = () => { const more = b.scrollHeight - b.clientHeight - b.scrollTop > 60; h.classList.toggle('on', more); };
+  b.addEventListener('scroll', upd, { passive: true }); setTimeout(upd, 350); upd();
+}
+function cityAnim(label) {
+  return `<div class="city" aria-hidden="true"><svg viewBox="0 0 360 170" preserveAspectRatio="xMidYMid slice">
+    <defs><pattern id="blk" width="60" height="60" patternUnits="userSpaceOnUse"><rect width="60" height="60" fill="#E9F6EE"/><rect x="6" y="6" width="22" height="18" rx="4" fill="#D3EEDC"/><rect x="34" y="6" width="20" height="26" rx="4" fill="#CFE8F7"/><rect x="6" y="30" width="22" height="24" rx="4" fill="#FCE7C8"/><rect x="34" y="38" width="20" height="16" rx="4" fill="#D3EEDC"/><path d="M0 .5H60M.5 0V60" stroke="#fff" stroke-width="3"/></pattern></defs>
+    <g class="city-pan"><rect x="-60" y="-60" width="540" height="300" fill="url(#blk)"/></g>
+    <path d="M-10 128H370" stroke="#fff" stroke-width="22"/><path d="M-10 128H370" stroke="#B9C7BF" stroke-width="2" stroke-dasharray="10 12"/>
+    ${[300, 215, 130].map((x, i) => `<g transform="translate(${x} 96)"><path d="M-14 18V2l14-12L14 2v16Z" fill="#fff" stroke="#04140B" stroke-width="2"/><rect x="-4" y="7" width="8" height="11" fill="#FFD84D" stroke="#04140B" stroke-width="1.6"/><g class="kid k${i}"><circle cx="20" cy="10" r="4" fill="#fff" stroke="#04140B" stroke-width="1.6"/><path d="M20 14l-5 9h10Z" fill="${['#FF8FA3', '#7FD8FF', '#FFD84D'][i]}" stroke="#04140B" stroke-width="1.6"/></g></g>`).join('')}
+    <g transform="translate(40 92)"><path d="M-22 18V0l22-14L22 0v18Z" fill="#fff" stroke="#04140B" stroke-width="2"/><path d="M-6 -2h12" stroke="#04140B" stroke-width="2"/><path d="M0 -14v-10l10 4-10 4" fill="#1DBF73" stroke="#04140B" stroke-width="1.6"/><g class="kid kin">${[-12, 0, 12].map((dx, i) => `<circle cx="${dx}" cy="30" r="3.4" fill="#fff" stroke="#04140B" stroke-width="1.4"/><path d="M${dx} 33l-4 7h8Z" fill="${['#FF8FA3', '#7FD8FF', '#FFD84D'][i]}" stroke="#04140B" stroke-width="1.4"/>`).join('')}</g></g>
+    <g class="city-car"><g transform="translate(0 112)"><path d="M-20 16V6c0-3 2-5 5-5l6-2 6-8c1-2 3-3 5-3h12c2 0 4 1 5 3l5 8 5 1c3 1 4 3 4 6v10Z" fill="#fff" stroke="#04140B" stroke-width="2.2" stroke-linejoin="round" transform="scale(-1 1)"/><circle cx="-12" cy="17" r="5" fill="#04140B"/><circle cx="14" cy="17" r="5" fill="#04140B"/><circle cx="-2" cy="-1" r="3.2" fill="#FFE1C4" stroke="#04140B" stroke-width="1.2"/></g></g>
+  </svg>${label ? `<span class="city-label">${label}</span>` : ''}</div>`;
+}
+/* full-screen map picker (Snapp-style centre pin) */
+const PKM = { cur: null, done: null };
+function pickOnMap(title, center, onDone) {
+  PKM.cur = center ? center.slice() : null; PKM.done = onDone;
+  $('#pick-root').innerHTML = `<div class="pickm" role="dialog" aria-modal="true" aria-labelledby="pk-t">
+    <div class="pickm-top"><button class="icon-btn" data-a="pk-cancel" aria-label="بستن">${ic('close')}</button><b id="pk-t">${esc(title)}</b><span style="width:46px"></span></div>
+    <div class="mapbox" id="pick-full" style="height:auto;flex:1;border-radius:0;border:0"><div class="mapc-holder" style="position:absolute;inset:0"></div><div class="picker-pin"><div class="head"></div><div class="dot"></div></div><button class="fab" data-a="pk-here" aria-label="موقعیت فعلی من">${ic('locate')}</button></div>
+    <div class="pickm-foot"><p class="addr" id="pk-addr">${ic('pin')}<span>نقشه را بکشید تا پین روی جای درست بنشیند</span></p><button class="btn block" data-a="pk-ok">همین‌جاست</button></div></div>`;
+  mountPicker('#pick-full', center || [35.7, 51.39], (la, ln) => { PKM.cur = [la, ln]; pkReverse(); });
+}
+let pkT; function pkReverse() { clearTimeout(pkT); pkT = setTimeout(async () => { const a = $('#pk-addr span'); if (!a || !PKM.cur) return; a.textContent = 'در حال خواندن نشانی…'; try { const r = await api('reverse', { lat: PKM.cur[0], lng: PKM.cur[1] }); a.textContent = r.address || (r.hood ? 'محله ' + r.hood : 'همین نقطه'); PKM.hood = r.hood; PKM.addr = r.address; } catch (e) { a.textContent = 'همین نقطه'; } }, 500); }
+function closePicker() { if (PK.node && PK.node.parentNode) PK.node.parentNode.removeChild(PK.node); $('#pick-root').innerHTML = ''; }
+/* undo snackbar: «اشتباه کردم، برگرد» */
+let undoT;
+function offerUndo(msg, fn) {
+  const el = $('#undo'); el.innerHTML = `<span class="grow">${esc(msg)}</span><button class="btn sm" data-a="undo">${ic('undo')}اشتباه کردم، برگرد</button>`;
+  el.classList.add('show'); ui.undoFn = fn; clearTimeout(undoT); undoT = setTimeout(() => { el.classList.remove('show'); ui.undoFn = null; }, 9000);
+}
+/* team chat */
+async function chatSheet() {
+  const p = active(); if (!p || !p.team) return;
+  ui.chat = { list: [], after: 0 };
+  $('#layer').innerHTML = `<div class="scrim" data-a="chat-close"></div><div class="chat" role="dialog" aria-modal="true" aria-labelledby="ch-t">
+    <div class="chat-top"><i class="team-dot"></i><b id="ch-t" class="grow">گفتگوی ${esc(teamName(p.team))}</b><button class="icon-btn" data-a="chat-close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="chat-list" id="chat-list"><p class="muted small" style="text-align:center">در حال آوردن پیام‌ها…</p></div>
+    <div class="chat-foot"><input id="chat-in" maxlength="400" placeholder="پیام محترمانه‌تان را بنویسید…" autocomplete="off"><button class="btn ac" data-a="chat-send" aria-label="فرستادن">${ic('back')}</button></div></div>`;
+  $('#chat-in').focus(); await chatPull(); clearInterval(ui.chatT); ui.chatT = setInterval(() => { if (!document.hidden) chatPull(); }, 5000);
+}
+async function chatPull() {
+  const p = active(), el = $('#chat-list'); if (!el || !p) return clearInterval(ui.chatT);
+  try { const r = await api('chat_list', { profile_id: p.id, after: 0 }); const atBottom = el.scrollHeight - el.clientHeight - el.scrollTop < 40;
+    el.innerHTML = r.list.length ? r.list.map(m => `<div class="msg ${m.mine ? 'me' : ''}">${m.mine ? '' : `<b>${esc(m.who)}</b>`}<span>${esc(m.text)}</span><small>${fa(new Date(m.at * 1000).toTimeString().slice(0, 5))}</small></div>`).join('') : `<div class="empty"><b>اولین پیام را بنویسید!</b><span class="muted small">هماهنگی، تشکر، خبر تأخیر؛ کوتاه و محترمانه.</span></div>`;
+    if (atBottom || !ui.chat.seen) { el.scrollTop = el.scrollHeight; ui.chat.seen = true; } S.chatSeen = Date.now(); persist(); } catch (e) {}
 }
 
 /* ═════════ admin ═════════ */
@@ -823,15 +917,18 @@ function adminView() {
   const flagLbl = { sms_invite: 'پیامک دعوت هم‌مسیری', sms_arrive: 'پیامک «فرزندتان رسید» (فقط تیم‌های ویژه)', auto_arrive: 'تشخیص رسیدن با GPS', test_tools: 'گزینه‌های آزمایشی در منو', signup_open: 'ثبت‌نام باز است', otp_dev: 'کد ورود آزمایشی بدون پیامک (فقط تست!)' };
   return `<div class="adm">${o.default_pass ? `<div class="hint warn">${ic('warn')}<span>رمز مدیر پیش‌فرض (mot) است؛ در config.local.php مقدار admin_pass را عوض کنید.</span></div>` : ''}
     <div class="row between"><h1 style="font-size:1.5rem">پیشخوان مدیریت</h1><div class="row"><button class="btn line sm" data-a="adm-refresh">تازه‌سازی</button><button class="btn line sm" data-a="adm-exit">بازگشت</button></div></div>
-    <div class="grid">${[['users', 'کاربر واقعی'], ['complete', 'پرونده‌ی کامل'], ['places', 'مکان'], ['teams', 'تیم'], ['invites', 'دعوت منتظر'], ['tickets', 'تیکت باز'], ['sms_day', 'پیامک ۲۴ ساعت'], ['fake', 'کاربر آزمایشی']].map(([k, v]) => `<div class="stat"><b>${fa(cnt[k])}</b><span>${v}</span></div>`).join('')}</div>
+    <div class="grid">${[['users', 'کاربر واقعی'], ['complete', 'مسیرکِ کامل'], ['places', 'مکان'], ['teams', 'تیم'], ['invites', 'دعوت منتظر'], ['tickets', 'تیکت باز'], ['sms_day', 'پیامک ۲۴ ساعت'], ['fake', 'کاربر آزمایشی']].map(([k, v]) => `<div class="stat"><b>${fa(cnt[k])}</b><span>${v}</span></div>`).join('')}</div>
     <section class="card"><h2>سرویس‌ها</h2>${[['db', 'پایگاه داده: ' + SV.db, true], ['kavenegar', 'کاوه‌نگار', SV.kavenegar], ['neshan_service', 'کلید سرویس نشان (فاصله و نام محله)', SV.neshan_service], ['neshan_web', 'کلید نقشه‌ی وب نشان', SV.neshan_web], ['curl', 'cURL روی سرور', SV.curl]].map(([k, t, ok]) => `<div class="switch"><span><i class="${ok ? 'ok-dot' : 'no-dot'}"></i>${t}</span><span class="muted small">${ok ? 'فعال' : 'تنظیم نشده'}</span></div>`).join('')}
       <p class="muted small">الگوهای پیامک: <span dir="ltr">${esc(SV.tpl_invite)}</span> و <span dir="ltr">${esc(SV.tpl_arrived)}</span> · PHP ${esc(SV.php)}</p></section>
+    <section class="card stack"><h2>تست پیامک (کاوه‌نگار)</h2><p class="muted small">یک پیامک واقعی می‌فرستد و جواب دقیق کاوه‌نگار را نشان می‌دهد.</p>
+      <div class="row wrap"><div class="field grow"><label for="sm-ph">شماره</label><input id="sm-ph" dir="ltr" placeholder="0912…"></div><div class="field"><label for="sm-tpl">الگو</label><select id="sm-tpl">${[SV.tpl_login || 'residim-login', SV.tpl_invite, SV.tpl_arrived].map(t => `<option>${esc(t)}</option>`).join('')}</select></div><div class="field"><label for="sm-type">روش</label><select id="sm-type"><option value="sms">پیامک</option><option value="call">تماس صوتی</option></select></div></div>
+      <button class="btn" data-a="adm-smstest">ارسال آزمایشی</button><div id="sm-out"></div></section>
     <section class="card"><h2>تنظیمات</h2>${Object.keys(flagLbl).map(k => `<label class="switch"><span>${flagLbl[k]}</span><input type="checkbox" data-a="adm-flag" data-k="${k}" ${F[k] ? 'checked' : ''}></label>`).join('')}</section>
     <section class="card"><h2>مکان‌ها</h2><table><tr><th>نام</th><th>کد</th><th>خانواده</th><th>تأیید</th></tr>${A.places.map(p => `<tr><td>${esc(p.name)}<br><span class="muted small">${esc(p.city)} · ${esc((KINDS[p.kind] || KINDS.other).n)}</span></td><td dir="ltr">${esc(p.code)}</td><td>${fa(p.families)}</td><td><input type="checkbox" data-a="adm-verify" data-id="${p.id}" ${p.verified ? 'checked' : ''}></td></tr>`).join('')}</table></section>
     <section class="card"><h2>تیم‌ها (ویژه = پیامک رسیدن و رسید خودکار)</h2><table><tr><th>تیم</th><th>مکان</th><th>اعضا</th><th>ویژه</th></tr>${A.teams.map(t => `<tr><td>تیم ${fa(t.no)} · ${esc(t.hood)}</td><td>${esc(t.place || '')}</td><td>${fa(t.members)}</td><td><input type="checkbox" data-a="adm-premium" data-id="${t.id}" ${t.premium ? 'checked' : ''}></td></tr>`).join('')}</table></section>
     <section class="card"><h2>تیکت‌ها</h2>${A.tickets.map(t => `<div class="srow"><b>#${fa(t.no)} · ${esc(t.cat)} · <span dir="ltr">${esc(t.phone || '')}</span> <span class="tag">${esc(t.status)}</span></b><span>${esc(t.text)}</span><div class="row"><div class="field grow"><input id="rep-${t.id}" value="${esc(t.reply || '')}" placeholder="پاسخ"></div><button class="btn sm" data-a="adm-reply" data-id="${t.id}">ثبت پاسخ</button></div></div>`).join('') || '<p class="muted">تیکتی نیست.</p>'}</section>
     <section class="card"><h2>آخرین پیامک‌ها</h2><table><tr><th>شماره</th><th>الگو</th><th>وضعیت</th></tr>${A.sms.slice(0, 30).map(s => `<tr><td dir="ltr">${esc(s.phone)}</td><td dir="ltr">${esc(s.tpl)}</td><td>${esc(s.status)}</td></tr>`).join('')}</table></section>
-    <section class="card"><h2>کاربران اخیر</h2><table><tr><th>شماره</th><th>پرونده</th><th>نوع</th></tr>${A.users.slice(0, 40).map(u => `<tr><td dir="ltr">${esc(u.phone)}</td><td>${fa(u.profiles)}</td><td>${+u.fake ? 'آزمایشی' : 'واقعی'}</td></tr>`).join('')}</table>
+    <section class="card"><h2>کاربران اخیر</h2><table><tr><th>شماره</th><th>مسیرک</th><th>نوع</th></tr>${A.users.slice(0, 40).map(u => `<tr><td dir="ltr">${esc(u.phone)}</td><td>${fa(u.profiles)}</td><td>${+u.fake ? 'آزمایشی' : 'واقعی'}</td></tr>`).join('')}</table>
       <button class="btn line sm" data-a="adm-purge" style="margin-top:10px">حذف همه‌ی کاربران آزمایشی</button></section></div>`;
 }
 async function loadAdmin() {
@@ -885,10 +982,11 @@ async function act(a, el) {
     case 'wiz-review': closeLayer(); return p.complete ? wizOpen(p, { mode: 'review' }) : wizOpen(p, { mode: 'resume' });
     case 'wiz-fix': return wizOpen(p, { mode: 'fix', at: missingStep(p) });
     case 'join-place': { const own = P.find(x => x.place && x.place.id === ui.linkPlace.id); if (own) { ui.linkPlace = null; history.replaceState(null, '', BASE); return setActive(own.id); } return wizOpen(null, { mode: 'new', link: ui.linkPlace }); }
+    case 'open-code': closeLayer(); return openCode(el.dataset.c);
     case 'go-code': { const v = ($('#code').value || '').trim().toUpperCase().replace(/^.*\//, '').replace(/[^A-Z0-9]/g, ''); if (v.length < 6) return toast('کد ۸ حرفی را وارد کنید.'); return openCode(v); }
     case 'login': closeLayer(); return loginSheet();
-    case 'lg-send': { const ph = en($('#lg-ph').value); try { const r = await api('otp_send', { phone: ph }); ui.lg = { ph, dev: r.dev_code }; loginSheet(); } catch (e) { fail(e); } return; }
-    case 'lg-verify': { try { const r = await api('otp_verify', { phone: ui.lg.ph, code: en($('#lg-otp').value) }); S.token = r.token; S.phone = r.phone; persist(); await refreshMe(); closeLayer(); if (P.length) setActive(P[0].id); else { render(true); toast('خوش آمدید! حالا اولین پرونده را بسازید.'); } } catch (e) { fail(e); } return; }
+    case 'lg-send': case 'lg-call': { const ph = normPhone($('#lg-ph').value); if (!ph) return toast('شماره را درست بنویسید؛ مثلاً ۰۹۱۲۱۲۳۴۵۶۷.'); try { const r = await api('otp_send', { phone: ph, channel: a === 'lg-call' ? 'call' : 'sms' }); ui.lg = { ph, dev: r.dev_code }; loginSheet(); } catch (e) { toast(e.code === 'sms' ? `پیامک نرسید (کد ${fa(e.pcode || 0)})؛ تماس صوتی را امتحان کنید.` : e.message); } return; }
+    case 'lg-verify': { try { const wasGuest = S.token && !S.phone; const r = await api('otp_verify', { phone: ui.lg.ph, code: en($('#lg-otp').value) }); S.token = r.token; S.phone = r.phone; ui.lg = null; persist(); await refreshMe(); closeLayer(); if (wasGuest) { toast('شماره تأیید شد ✓'); return setActive(S.active && P.find(x => x.id === S.active) ? S.active : (P[0] || {}).id, { noWizard: true }); } if (P.length) setActive(P[0].id); else { render(true); toast('خوش آمدید! حالا اولین مسیرک را بسازید.'); } } catch (e) { fail(e); } return; }
     case 'logout': try { await api('logout'); } catch (e) {} S.token = null; S.phone = null; S.active = null; P = []; persist(); closeLayer(); applyAccent(); render(true); return toast('از حساب خارج شدید.');
     case 'theme': { const d = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = d; S.theme = d; persist(); return; }
     case 'filter': ui.filter = el.dataset.v; PM.key = ''; return renderMain();
@@ -901,17 +999,25 @@ async function act(a, el) {
     }
     case 'invite-all': { const sm = smartTeam(p, ui.cand.list); if (!sm) return; let n = 0; for (const m of sm.list) { try { const r = await api('invite', { profile_id: p.id, to: m.id }); m.invite = { id: r.id, dir: 'out' }; n++; } catch (e) {} } PM.key = ''; renderMain(); toast(`${fa(n)} دعوت رفت. هر کس بپذیرد، تیم شکل می‌گیرد.`); setTimeout(() => loadInbox(), 4500); setTimeout(() => loadInbox(), 9000); return; }
     case 'accept': try { const r = await api('invite_respond', { id: el.dataset.id, accept: 1 }); closeLayer(); await refreshMe(); applyAccent(); ui.tab = 'team'; await loadTeam(); loadPeers(); loadInbox(); render(true); toast(`خوش آمدید به ${teamName(r.team)}!`); } catch (e) { fail(e); } return;
-    case 'decline': try { await api('invite_respond', { id: el.dataset.id, accept: 0 }); closeLayer(); loadInbox(); toast('با احترام رد شد؛ پیامی برای‌شان نمی‌رود.'); } catch (e) { fail(e); } return;
+    case 'decline': { const id = el.dataset.id; try { await api('invite_respond', { id, accept: 0 }); closeLayer(); loadInbox(); offerUndo('با احترام رد شد؛ پیامی برای‌شان نمی‌رود.', async () => { try { await api('invite_undo', { id }); loadInbox(); toast('دعوت دوباره باز شد.'); } catch (e) { fail(e); } }); } catch (e) { fail(e); } return; }
     case 'inbox': closeLayer(); return inboxSheet();
     case 'leave': closeLayer(); return sheet('جدا شدن از تیم؟', `<p>از ${esc(teamName(p.team))} جدا می‌شوید. سابقه‌ی سفرها و حساب‌ها پاک نمی‌شود.</p><div class="row"><button class="btn grow" data-a="leave-ok">بله، جدا می‌شوم</button><button class="btn line grow" data-a="close">ماندن</button></div>`);
     case 'leave-ok': try { const r = await api('team_leave', { profile_id: p.id }); closeLayer(); await refreshMe(); applyAccent(); ui.team = null; ui.tab = 'peers'; render(true); loadPeers(); toast(r.result === 'closed' ? 'تیم بسته شد؛ دوباره هم‌مسیر پیدا کنید.' : 'از تیم جدا شدید.'); } catch (e) { fail(e); } return;
     case 'poster': closeLayer(); return posterSheet();
-    case 'print': return window.print();
+    case 'print': return printPoster();
     case 'copy-cap': return copyText(ui.caption).then(ok => toast(ok ? 'متن و لینک کپی شد؛ در گروه‌ها بچسبانید.' : 'کپی نشد.'));
     case 'share': { const t = ui.caption; try { const blob = await posterPng(); const file = new File([blob], 'residim.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) return navigator.share({ files: [file], text: t }).catch(() => {}); if (navigator.share) return navigator.share({ text: t }).catch(() => {}); } catch (e) {} return copyText(t).then(() => toast('متن و لینک کپی شد.')); }
     case 'img': { const b = await posterPng(); const u = URL.createObjectURL(b); const l = document.createElement('a'); l.href = u; l.download = `residim-${active().place.code}.png`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); return toast('عکس‌نوشت ذخیره شد.'); }
     case 'notify': if (!('Notification' in window)) return toast('این مرورگر نوتیف ندارد؛ خبرها در «دعوت‌ها و پیام‌ها» می‌آید.'); return Notification.requestPermission().then(r => toast(r === 'granted' ? 'نوتیف روشن شد.' : 'نوتیف روشن نشد؛ از تنظیمات مرورگر روشنش کنید.'));
     case 'radio': closeLayer(); return radioSheet();
+    case 'radio-vote': if (S.radioVoted) return; try { const r = await api('radio_vote'); CFG.radio_votes = r.votes; S.radioVoted = 1; persist(); toast('ممنون! صدای شما شمرده شد.'); return radioSheet(); } catch (e) { return fail(e); }
+    case 'chat': closeLayer(); return chatSheet();
+    case 'chat-close': clearInterval(ui.chatT); return closeLayer();
+    case 'chat-send': { const i = $('#chat-in'), t = (i.value || '').trim(); if (!t) return; i.value = ''; try { await api('chat_send', { profile_id: p.id, text: t }); chatPull(); } catch (e) { i.value = t; fail(e); } return; }
+    case 'verify': closeLayer(); ui.lg = null; return loginSheet(true);
+    case 'quick-new': closeLayer(); ui.linkPlace = null; return wizOpen(null, { mode: 'new', kind: el.dataset.kind });
+    case 'print-poster': return printPoster();
+    case 'adm-smstest': { try { const r = await api('admin_sms_test', { phone: $('#sm-ph').value, tpl: $('#sm-tpl').value, type: $('#sm-type').value }, true); const R = r.result; $('#sm-out').innerHTML = `<div class="${R.ok ? 'done' : 'hint warn'}"><b>${R.ok ? 'ارسال شد ✓' : 'ارسال نشد'}</b><span>کد کاوه‌نگار: <b dir="ltr">${esc(R.code)}</b> · ${esc(R.msg)}</span><span class="muted small">کلید: ${r.key_set ? 'تنظیم شده' : 'تنظیم نشده'} · الگو: <span dir="ltr">${esc(r.template)}</span></span></div>`; } catch (e) { fail(e); } return; }
     case 'rules': closeLayer(); return sheet('قوانین و حریم خصوصی', rulesHtml());
     case 'ticket': closeLayer(); return ticketSheet();
     case 'tk-cat': ui.tk = ui.tk || {}; ui.tk.cat = el.dataset.v; ui.tk.text = ($('#tk') || {}).value || ''; return ticketSheet();
@@ -943,9 +1049,9 @@ async function act(a, el) {
     case 't-fake5': case 't-fake1': closeLayer(); try { const r = await api('test_fake', { profile_id: p.id, n: a === 't-fake5' ? 5 : 1, driver: a === 't-fake1' }); toast(`${fa(r.made)} همسایه‌ی آزمایشی اضافه شد.`); loadPeers(); } catch (e) { fail(e); } return;
     case 't-invme': closeLayer(); try { await api('test_invite_me', { profile_id: p.id }); await loadInbox(); toast('یک همسایه‌ی آزمایشی دعوت‌تان کرد؛ زنگوله را ببینید.'); loadPeers(); } catch (e) { fail(e); } return;
     case 't-clear': closeLayer(); try { const r = await api('test_clear', { profile_id: p.id }); await refreshMe(); applyAccent(); ui.team = null; toast(`${fa(r.removed)} همسایه‌ی آزمایشی پاک شد.`); render(); loadPeers(); } catch (e) { fail(e); } return;
-    case 't-delprof': closeLayer(); return sheet('پاک کردن کامل این پرونده؟', `<p>«${esc(p.label)}» و همه‌ی داده‌هایش (تیم، دعوت‌ها، پیام‌ها) پاک می‌شود و برنمی‌گردد.</p><div class="row"><button class="btn grow" data-a="t-delprof-ok">پاک شود</button><button class="btn line grow" data-a="close">نه</button></div>`);
-    case 't-delprof-ok': closeLayer(); try { if (String(p.id).startsWith('d')) S.drafts = S.drafts.filter(d => d.id !== p.id); else { await api('profile_delete', { id: p.id }); await refreshMe(); } S.active = (allProfiles()[0] || {}).id || null; persist(); ui.team = null; ui.cand = null; PM.map && PM.map.remove(); PM.map = null; PM.state = 'idle'; applyAccent(); render(true); toast('پرونده پاک شد.'); if (S.active) setActive(S.active, { noWizard: true }); } catch (e) { fail(e); } return;
-    case 't-reset': closeLayer(); return sheet('بازنشانی کامل؟', '<p>حساب، همه‌ی پرونده‌ها و داده‌های این دستگاه پاک می‌شود و از اول شروع می‌کنید.</p><div class="row"><button class="btn grow" data-a="t-reset-ok">از صفر شروع کن</button><button class="btn line grow" data-a="close">نه</button></div>');
+    case 't-delprof': closeLayer(); return sheet('پاک کردن کامل این مسیرک؟', `<p>«${esc(p.label)}» و همه‌ی داده‌هایش (تیم، دعوت‌ها، پیام‌ها) پاک می‌شود و برنمی‌گردد.</p><div class="row"><button class="btn grow" data-a="t-delprof-ok">پاک شود</button><button class="btn line grow" data-a="close">نه</button></div>`);
+    case 't-delprof-ok': closeLayer(); try { if (String(p.id).startsWith('d')) S.drafts = S.drafts.filter(d => d.id !== p.id); else { await api('profile_delete', { id: p.id }); await refreshMe(); } S.active = (allProfiles()[0] || {}).id || null; persist(); ui.team = null; ui.cand = null; PM.map && PM.map.remove(); PM.map = null; PM.state = 'idle'; applyAccent(); render(true); toast('مسیرک پاک شد.'); if (S.active) setActive(S.active, { noWizard: true }); } catch (e) { fail(e); } return;
+    case 't-reset': closeLayer(); return sheet('بازنشانی کامل؟', '<p>حساب، همه‌ی مسیرک‌ها و داده‌های این دستگاه پاک می‌شود و از اول شروع می‌کنید.</p><div class="row"><button class="btn grow" data-a="t-reset-ok">از صفر شروع کن</button><button class="btn line grow" data-a="close">نه</button></div>');
     case 't-reset-ok': { try { if (S.token) await api('account_reset'); } catch (e) {} const th = S.theme; S = { drafts: [], theme: th }; P = []; persist(); location.replace(BASE); return; }
     case 't-splash': closeLayer(); return splash(true);
     case 'admin': closeLayer(); ui.admin = true; history.pushState(null, '', BASE + '#admin'); return render(true);
@@ -956,10 +1062,10 @@ async function act(a, el) {
     case 'adm-verify': try { await api('admin_place', { id: el.dataset.id, verified: el.checked ? 1 : 0 }, true); toast('ذخیره شد.'); } catch (e) { fail(e); } return;
     case 'adm-premium': try { await api('admin_team', { id: el.dataset.id, premium: el.checked ? 1 : 0 }, true); toast('ذخیره شد.'); } catch (e) { fail(e); } return;
     case 'adm-reply': try { await api('admin_ticket', { id: el.dataset.id, reply: $('#rep-' + el.dataset.id).value, status: 'answered' }, true); toast('پاسخ ثبت شد.'); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
-    case 'adm-purge': try { const r = await api('admin_purge_fake', {}, true); toast(`${fa(r.removed)} پرونده‌ی آزمایشی حذف شد.`); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
+    case 'adm-purge': try { const r = await api('admin_purge_fake', {}, true); toast(`${fa(r.removed)} مسیرکِ آزمایشی حذف شد.`); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
     /* wizard */
     case 'w-close': { const ww = ui.wiz; ui.wiz = null; wizRender(); if (ww && !ww.done && ww.mode === 'new' && !S.token) toast('ثبت‌نام نیمه‌کاره روی همین گوشی ماند؛ هر وقت خواستید ادامه دهید.'); render(); return; }
-    case 'w-notthis': ui.wiz = null; wizRender(); ui.linkPlace = null; history.replaceState(null, '', BASE); render(true); return wizOpen(null, { mode: 'new' });
+    case 'w-notthis': { const lp = ui.linkPlace; ui.wiz = null; wizRender(); ui.linkPlace = null; history.replaceState(null, '', BASE); render(true); wizOpen(null, { mode: 'new' }); return offerUndo('سراغ جای دیگری رفتیم.', () => { ui.wiz = null; wizRender(); ui.linkPlace = lp; render(true); wizOpen(null, { mode: 'new', link: lp }); }); }
     case 'w-prev': w.step--; w.err = ''; return wizRender();
     case 'w-next': return wizNext();
     case 'w-set': { const v = el.dataset.v; w.d[el.dataset.k] = ['ok0', 'forKids'].includes(el.dataset.k) ? +v : v; if (el.dataset.k === 'forKids' && w.d.forKids === 1 && !w.d.kids.length) w.d.kids = [{ id: uid(), first: '', g: '', by: '' }]; w.err = ''; return wizRender(); }
@@ -972,9 +1078,18 @@ async function act(a, el) {
     case 'w-val': { const v = el.dataset.v, vs = w.d.values || []; w.d.values = vs.includes(v) ? vs.filter(z => z !== v) : [...vs, v]; return wizRender(); }
     case 'w-rules': w.d.rules_at = el.checked ? Date.now() : null; w.err = ''; return;
     case 'w-show': w.d.phone_show = el.checked; return;
-    case 'w-locate': if (!navigator.geolocation) return toast('این مرورگر موقعیت‌یابی ندارد.'); toast('در حال گرفتن موقعیت؛ فقط با اجازه‌ی شما.');
-      navigator.geolocation.getCurrentPosition(pos => { const la = +pos.coords.latitude.toFixed(5), ln = +pos.coords.longitude.toFixed(5); w.d.lat = la; w.d.lng = ln; if (PK.map) PK.map.flyTo({ center: [ln, la], zoom: 16.5 }); else wizRender(); reverseFill(w); }, () => toast('موقعیت گرفته نشد؛ اجازه‌ی مرورگر را بررسی کنید یا نقشه را جابه‌جا کنید.'), { enableHighAccuracy: true, timeout: 10000 });
+    case 'w-locate': if (!navigator.geolocation) return toast('این مرورگر موقعیت‌یابی ندارد؛ «انتخاب روی نقشه» را بزنید.'); toast('در حال گرفتن موقعیت؛ فقط با اجازه‌ی شما.');
+      navigator.geolocation.getCurrentPosition(pos => { w.d.lat = +pos.coords.latitude.toFixed(5); w.d.lng = +pos.coords.longitude.toFixed(5); w.addr = ''; wizRender(); reverseFill(w); toast('ثبت شد. اگر دقیق نیست، «انتخاب روی نقشه» را بزنید.'); }, () => toast('موقعیت گرفته نشد؛ «انتخاب روی نقشه» را بزنید.'), { enableHighAccuracy: true, timeout: 10000 });
       return;
+    case 'w-mapick': { const home = el.dataset.t === 'home', n = w.newPlace; const c = home ? (w.d.lat ? [w.d.lat, w.d.lng] : (w.link ? [w.link.lat, w.link.lng] : null)) : (n && n.lat ? [n.lat, n.lng] : (w.d.lat ? [w.d.lat, w.d.lng] : null));
+      return pickOnMap(home ? 'موقعیت خانه' : 'در ورودی ' + destWord({ kind: w.kind }), c || [35.7, 51.39], ll => { if (home) { w.d.lat = ll[0]; w.d.lng = ll[1]; w.addr = PKM.addr || ''; if (PKM.hood && (!w.d.hood || w.autoHood)) { w.d.hood = PKM.hood; w.autoHood = true; } } else { n.lat = ll[0]; n.lng = ll[1]; checkDup(w); } wizRender(); }); }
+    case 'pk-cancel': return closePicker();
+    case 'pk-ok': { if (!PKM.cur) return toast('نقشه بالا نیامد؛ «موقعیت من» را بزنید.'); const f = PKM.done, c = PKM.cur; closePicker(); f && f(c); return toast('موقعیت ثبت شد.'); }
+    case 'pk-here': if (!navigator.geolocation) return; navigator.geolocation.getCurrentPosition(pos => { PKM.cur = [+pos.coords.latitude.toFixed(5), +pos.coords.longitude.toFixed(5)]; if (PK.map) { PK.prog = null; PK.map.flyTo({ center: [PKM.cur[1], PKM.cur[0]], zoom: 17 }); } pkReverse(); }, () => toast('موقعیت گرفته نشد.'), { enableHighAccuracy: true, timeout: 10000 }); return;
+    case 'w-contact': w.d.contact = el.dataset.v; w.d.phone_show = el.dataset.v === 'phone'; w.err = ''; return wizRender();
+    case 'w-call': return otpSend(w, 'call');
+    case 'w-guest': return guestStart(w);
+    case 'undo': { const f = ui.undoFn; ui.undoFn = null; $('#undo').classList.remove('show'); if (f) f(); return; }
     case 'w-paste': { const ll = parseLoc($('#w-paste').value); if (!ll) return toast('مختصاتی در این لینک پیدا نشد. لینک‌های کوتاه را اول در مرورگر باز کنید و آدرس کامل را بچسبانید.'); w.d.lat = ll[0]; w.d.lng = ll[1]; if (PK.map) PK.map.jumpTo({ center: [ll[1], ll[0]], zoom: 16.5 }); reverseFill(w); return toast('موقعیت ثبت شد.'); }
     case 'w-np-new': w.newPlace = { name: w.pq || '', city: 'تهران', in: '07:30', out: '13:30', lat: null, lng: null, dups: [] }; w.place = null; return wizRender();
     case 'w-np-here': if (!navigator.geolocation) return toast('این مرورگر موقعیت‌یابی ندارد.'); navigator.geolocation.getCurrentPosition(pos => { w.newPlace.lat = +pos.coords.latitude.toFixed(5); w.newPlace.lng = +pos.coords.longitude.toFixed(5); if (PK.map) { PK.prog = null; PK.map.flyTo({ center: [w.newPlace.lng, w.newPlace.lat], zoom: 17 }); } else wizRender(); checkDup(w); }, () => toast('موقعیت گرفته نشد.'), { enableHighAccuracy: true, timeout: 10000 }); return;
@@ -982,10 +1097,10 @@ async function act(a, el) {
     case 'w-np-cancel': w.newPlace = null; return wizRender();
     case 'w-np': w.newPlace[el.dataset.k] = el.dataset.v; w.err = ''; return wizRender();
     case 'w-dupok': w.newPlace.dupOk = true; w.newPlace.dups = []; return wizRender();
-    case 'w-pick': { let pl = (w.near || []).find(z => z.id === el.dataset.id) || ((w.newPlace && w.newPlace.dups) || []).find(z => z.id === el.dataset.id); w.place = pl; w.newPlace = null; w.err = ''; if (pl && (pl.gender === 'f' || pl.gender === 'm')) w.d.kids.forEach(k => k.g = pl.gender); return wizRender(); }
-    case 'w-est': w.d.snapp = estSnapp(w.route.m); return wizRender();
+    case 'w-pick': { const before = { place: w.place, newPlace: w.newPlace }; let pl = (w.near || []).find(z => z.id === el.dataset.id) || ((w.newPlace && w.newPlace.dups) || []).find(z => z.id === el.dataset.id); w.place = pl; w.newPlace = null; w.err = ''; if (before.newPlace) offerUndo(`«${pl.name}» انتخاب شد.`, () => { w.place = before.place; w.newPlace = before.newPlace; wizRender(); }); if (pl && (pl.gender === 'f' || pl.gender === 'm')) w.d.kids.forEach(k => k.g = pl.gender); return wizRender(); }
+    case 'w-est': w.d.snapp = w.route.est || estSnapp(w.route.m); return wizRender();
     case 'w-snapp': { const tgt = w.link || w.place || w.newPlace, here = el.dataset.v; const txt = here === 'home' ? `${tgt.name}${tgt.city ? '، ' + tgt.city : ''}` : (w.addr || ('محله ' + (w.d.hood || ''))); await copyText(txt); toast(`«${txt}» کپی شد؛ در اسنپ به‌عنوان مقصد بچسبانید.`); setTimeout(() => window.open('https://app.snapp.taxi/', '_blank', 'noopener'), 600); return; }
-    case 'w-resend': w.otpSent = false; return otpSend(w);
+    case 'w-resend': w.otpSent = false; return otpSend(w, 'sms');
     case 'w-finish': ui.wiz = null; wizRender(); ui.tab = 'peers'; return render(true);
     case 'w-poster': ui.wiz = null; wizRender(); render(); return posterSheet();
   }
@@ -996,10 +1111,10 @@ function parseLoc(s) {
   for (const r of pats) { const m = s.match(r); if (m) { const a = +m[1], b = +m[2]; return a > 20 && a < 45 && b > 40 && b < 65 ? [a, b] : (b > 20 && b < 45 ? [b, a] : null); } }
   return null;
 }
-function loginSheet() {
+function loginSheet(verify) {
   const L = ui.lg;
-  sheet('ورود', L ? `<p>کد تأیید به <b dir="ltr">${esc(fa(L.ph))}</b> رفت.</p><div class="field"><label for="lg-otp">کد</label><input id="lg-otp" class="otp" inputmode="numeric" autocomplete="one-time-code"></div>${L.dev ? `<p class="note">${ic('flask')}کد آزمایشی: <b dir="ltr">${fa(L.dev)}</b></p>` : ''}<button class="btn" data-a="lg-verify">ورود</button>`
-    : `<div class="field"><label for="lg-ph">شماره همراه</label><input id="lg-ph" type="tel" inputmode="tel" dir="ltr" placeholder="09121234567" autocomplete="tel"></div><button class="btn" data-a="lg-send">ارسال کد</button>`, 'همه‌ی پرونده‌های شما با همین شماره');
+  sheet(verify || (S.token && !S.phone) ? 'تأیید شماره' : 'ورود', L ? `<p>کد تأیید به <b dir="ltr">${esc(fa(L.ph))}</b> رفت.</p><div class="field"><label for="lg-otp">کد</label><input id="lg-otp" class="otp" inputmode="numeric" autocomplete="one-time-code"></div>${L.dev ? `<p class="note">${ic('flask')}کد آزمایشی: <b dir="ltr">${fa(L.dev)}</b></p>` : ''}<button class="btn" data-a="lg-verify">ورود</button>`
+    : `<div class="field"><label for="lg-ph">شماره همراه</label><input id="lg-ph" type="tel" inputmode="tel" dir="ltr" placeholder="0912 123 4567" autocomplete="tel"></div><div class="row wrap"><button class="btn" data-a="lg-send">ارسال کد با پیامک</button><button class="btn line" data-a="lg-call">تماس صوتی</button></div>`, S.token && !S.phone ? 'با تأیید شماره، «تأییدنشده» از کنار نام‌تان برمی‌دارد و شماره‌ی هم‌مسیرها را می‌بینید.' : 'همه‌ی مسیرک‌های شما با همین شماره');
 }
 async function ticketSheet() {
   ui.tk = ui.tk || { cat: 'فنی', text: '' }; let list = [];
@@ -1013,10 +1128,12 @@ async function radioSheet() {
   try { eps = (await (await fetch('radio.json', { cache: 'no-store' })).json()).episodes || []; } catch (e) {}
   if (!$('.sheet')) return;
   $('.sheet-b').innerHTML = eps.length ? eps.map(e => `<div class="card stack" style="padding:14px"><b>${esc(e.title)}</b>${e.desc ? `<span class="muted small">${esc(e.desc)}</span>` : ''}<audio controls preload="none" src="${esc(e.src)}" style="width:100%"></audio></div>`).join('')
-    : `<p><b>به‌زودی روی آنتن!</b> اپیزودهای کوتاه و شاد برای مسیر: قصه، دانستنی، معما و ادب و مهربانی؛ چند دقیقه‌ای، با نسخه‌ی بدون موسیقی.</p>`;
+    : `${cityAnim('')}<p><b>به‌زودی روی آنتن!</b> اپیزودهای کوتاه و شاد برای مسیر: قصه، دانستنی، معما و ادب و مهربانی؛ چند دقیقه‌ای، با نسخه‌ی بدون موسیقی.</p>
+      <button class="btn ac block" data-a="radio-vote" ${S.radioVoted ? 'disabled' : ''}>${ic('heart')}${S.radioVoted ? 'صدای شما شمرده شد' : 'دوست دارم زود راه بیفتد'}</button>
+      <p class="muted small" style="text-align:center"><b class="num">${fa(CFG.radio_votes || 0)}</b> نفر منتظر رادیو رسیدیم هستند.</p>`;
 }
 async function openCode(code) {
-  try { const r = await api('place_code', { code }); ui.linkPlace = r.place; history.replaceState(null, '', BASE === '/' ? '/' + code : BASE + '#/c/' + code); const own = P.find(x => x.place && x.place.id === r.place.id); if (own) { ui.linkPlace = null; history.replaceState(null, '', BASE); return setActive(own.id); } render(true); }
+  try { const r = await api('place_code', { code }); ui.linkPlace = r.place; history.replaceState(null, '', BASE === '/' ? '/' + code : BASE + '#/c/' + code); const own = P.find(x => x.place && x.place.id === r.place.id); if (own) { ui.linkPlace = null; history.replaceState(null, '', BASE); return setActive(own.id); } render(true); wizOpen(null, { mode: 'new', link: r.place }); }
   catch (e) { toast(e.code === 'notfound' ? 'این لینک پیدا نشد؛ کد را دوباره بررسی کنید.' : e.message); history.replaceState(null, '', BASE); render(true); }
 }
 
@@ -1072,6 +1189,8 @@ const BASE = location.pathname.replace(/[^/]*$/, '').replace(/\/[A-Z2-9]{8}\/?$/
   if (!active()) S.active = (allProfiles()[0] || {}).id || null;
   applyAccent();
   if (code) return openCode(code);
+  const rd = location.hash.match(/^#\/([^/]+)\/(.+)$/);
+  if (rd && rd[1] !== 'c') { try { const city = decodeURIComponent(rd[1]), name = decodeURIComponent(rd[2]).replace(/-/g, ' '); const r = await api('place_near', { q: name.split(' ').slice(0, 3).join(' ') }); const m = r.places.filter(x => !city || x.city === city || /^[a-z]+$/i.test(city)); if (m.length === 1) return openCode(m[0].code); if (m.length) { render(true); return sheet('کدام یکی؟', m.map(x => `<button class="place-opt" data-a="open-code" data-c="${x.code}">${kindIc(x.kind, false, false)}<span class="grow">${esc(x.name)}<small>${esc(x.city)}${x.shift ? ' · ' + esc(x.shift) : ''} · کد ${x.code}</small></span></button>`).join(''), 'چند مکان با این نام هست؛ برای همین لینک‌های رسیدیم کد کوتاه دارند.'); } } catch (e) {} }
   render(true);
   const p = active();
   if (p && p.complete) { if (p.team) { ui.tab = 'team'; await loadTeam(); render(); } loadPeers(); loadInbox(); }
