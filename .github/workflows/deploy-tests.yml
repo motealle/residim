@@ -12,7 +12,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
       FTP_SERVER: ${{ secrets.FTP_SERVER_RESIDIM }}
       FTP_USERNAME: ${{ secrets.FTP_USERNAME_RESIDIM }}
@@ -55,6 +55,8 @@ jobs:
             if [[ "$target" =~ ^t/[0-9]+/ ]]; then
               folder="${target#t/}"
               folder="${folder%%/*}"
+              # Released folders are never written; their bytes are checked by the public verification workflow.
+              if [[ " $published_folders " == *" $folder "* ]]; then rm -f "$temp"; return 0; fi
               echo "Read-only probe: $target"
               if curl "${common[@]}" --output "$temp" "ftp://$server/$target"; then
                 if cmp -s "$source" "$temp"; then
