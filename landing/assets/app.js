@@ -606,6 +606,7 @@ function renderMain(anim) {
   else if (!p.complete) html = resumeCard(p);
   else { const V = { peers: peersTab, team: teamTab, money: moneyTab }; if (!V[ui.tab] || (isTrip(p) && ui.tab === 'money')) ui.tab = isTrip(p) && ui.tab === 'money' ? 'team' : 'peers'; html = V[ui.tab](p); }
   main.innerHTML = html;
+  { const tr = $('#trust'); if (tr) tr.classList.toggle('hide', !!(ui.admin || (p && !ui.linkPlace))); }
   dock.classList.toggle('hide', !(p && p.complete) || ui.admin || (ui.linkPlace && !(p.place && p.place.id === ui.linkPlace.id)));
   { const mb = dock.querySelector('[data-tab="money"]'); if (mb) mb.classList.toggle('hide', isTrip(p)); }
   dock.querySelectorAll('[data-tab]').forEach(b => b.dataset.tab === ui.tab ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
@@ -636,22 +637,27 @@ function profRow(p) {
   const st = !p.complete ? '<span class="st warn">نیمه‌کاره</span>' : p.team ? `<span class="st team">تیم ${fa(p.team.no)}</span>` : mk ? '<span class="st warn">یک سؤال مانده</span>' : '<span class="st">بی‌تیم</span>';
   return `<button class="prof ${p.id === S.active ? 'active' : ''}" style="--kc:${c.c};--ki:${c.i}" data-a="use" data-id="${p.id}">${kindIc(p.kind, false, false)}<span class="grow" style="min-width:0"><b>${esc(p.label)}</b><small>${esc(placeName(p) || (KINDS[p.kind] || KINDS.other).n)}</small></span>${st}</button>`;
 }
-function drawer() {
+function profPanel(p) {
+  const n = ui.inbox ? ui.inbox.invites.length + ui.inbox.unread : 0;
+  return `<div class="pc-panel" style="--kc:${profColor(p).c}">
+    <button data-a="wiz-review">${ic('check')}<span>${p.complete ? 'مرور و بازتنظیم پاسخ‌ها' : 'ادامه‌ی ثبت‌نام'}</span></button>
+    ${p.complete ? `<button data-a="inbox">${ic('bell')}<span>دعوت‌ها و پیام‌ها</span>${n ? `<i class="badge">${fa(n)}</i>` : ''}</button>` : ''}
+    ${p.complete && p.place ? `<button data-a="poster">${ic('share')}<span>لینک و پوستر</span></button>` : ''}</div>`;
+}
+function drawer(keep) {
   const p = active(), ps = allProfiles(); ui.inDrawer = true;
-  lastFocus = document.activeElement;
+  if (!keep) lastFocus = document.activeElement;
   const mi = (a, i, txt, extra = '') => `<button class="mi" data-a="${a}" ${extra}>${ic(i)}<span class="grow">${txt}</span></button>`;
-  $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">
+  const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
+  const html = `
     <div class="dr-head"><img src="assets/icon.svg" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم</b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان · شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="شب و روز">${ic('moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
-    <button class="sec-h" data-a="toggle" data-v="profiles" aria-expanded="${ui.open.profiles}"><span>مسیرک‌ها (${fa(ps.length)})</span>${ic('down', 'i chev' + (ui.open.profiles ? ' open' : ''))}</button>
-    ${p ? profRow(p) : ''}
-    <div class="plist ${ui.open.profiles ? '' : 'closed'}" style="max-height:${ui.open.profiles ? 600 : 0}px">${ps.filter(x => x.id !== S.active).map(profRow).join('')}<button class="mi" data-a="new-profile">${ic('plus')}<span class="grow">مسیرکِ تازه</span></button></div>
+    <div class="sec-h"><span>مسیرک‌ها (${fa(ps.length)})</span></div>
+    <div class="pgroup">${ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${x.id === S.active ? profPanel(x) : ''}</div>`).join('')}
+    <button class="mi" data-a="new-profile">${ic('plus')}<span class="grow">مسیرکِ تازه</span></button></div>
     ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیرک دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
     ${S.token && !S.phone ? `<div class="hint warn" style="margin:6px 0">${ic('phone')}<span class="grow small">شماره‌تان هنوز تأیید نشده؛ تا تأیید، شماره‌ی دیگران را نمی‌بینید.</span><button class="btn sm" data-a="verify">تأیید</button></div>` : ''}
-    ${p ? `<div class="tiles">${p.complete ? `<button class="tile" data-a="inbox">${ic('bell')}<span>دعوت‌ها و پیام‌ها</span>${ui.inbox && (ui.inbox.invites.length + ui.inbox.unread) ? `<i class="badge">${fa(ui.inbox.invites.length + ui.inbox.unread)}</i>` : ''}</button>` : ''}
-      ${p.team ? `<button class="tile" data-a="chat">${ic('team')}<span>گفتگوی تیم</span></button>` : ''}
-      ${p.complete && p.place ? `<button class="tile" data-a="poster">${ic('share')}<span>لینک و پوستر</span></button>` : ''}
-      <button class="tile" data-a="wiz-review">${ic('check')}<span>${p.complete ? 'مرور پاسخ‌ها' : 'ادامه‌ی ثبت‌نام'}</span></button>
-      ${p.team && CFG.flags.league_on ? `<button class="tile" data-a="quiz">${ic('trophy')}<span>لیگ راه ${esc(destWord(p))}</span></button>` : ''}</div>` : ''}
+    ${p && p.team ? `<div class="tiles">${`<button class="tile" data-a="chat">${ic('team')}<span>گفتگوی تیم</span></button>`}
+      ${CFG.flags.league_on ? `<button class="tile" data-a="quiz">${ic('trophy')}<span>لیگ راه ${esc(destWord(p))}</span></button>` : ''}</div>` : ''}
     ${p && p.team ? mi('leave', 'leave', 'جدا شدن از تیم') : ''}
     <div class="sep"></div>
     ${mi('guide', 'guide', 'راهنمای رسیدیم')}
@@ -660,6 +666,7 @@ function drawer() {
     ${mi('sub', 'spark', CFG.flags.paid_mode ? (ME.premium_until * 1000 > Date.now() ? 'اشتراک همراه: فعال' : 'اشتراک رسیدیم همراه') : 'اشتراک: فعلاً همه‌چیز رایگان است')}
     ${mi('radio', 'radio', 'رادیو رسیدیم · ' + fa(CFG.radio_votes || 0) + ' نفر منتظرند')}
     ${S.token ? mi('ticket', 'ticket', 'پشتیبانی و تیکت') : ''}
+    ${mi('about', 'heart', 'درباره‌ی رسیدیم')}
     ${mi('rules', 'shield', 'قوانین و حریم خصوصی')}
     ${mi('notify', 'bell', 'روشن کردن نوتیف')}
     ${S.token ? mi('logout', 'logout', 'خروج از حساب') : mi('login', 'user', 'ورود')}
@@ -670,8 +677,20 @@ function drawer() {
       ${mi('t-splash', 'spark', 'نمایش دوباره‌ی اسپلش')}
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
-    <p class="muted small" style="padding:8px">نسخه ۰۹ · ${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی (کلید سرویس نشان تنظیم نشده)'}</p></nav>`;
-  ui.inDrawer = false; $('.drawer').focus();
+    <div class="trust-slot"></div>
+    <p class="muted small" style="padding:8px">نسخه ۱۰ · ${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی (کلید سرویس نشان تنظیم نشده)'}</p>`;
+  if (old) { old.innerHTML = html; old.scrollTop = st; }
+  else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
+  putTrust($('.drawer .trust-slot'));
+  ui.inDrawer = false;
+}
+/* Enamad: the official snippet lives untouched in index.html (#trust); other places get an exact clone */
+function putTrust(slot) { const t = document.querySelector('#trust .enamad'); if (slot && t) { slot.innerHTML = ''; slot.appendChild(t.cloneNode(true)); } }
+function aboutSheet() {
+  sheet('درباره‌ی رسیدیم', `<p style="line-height:2">رسیدیم یک سرویس مشارکتی رفت‌وآمد است: خانواده‌های هم‌محله و هم‌مسیر را پیدا می‌کند تا بچه‌ها را نوبتی به مدرسه، مهد، آموزشگاه و باشگاه ببرند و بیاورند؛ همکاران و دانشجوها هم نوبتی برانند. خرج نصف، ترافیک کمتر، خیال راحت.</p>
+    <ul class="ticks"><li>${ic('check')}<span>تیم‌سازی همیشه رایگان است.</span></li><li>${ic('check')}<span>دختران بالای ۸ و پسران بالای ۱۲ سال با جنس مخالف هم‌سرویس نمی‌شوند.</span></li><li>${ic('check')}<span>پرداخت‌ها مستقیم بین خانواده‌هاست؛ رسیدیم پول کسی را نگه نمی‌دارد.</span></li><li>${ic('check')}<span>اطلاعات بچه‌ها فقط برای هم‌تیمی‌ها دیده می‌شود.</span></li></ul>
+    <p class="muted small">پشتیبانی: از منو «پشتیبانی و تیکت» · وب: residim.ir</p><div class="trust-slot center"></div>`);
+  putTrust($('.sheet .trust-slot'));
 }
 
 /* ═════════ sheets ═════════ */
@@ -851,8 +870,8 @@ function wizSteps(w) {
         <p class="note">${ic('check')}با ۰۹، ‎+98، ۰۰۹۸ یا بدون صفر؛ با رقم فارسی یا انگلیسی؛ هر طور راحتید.</p>
         ${contactHtml(w)}
         ${w.smsFail ? `<div class="hint warn" style="display:grid;gap:10px">${ic('warn')}<b>پیامک کد نرسید؛ مشکل از سمت ماست، نه شما.</b><span class="small">${w.smsFail.pcode ? 'کد خطای سرویس: ' + fa(w.smsFail.pcode) + ' · ' : ''}یکی از این راه‌ها را بزنید:</span>
-          <div class="choices"><button class="choice" data-a="w-resend">${ic('phone', 'emo')}دوباره با پیامک</button><button class="choice" data-a="w-call">${ic('bell', 'emo')}کد را با تماس صوتی بگیرم</button><button class="choice" data-a="w-guest">${ic('back', 'emo')}<span>فعلاً بدون شماره ادامه می‌دهم<small>بعداً از منو تأیید می‌کنید؛ تا آن موقع شماره‌ی دیگران را نمی‌بینید و کنار نام‌تان «تأییدنشده» می‌آید.</small></span></button></div></div>` : ''}
-        ${w.otpSent ? `<div class="field"><label for="w-otp">کد تأیید</label><input id="w-otp" class="otp" data-w="otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" value="${esc(w.otp || '')}"></div>${w.devCode ? `<p class="note">${ic('flask')}سرویس پیامک هنوز فعال نیست؛ کد آزمایشی: <b dir="ltr">${fa(w.devCode)}</b></p>` : `<p class="note">کد را ${w.channel === 'call' ? 'با تماس صوتی' : 'پیامک'} کردیم.</p>`}<div class="row wrap"><button class="link" data-a="w-resend">ارسال دوباره</button><button class="link" data-a="w-call">تماس صوتی</button><button class="link" data-a="w-guest">بدون شماره ادامه می‌دهم</button></div>` : (w.smsFail ? '' : '<button class="link" data-a="w-guest">فعلاً بدون شماره ادامه می‌دهم</button>')}`,
+          <div class="choices"><button class="choice" data-a="w-resend">${ic('phone', 'emo')}دوباره با پیامک</button>${CFG.flags.sms_direct ? '' : `<button class="choice" data-a="w-call">${ic('bell', 'emo')}کد را با تماس صوتی بگیرم</button>`}<button class="choice" data-a="w-guest">${ic('back', 'emo')}<span>فعلاً بدون شماره ادامه می‌دهم<small>بعداً از منو تأیید می‌کنید؛ تا آن موقع شماره‌ی دیگران را نمی‌بینید و کنار نام‌تان «تأییدنشده» می‌آید.</small></span></button></div></div>` : ''}
+        ${w.otpSent ? `<div class="field"><label for="w-otp">کد تأیید</label><input id="w-otp" class="otp" data-w="otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" value="${esc(w.otp || '')}"></div>${w.devCode ? `<p class="note">${ic('flask')}سرویس پیامک هنوز فعال نیست؛ کد آزمایشی: <b dir="ltr">${fa(w.devCode)}</b></p>` : `<p class="note">کد را ${w.channel === 'call' ? 'با تماس صوتی' : 'پیامک'} کردیم.</p>`}<div class="row wrap"><button class="link" data-a="w-resend">ارسال دوباره</button>${CFG.flags.sms_direct ? '' : '<button class="link" data-a="w-call">تماس صوتی</button>'}<button class="link" data-a="w-guest">بدون شماره ادامه می‌دهم</button></div>` : (w.smsFail ? '' : '<button class="link" data-a="w-guest">فعلاً بدون شماره ادامه می‌دهم</button>')}`,
       ok: w => !normPhone(w.phone) ? 'شماره را درست بنویسید؛ مثلاً ۰۹۱۲۱۲۳۴۵۶۷.' : !w.d.contact ? 'روش ارتباط را انتخاب کنید.' : !w.otpSent ? 'otp-send' : (en(w.otp || '').length < 4 ? 'کد را وارد کنید.' : 'otp-verify') }
   ];
   return all.filter(s => s.show(w));
@@ -885,7 +904,7 @@ function placeStep(w) {
     ${(n.dups || []).map(d => `<div class="hint warn">${ic('warn')}<span>احتمالاً «${esc(d.name)}${d.shift ? ' · ' + esc(d.shift) : ''}» همین‌جا ثبت شده.<br><span class="row wrap" style="margin-top:8px"><button class="btn sm" data-a="w-pick" data-id="${d.id}">همین است</button><button class="btn line sm" data-a="w-dupok">نه، واحد یا شیفت دیگری است</button></span></span></div>`).join('')}
     <button class="link" data-a="w-np-cancel">بازگشت به فهرست</button>`;
   return `<div class="field"><label for="w-q">جستجو</label><input id="w-q" data-w="pq" value="${esc(w.pq || '')}" placeholder="نام ${esc(K.pn || K.n)}"></div>
-    ${!near ? '<p class="muted">در حال پیدا کردن نزدیک‌ترین‌ها…</p>' : near.map(pl => `<button class="place-opt" data-a="w-pick" data-id="${pl.id}" aria-pressed="${w.place && w.place.id === pl.id}">${kindIc(pl.kind, false, false)}<span class="grow">${esc(pl.name)}<small>${esc(pl.city)}${pl.shift ? ' · ' + esc(pl.shift) : ''} · ${km1(pl.d / 1000)} کیلومتر · ${fa(pl.families)} خانواده</small></span></button>`).join('') || '<p class="muted">نزدیک شما چیزی ثبت نشده؛ اولین نفر باشید!</p>'}
+    ${!near ? '<p class="muted">در حال پیدا کردن نزدیک‌ترین‌ها…</p>' : near.map(pl => `<div class="popt-row"><button class="place-opt" data-a="w-pick" data-id="${pl.id}" aria-pressed="${w.place && w.place.id === pl.id}">${kindIc(pl.kind, false, false)}<span class="grow">${esc(pl.name)}${pl.nv ? ` <span class="nv" title="${esc(pl.nv_title)}">${ic('check')}نشان</span>` : ''}<small>${esc(pl.city)}${pl.shift ? ' · ' + esc(pl.shift) : ''} · ${km1(pl.d / 1000)} کیلومتر · ${fa(pl.families)} خانواده${pl.flags ? ' · ' + fa(pl.flags) + ' گزارش اشتباه' : ''}</small></span></button>${pl.verified || pl.nv || pl.families ? '' : `<button class="icon-btn rep" data-a="w-report" data-id="${pl.id}" aria-label="گزارش مکان اشتباه یا آزمایشی">${ic('flag')}</button>`}</div>`).join('') || '<p class="muted">نزدیک شما چیزی ثبت نشده؛ اولین نفر باشید!</p>'}
     <button class="btn line block" data-a="w-np-new">${ic('plus')}ثبت ${esc(K.pn || K.n)} تازه</button>`;
 }
 async function loadNear(w) { try { const r = await api('place_near', { lat: w.d.lat, lng: w.d.lng, kind: w.kind === 'other' ? '' : w.kind, q: w.pq || '' }); w.near = r.places; } catch (e) { w.near = []; } if (ui.wiz === w) wizRender(); }
@@ -1087,6 +1106,8 @@ function adminView() {
       <div class="adm-form"><div class="field full"><label for="sm-ph">شماره</label><input id="sm-ph" dir="ltr" inputmode="tel" placeholder="0912…"></div><div class="field"><label for="sm-tpl">${F.sms_direct ? 'نوع پیام' : 'الگو'}</label><select id="sm-tpl">${[SV.tpl_login || 'residim-login', SV.tpl_invite, SV.tpl_arrived].map(t => `<option>${esc(t)}</option>`).join('')}</select></div><div class="field"><label for="sm-type">روش</label><select id="sm-type"><option value="sms">پیامک</option><option value="call">تماس صوتی</option></select></div></div>
       <button class="btn" data-a="adm-smstest">ارسال آزمایشی</button><div id="sm-out"></div></section>
     <section class="card"><h2>تنظیمات</h2>${Object.keys(flagLbl).map(k => `<label class="switch"><span>${flagLbl[k]}</span><input type="checkbox" data-a="adm-flag" data-k="${k}" ${F[k] ? 'checked' : ''}></label>`).join('')}</section>
+    ${F.sms_direct ? `<section class="card stack"><h2>خط فرستنده‌ی پیامک مستقیم</h2><p class="muted small">خطای ۴۱۲ یعنی خط فرستنده نامعتبر است. شماره‌ی خط را از پنل کاوه‌نگار (بخش «خطوط من») بنویسید. خالی = خط پیش‌فرض حساب${ST.kave_sender_auto ? ' (فعلاً <b dir="ltr">' + esc(ST.kave_sender_auto) + '</b>)' : ''}.</p>
+      <div class="adm-form"><div class="field full"><label for="st-kave_sender">شماره‌ی خط</label><input id="st-kave_sender" dir="ltr" inputmode="numeric" value="${esc(ST.kave_sender || '')}" placeholder="مثلاً 2000660110"></div></div><button class="btn line sm" data-a="adm-set" data-k="kave_sender">ذخیره‌ی خط</button></section>` : ''}
     <section class="card stack"><h2>کاربران آزمایشی</h2><p class="muted small">همسایه‌ی آزمایشی دور یک مکان (کد ۸ حرفی) یا دور خانه‌ی یک کاربر واقعی (شماره) می‌سازد؛ برای دیدن نقشه و تیم‌سازی. پیامکی برایشان نمی‌رود.</p>
       <div class="adm-form three"><div class="field full"><label for="fk-t">کد مکان یا شماره‌ی کاربر</label><input id="fk-t" dir="ltr" placeholder="WPXJUG5A یا 0912…"></div><div class="field"><label for="fk-n">تعداد (حداکثر ۵۰)</label><input id="fk-n" inputmode="numeric" dir="ltr" value="8"></div><div class="field"><label for="fk-d">درصد راننده</label><input id="fk-d" inputmode="numeric" dir="ltr" value="35"></div></div>
       <div class="row wrap">${A.places.slice(0, 6).map(p => `<button class="chip" data-a="fk-fill" data-v="${esc(p.code)}">${esc(p.name)}</button>`).join('')}</div>
@@ -1096,11 +1117,11 @@ function adminView() {
       <div class="adm-form three">${[['sub_price', 'قیمت اشتراک ماهانه (تومان)'], ['free_permanent', 'مسیرک دائمی رایگان'], ['free_temp_month', 'مسیرک سفر رایگان در ماه']].map(([k, l]) => `<div class="field grow"><label for="st-${k}">${l}</label><input id="st-${k}" inputmode="numeric" dir="ltr" value="${esc(ST[k] ?? '')}"><button class="link" data-a="adm-set" data-k="${k}">ذخیره</button></div>`).join('')}</div>
       <h3 style="margin:6px 0 0">اشتراک دستی برای یک کاربر</h3><div class="adm-form two"><div class="field"><label for="pu-ph">شماره</label><input id="pu-ph" dir="ltr" inputmode="tel" placeholder="0912…"></div><div class="field"><label for="pu-d">روز (۰ = لغو)</label><input id="pu-d" inputmode="numeric" dir="ltr" value="30"></div></div><button class="btn line sm" data-a="adm-puser">ثبت اشتراک</button>
       <p class="muted small">${fa(ST.sub_interest || 0)} نفر «خبرم کنید» زده‌اند.</p></section>
-    <section class="card"><h2>مکان‌ها</h2><table><tr><th>نام</th><th>کد</th><th>خانواده</th><th>تأیید</th></tr>${A.places.map(p => `<tr><td>${esc(p.name)}<br><span class="muted small">${esc(p.city)} · ${esc((KINDS[p.kind] || KINDS.other).n)}</span></td><td dir="ltr">${esc(p.code)}</td><td>${fa(p.families)}</td><td><input type="checkbox" data-a="adm-verify" data-id="${p.id}" ${p.verified ? 'checked' : ''}></td></tr>`).join('')}</table></section>
+    <section class="card"><h2>مکان‌ها</h2><table><tr><th>نام</th><th>کد</th><th>خانواده</th><th>تأیید</th></tr>${A.places.map(p => `<tr><td>${esc(p.name)}${p.nv ? ' <span class="nv">' + ic('check') + 'نشان</span>' : ''}${p.flags ? ` <span class="tag warn">${fa(p.flags)} گزارش</span>` : ''}<br><span class="muted small">${esc(p.city)} · ${esc((KINDS[p.kind] || KINDS.other).n)}</span><div class="row wrap" style="gap:4px;margin-top:4px">${p.nv ? '' : `<button class="link" data-a="adm-nv" data-id="${p.id}">بررسی با نشان</button>`}<button class="link danger" data-a="adm-pdel" data-id="${p.id}" data-n="${esc(p.name)}" data-f="${p.families}">حذف</button></div></td><td dir="ltr">${esc(p.code)}</td><td>${fa(p.families)}</td><td><input type="checkbox" data-a="adm-verify" data-id="${p.id}" ${p.verified ? 'checked' : ''}></td></tr>`).join('')}</table></section>
     <section class="card"><h2>تیم‌ها (ویژه = پیامک رسیدن و رسید خودکار)</h2><table><tr><th>تیم</th><th>مکان</th><th>اعضا</th><th>ویژه</th></tr>${A.teams.map(t => `<tr><td>تیم ${fa(t.no)} · ${esc(t.hood)}</td><td>${esc(t.place || '')}</td><td>${fa(t.members)}</td><td><input type="checkbox" data-a="adm-premium" data-id="${t.id}" ${t.premium ? 'checked' : ''}></td></tr>`).join('')}</table></section>
     <section class="card"><h2>تیکت‌ها</h2>${A.tickets.map(t => `<div class="srow"><b>#${fa(t.no)} · ${esc(t.cat)} · <span dir="ltr">${esc(t.phone || '')}</span> <span class="tag">${esc(t.status)}</span></b><span>${esc(t.text)}</span><div class="row"><div class="field grow"><input id="rep-${t.id}" value="${esc(t.reply || '')}" placeholder="پاسخ"></div><button class="btn sm" data-a="adm-reply" data-id="${t.id}">ثبت پاسخ</button></div></div>`).join('') || '<p class="muted">تیکتی نیست.</p>'}</section>
     <section class="card"><h2>آخرین پیامک‌ها</h2><table><tr><th>شماره</th><th>الگو</th><th>وضعیت</th></tr>${A.sms.slice(0, 30).map(s => `<tr><td dir="ltr">${esc(s.phone)}</td><td dir="ltr">${esc(s.tpl)}</td><td>${esc(s.status)}</td></tr>`).join('')}</table></section>
-    <section class="card"><h2>کاربران اخیر</h2><table><tr><th>شماره</th><th>مسیرک</th><th>نوع</th></tr>${A.users.slice(0, 40).map(u => `<tr><td dir="ltr">${esc(u.phone)}</td><td>${fa(u.profiles)}</td><td>${+u.fake ? 'آزمایشی' : 'واقعی'}</td></tr>`).join('')}</table>
+    <section class="card"><h2>کاربران اخیر</h2><table><tr><th>شماره</th><th>مسیرک</th><th>نوع</th></tr>${A.users.slice(0, 40).map(u => `<tr><td dir="ltr">${esc(u.phone)}</td><td>${fa(u.profiles)}</td><td>${+u.fake ? 'آزمایشی' : `واقعی ${u.phone && +u.profiles ? `<button class="link" data-a="adm-fake5" data-v="${esc(u.phone)}">+۵ همسایه</button>` : ''}`}</td></tr>`).join('')}</table>
       <button class="btn line sm" data-a="adm-purge" style="margin-top:10px">حذف همه‌ی کاربران آزمایشی</button></section></div>`;
 }
 async function loadAdmin() {
@@ -1147,8 +1168,11 @@ async function act(a, el) {
     case 'copy': return copyText(el.dataset.v).then(ok => toast(ok ? 'کپی شد.' : 'کپی نشد؛ دستی بردارید.'));
     case 'menu': return drawer();
     case 'switcher': return switcher();
-    case 'toggle': ui.open[el.dataset.v] = !ui.open[el.dataset.v]; return drawer();
-    case 'use': closeLayer(); return setActive(el.dataset.id);
+    case 'toggle': { const k = el.dataset.v, o = ui.open[k] = !ui.open[k], L = el.nextElementSibling; el.setAttribute('aria-expanded', o); const cv = el.querySelector('.chev'); if (cv) cv.classList.toggle('open', o);
+      if (L && L.classList.contains('plist')) { L.style.maxHeight = o ? L.scrollHeight + 'px' : '0px'; L.classList.toggle('closed', !o); } return; }
+    case 'use': { const inD = !!el.closest('.drawer'); if (el.dataset.id === S.active) { if (!inD) closeLayer(); return; } const q = allProfiles().find(x => x.id === el.dataset.id);
+      if (inD && q && q.complete) { setActive(el.dataset.id); snd('tap'); return drawer(true); } closeLayer(); return setActive(el.dataset.id); }
+    case 'about': closeLayer(); return aboutSheet();
     case 'new-profile': closeLayer(); ui.linkPlace = null; return wizOpen(null, { mode: 'new', kind: el.dataset.kind });
     case 'resume-draft': return wizOpen(S.drafts[0], { mode: 'resume' });
     case 'wiz-resume': return wizOpen(p, { mode: 'resume' });
@@ -1240,10 +1264,13 @@ async function act(a, el) {
     case 'adm-refresh': ui.adm = null; return renderMain();
     case 'adm-flag': try { await api('admin_flag', { k: el.dataset.k, v: el.checked ? 1 : 0 }, true); CFG.flags[el.dataset.k] = el.checked; toast('ذخیره شد.'); } catch (e) { fail(e); } return;
     case 'adm-verify': try { await api('admin_place', { id: el.dataset.id, verified: el.checked ? 1 : 0 }, true); toast('ذخیره شد.'); } catch (e) { fail(e); } return;
-    case 'adm-set': { const k = el.dataset.k, v = el.tagName === 'SELECT' ? el.value : en($('#st-' + k).value.trim()); try { await api('admin_setting', { k, v }, true); toast('ذخیره شد.'); if (k === 'map_provider') toast('ذخیره شد؛ کاربران از بارگذاری بعدی نقشه‌ی تازه را می‌بینند.'); } catch (e) { fail(e); } return; }
+    case 'adm-set': { const k = el.dataset.k, v = el.tagName === 'SELECT' ? el.value : en($('#st-' + k).value.trim()).replace(/\D/g, ''); try { await api('admin_setting', { k, v }, true); toast('ذخیره شد.'); if (k === 'map_provider') toast('ذخیره شد؛ کاربران از بارگذاری بعدی نقشه‌ی تازه را می‌بینند.'); } catch (e) { fail(e); } return; }
     case 'adm-puser': try { const r = await api('admin_premium_user', { phone: en($('#pu-ph').value), days: +en($('#pu-d').value) || 0 }, true); toast(r.until ? 'اشتراک فعال شد.' : 'اشتراک لغو شد.'); } catch (e) { fail(e); } return;
     case 'adm-premium': try { await api('admin_team', { id: el.dataset.id, premium: el.checked ? 1 : 0 }, true); toast('ذخیره شد.'); } catch (e) { fail(e); } return;
     case 'adm-reply': try { await api('admin_ticket', { id: el.dataset.id, reply: $('#rep-' + el.dataset.id).value, status: 'answered' }, true); toast('پاسخ ثبت شد.'); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
+    case 'adm-fake5': try { const r = await api('admin_fake', { target: el.dataset.v, n: 5, drivers: 40 }, true); snd('ok'); toast(`۵ همسایه‌ی آزمایشی کنار «${r.place}» ساخته شد.`); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
+    case 'adm-nv': try { const r = await api('admin_place_nv', { id: el.dataset.id }, true); toast(r.result.ok ? `نشان تأیید کرد: «${r.result.title}» در ${fa(r.result.m)} متری.` : r.result.why === 'no-key-or-network' ? 'کلید سرویس نشان تنظیم نیست یا نشان پاسخ نداد.' : 'نشان مکانی با این نام همین‌جا پیدا نکرد.'); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
+    case 'adm-pdel': if (!confirm(`«${el.dataset.n}» حذف شود؟${+el.dataset.f ? ' ' + fa(el.dataset.f) + ' خانواده این مکان را انتخاب کرده‌اند و مسیرک‌شان نیمه‌کاره می‌شود.' : ''}`)) return; try { await api('admin_place', { id: el.dataset.id, delete: 1 }, true); toast('حذف شد.'); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
     case 'fk-fill': $('#fk-t').value = el.dataset.v; return;
     case 'adm-fake': try { const r = await api('admin_fake', { target: en($('#fk-t').value.trim()), n: +en($('#fk-n').value) || 5, drivers: +en($('#fk-d').value) || 0 }, true); snd('ok'); toast(`${fa(r.made)} کاربر آزمایشی کنار «${r.place}» ساخته شد.`); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
     case 'adm-purge': try { const r = await api('admin_purge_fake', {}, true); toast(`${fa(r.removed)} مسیرکِ آزمایشی حذف شد.`); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
@@ -1271,6 +1298,9 @@ async function act(a, el) {
     case 'pk-ok': { if (!PKM.cur) return toast('نقشه بالا نیامد؛ «موقعیت من» را بزنید.'); const f = PKM.done, c = PKM.cur; closePicker(); f && f(c); return toast('موقعیت ثبت شد.'); }
     case 'pk-here': if (!navigator.geolocation) return; navigator.geolocation.getCurrentPosition(pos => { PKM.cur = [+pos.coords.latitude.toFixed(5), +pos.coords.longitude.toFixed(5)]; if (PK.map) { PK.prog = null; PK.map.flyTo({ center: [PKM.cur[1], PKM.cur[0]], zoom: 17 }); } pkReverse(); }, () => toast('موقعیت گرفته نشد.'), { enableHighAccuracy: true, timeout: 10000 }); return;
     case 'w-rel': { const v = el.dataset.v; if (REL[v]) { w.d.rel = v; w.d.pg = REL[v][1]; } else { w.d.pg = v; delete w.d.rel; } w.err = ''; return wizRender(); }
+    case 'w-report': { const pl = (w.near || []).find(x => x.id === el.dataset.id); if (!pl) return;
+      return sheet('این مکان اشتباه است؟', `<p style="line-height:2">«${esc(pl.name)}» آزمایشی، تکراری یا اشتباه ثبت شده؟ ${pl.flags ? `<b>یک نفر دیگر هم گزارش داده؛ با تأیید شما حذف می‌شود.</b>` : 'گزارش شما ثبت می‌شود و اگر یک نفر دیگر هم تأیید کند، حذف می‌شود.'}</p><p class="muted small">مکانی که خانواده‌ای انتخابش کرده، یا مدیر یا نقشه‌ی نشان تأییدش کرده، حذف نمی‌شود.</p><button class="btn block" data-a="w-report-ok" data-id="${pl.id}">${pl.flags ? 'تأیید می‌کنم؛ حذف شود' : 'بله، گزارش می‌دهم'}</button>`); }
+    case 'w-report-ok': try { const r = await api('place_report', { id: el.dataset.id }); closeLayer(); snd('ok'); toast(r.deleted ? 'حذف شد؛ ممنون که کمک کردید فهرست تمیز بماند.' : 'گزارش ثبت شد؛ با تأیید یک نفر دیگر حذف می‌شود.'); w.near = null; loadNear(w); } catch (e) { fail(e); } return;
     case 'w-arrday': { const t = (w.d.arrive || '').split('T')[1] || ''; w.d.arrive = el.dataset.v + 'T' + t; w.err = ''; return wizRender(); }
     case 'w-free': w.d.free_ride = el.checked; if (el.checked) delete w.d.card; return wizRender();
     case 'w-morerel': w.moreRel = true; return wizRender();

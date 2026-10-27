@@ -48,7 +48,7 @@ function db6(): PDO {
 function schema(PDO $p): void {
     $v = 0;
     try { $v = (int)$p->query("SELECT v FROM settings WHERE k='schema'")->fetchColumn(); } catch (Throwable $e) {}
-    if ($v >= 4) return;
+    if ($v >= 5) return;
     $K = 'VARCHAR(40)';
     $sql = [
         "CREATE TABLE IF NOT EXISTS settings (k VARCHAR(40) PRIMARY KEY, v TEXT)",
@@ -72,7 +72,10 @@ function schema(PDO $p): void {
     foreach (['CREATE INDEX ix_prof_place ON profiles(place_id)', 'CREATE INDEX ix_prof_user ON profiles(user_id)', 'CREATE INDEX ix_inv_to ON invites(to_p)', 'CREATE INDEX ix_notes_p ON notes(profile_id)', 'CREATE INDEX ix_trips_t ON trips(team_id)', 'CREATE INDEX ix_ledger_t ON ledger(team_id)'] as $s) { try { $p->exec($s); } catch (Throwable $e) {} }
     try { $p->exec('CREATE INDEX ix_msgs_t ON msgs(team_id)'); } catch (Throwable $e) {}
     try { $p->exec('ALTER TABLE users ADD COLUMN premium_until INT DEFAULT 0'); } catch (Throwable $e) {}
-    setv('schema', '4', $p);
+    try { $p->exec('ALTER TABLE places ADD COLUMN nv INT DEFAULT 0'); } catch (Throwable $e) {}
+    try { $p->exec('ALTER TABLE places ADD COLUMN nv_title VARCHAR(160)'); } catch (Throwable $e) {}
+    try { $p->exec('CREATE TABLE IF NOT EXISTS place_flags (place_id VARCHAR(40), user_id VARCHAR(40), created INT, PRIMARY KEY(place_id, user_id))'); } catch (Throwable $e) {}
+    setv('schema', '5', $p);
     foreach (['sms_invite' => '1', 'sms_arrive' => '0', 'auto_arrive' => '1', 'test_tools' => '1', 'signup_open' => '1', 'otp_dev' => '0', 'sms_direct' => '1', 'league_on' => '0', 'paid_mode' => '0', 'station_on' => '1', 'map_provider' => 'neshan', 'sub_price' => '297000', 'free_permanent' => '1', 'free_temp_month' => '2'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
 }
 function q(string $sql, array $a = []): PDOStatement { $s = db6()->prepare($sql); $s->execute($a); return $s; }
@@ -177,10 +180,17 @@ function sms_text(string $tpl, array $t): string {
     if ($tpl === C('kavenegar_tpl_arrived')) return $g('token10') . ' ساعت ' . $g('token') . ' به ' . $g('token20') . ' رسید. راننده: خانواده ' . $g('token2') . "\nرسیدیم";
     return 'کد ورود رسیدیم: ' . $g('token') . "\nاین کد را به کسی ندهید.\n\n@residim.ir #" . $g('token');
 }
+/** Sender line: config, then admin setting, then the account's default line from Kavenegar (cached a day). Error 412 = invalid sender. */
+function kave_sender(string $key): string {
+    $s = (string)(C('kavenegar_sender', '') ?: getv('kave_sender', '')); if ($s !== '') return $s;
+    $c = (string)getv('kave_sender_auto', ''); if ($c !== '' && (int)getv('kave_sender_at', '0') > time() - 86400) return $c;
+    [$h, $b] = http_raw('https://api.kavenegar.com/v1/' . rawurlencode($key) . '/account/config.json'); $j = json_decode($b, true);
+    $d = (string)($j['entries']['defaultsender'] ?? ''); setv('kave_sender_auto', $d); setv('kave_sender_at', (string)time()); return $d;
+}
 function kave_send(string $phone, string $text, string $tpl, ?string $by = null): array {
     $key = (string)C('kavenegar_api_key'); $res = ['ok' => false, 'code' => 0, 'msg' => 'skipped'];
     if ($key && $key !== 'PUT_KEY_HERE' && $phone && !str_starts_with($phone, '0900')) {
-        $qs = ['receptor' => $phone, 'message' => $text]; if ((string)C('kavenegar_sender', '') !== '') $qs['sender'] = (string)C('kavenegar_sender');
+        $qs = ['receptor' => $phone, 'message' => $text]; $snd = kave_sender($key); if ($snd !== '') $qs['sender'] = $snd;
         [$http, $body] = http_raw('https://api.kavenegar.com/v1/' . rawurlencode($key) . '/sms/send.json?' . http_build_query($qs));
         $j = json_decode($body, true); $st = (int)($j['return']['status'] ?? $http);
         $res = ['ok' => $st === 200, 'code' => $st, 'msg' => $st === 200 ? 'sent' : (KAVE_CODES[$st] ?? ((string)($j['return']['message'] ?? '') ?: ($http ? 'HTTP ' . $http : mb_substr($body, 0, 120))))];
@@ -214,13 +224,28 @@ function issue_token(?string $uid, int $admin = 0): string { $t = bin2hex(random
 function my_profile(array $u, string $pid): array { $p = row('SELECT * FROM profiles WHERE id=? AND user_id=?', [$pid, $u['user_id']]); if (!$p) NO('این مسیرک پیدا نشد.', 404, 'profile'); return $p; }
 
 /* ───────── shaping ───────── */
+/** Does Neshan's map know a place with this name right here? Marks places.nv (map-backed confirmation). */
+function pname_norm(string $s): string { $s = str_replace(['ي', 'ك', '‌', 'ـ'], ['ی', 'ک', ' ', ''], $s);
+    $s = preg_replace('/(دبستان|دبیرستان|مدرسه|پیش ?دبستانی|مهد ?کودک|آموزشگاه|باشگاه|ورزشگاه|دانشگاه|شرکت|ایستگاه|راه ?آهن|فرودگاه|پایانه|ترمینال|دخترانه|پسرانه|غیر ?دولتی|دولتی|نمونه|شماره|شهید)/u', ' ', $s);
+    return trim(preg_replace('/\s+/u', ' ', $s)); }
+function neshan_check(array $pl): array {
+    $r = neshan('/v1/search', ['term' => $pl['name'], 'lat' => $pl['lat'], 'lng' => $pl['lng']]); if (!$r || empty($r['items'])) return ['ok' => false, 'why' => $r === null ? 'no-key-or-network' : 'not-found'];
+    $want = pname_norm((string)$pl['name']); $best = null;
+    foreach ($r['items'] as $it) { $x = (float)($it['location']['x'] ?? 0); $y = (float)($it['location']['y'] ?? 0); if (!$x) continue; $d = hav((float)$pl['lat'], (float)$pl['lng'], $y, $x); if ($d > 400) continue;
+        $t = pname_norm((string)($it['title'] ?? '')); if ($want === '' || $t === '') continue;
+        $hit = mb_strpos($t, $want) !== false || mb_strpos($want, $t) !== false; if (!$hit) { $wa = array_filter(explode(' ', $want), fn($w) => mb_strlen($w) > 2); $hit = $wa && count(array_filter($wa, fn($w) => mb_strpos($t, $w) !== false)) >= max(1, (int)ceil(count($wa) * .6)); }
+        if ($hit && (!$best || $d < $best[0])) $best = [$d, (string)$it['title']]; }
+    if (!$best) return ['ok' => false, 'why' => 'not-near'];
+    q('UPDATE places SET nv=1, nv_title=? WHERE id=?', [mb_substr($best[1], 0, 150), $pl['id']]); return ['ok' => true, 'title' => $best[1], 'm' => (int)$best[0]];
+}
 function place_out(array $p, bool $counts = true): array {
     $o = ['id' => $p['id'], 'code' => $p['code'], 'kind' => $p['kind'], 'name' => $p['name'], 'city' => $p['city'], 'gender' => $p['gender'], 'shift' => $p['shift'],
-        'lat' => (float)$p['lat'], 'lng' => (float)$p['lng'], 'in' => $p['t_in'], 'out' => $p['t_out'], 'days' => array_map('intval', array_filter(explode(',', (string)$p['days']), 'strlen')), 'verified' => (int)$p['verified']];
+        'lat' => (float)$p['lat'], 'lng' => (float)$p['lng'], 'in' => $p['t_in'], 'out' => $p['t_out'], 'days' => array_map('intval', array_filter(explode(',', (string)$p['days']), 'strlen')), 'verified' => (int)$p['verified'], 'nv' => (int)($p['nv'] ?? 0), 'nv_title' => (string)($p['nv_title'] ?? '')];
     if ($counts) {
         $o['families'] = (int)q('SELECT COUNT(*) FROM profiles WHERE place_id=? AND complete=1', [$p['id']])->fetchColumn();
         $o['drivers'] = 0; foreach (rows('SELECT data FROM profiles WHERE place_id=? AND complete=1', [$p['id']]) as $r) { $d = json_decode((string)$r['data'], true); if (in_array($d['role'] ?? '', ['drive', 'both'], true)) $o['drivers']++; }
         $o['teams'] = (int)q('SELECT COUNT(*) FROM teams WHERE place_id=?', [$p['id']])->fetchColumn();
+        $o['flags'] = (int)q('SELECT COUNT(*) FROM place_flags WHERE place_id=?', [$p['id']])->fetchColumn();
     }
     return $o;
 }
@@ -317,7 +342,7 @@ try {
 switch ($a) {
 
 case 'cfg': YES(['web_key' => getv('map_provider', 'neshan') === 'neshan' ? (string)C('neshan_web_key') : '', 'map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '297000'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'service' => (bool)C('neshan_service_key'), 'sms' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'),
-    'flags' => ['test_tools' => flag('test_tools'), 'auto_arrive' => flag('auto_arrive'), 'sms_arrive' => flag('sms_arrive'), 'signup_open' => flag('signup_open'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')], 'jyear' => jyear(), 'wk' => week_key(), 'radio_votes' => (int)getv('radio_votes', '0')]);
+    'flags' => ['sms_direct' => flag('sms_direct'), 'test_tools' => flag('test_tools'), 'auto_arrive' => flag('auto_arrive'), 'sms_arrive' => flag('sms_arrive'), 'signup_open' => flag('signup_open'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')], 'jyear' => jyear(), 'wk' => week_key(), 'radio_votes' => (int)getv('radio_votes', '0')]);
 
 /* auth */
 case 'otp_send': {
@@ -368,6 +393,17 @@ case 'place_near': {
     foreach ($all as $p) { if ($kind && $p['kind'] !== $kind) continue; if ($qq !== '' && mb_strpos($p['name'] . ' ' . $p['city'], $qq) === false) continue; $d = $lat ? hav($lat, $lng, (float)$p['lat'], (float)$p['lng']) : 0; if ($lat && $qq === '' && $d > 12000) continue; $o = place_out($p); $o['d'] = (int)$d; $out[] = $o; }
     usort($out, fn($x, $y) => $x['d'] <=> $y['d']); YES(['places' => array_slice($out, 0, 30)]);
 }
+case 'place_report': { // two different users agree a place is fake or wrong -> removed (only while nobody real uses it)
+    $u = auth(); $pl = row('SELECT * FROM places WHERE id=?', [(string)($in['id'] ?? '')]); if (!$pl) NO('این مکان پیدا نشد.', 404);
+    if ((int)$pl['verified'] || (int)($pl['nv'] ?? 0)) NO('این مکان تأییدشده است (مدیر یا نقشه‌ی نشان)؛ برای اصلاحش تیکت بزنید.');
+    $used = (int)q('SELECT COUNT(*) FROM profiles WHERE place_id=? AND fake=0 AND user_id<>?', [$pl['id'], $u['user_id']])->fetchColumn();
+    if ($used) NO('خانواده‌های دیگری این مکان را انتخاب کرده‌اند؛ برای حذفش تیکت بزنید.');
+    if (!$u['phone']) NO('برای گزارش، اول شماره‌تان را تأیید کنید.');
+    try { q('INSERT INTO place_flags(place_id,user_id,created) VALUES(?,?,?)', [$pl['id'], $u['user_id'], time()]); } catch (Throwable $e) {}
+    $n = (int)q('SELECT COUNT(*) FROM place_flags WHERE place_id=?', [$pl['id']])->fetchColumn();
+    if ($n >= 2) { foreach (rows('SELECT id FROM profiles WHERE place_id=?', [$pl['id']]) as $pp) { $f = row('SELECT fake FROM profiles WHERE id=?', [$pp['id']]); if ((int)$f['fake']) wipe_profile($pp['id']); else q('UPDATE profiles SET place_id=NULL, team_id=NULL, complete=0 WHERE id=?', [$pp['id']]); }
+        q('DELETE FROM teams WHERE place_id=?', [$pl['id']]); q('DELETE FROM place_flags WHERE place_id=?', [$pl['id']]); q('DELETE FROM places WHERE id=?', [$pl['id']]); YES(['deleted' => true, 'votes' => $n]); }
+    YES(['deleted' => false, 'votes' => $n]); }
 case 'place_create': {
     $u = auth();
     $kind = (string)($in['kind'] ?? 'school'); $name = trim((string)($in['name'] ?? '')); $lat = (float)($in['lat'] ?? 0); $lng = (float)($in['lng'] ?? 0);
@@ -376,6 +412,7 @@ case 'place_create': {
     $id = uid(); $code = code8(); $days = implode(',', array_map('intval', (array)($in['days'] ?? [0, 1, 2, 3, 4])));
     q('INSERT INTO places(id,code,kind,name,city,gender,shift,lat,lng,t_in,t_out,days,created_by,verified,fake,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,0,0,?)',
       [$id, $code, $kind, mb_substr($name, 0, 150), mb_substr((string)($in['city'] ?? ''), 0, 50), in_array($in['gender'] ?? '', ['f', 'm', 'fm'], true) ? $in['gender'] : 'fm', mb_substr((string)($in['shift'] ?? ''), 0, 40), $lat, $lng, substr((string)($in['in'] ?? '07:30'), 0, 5), substr((string)($in['out'] ?? '13:30'), 0, 5), $days, $u['user_id'], time()]);
+    try { neshan_check(row('SELECT * FROM places WHERE id=?', [$id])); } catch (Throwable $e) {}
     YES(['place' => place_out(row('SELECT * FROM places WHERE id=?', [$id]))]);
 }
 case 'route': {
@@ -642,7 +679,7 @@ case 'admin_overview': {
     YES(['counts' => ['users' => $c('SELECT COUNT(*) FROM users WHERE fake=0'), 'fake' => $c('SELECT COUNT(*) FROM users WHERE fake=1'), 'profiles' => $c('SELECT COUNT(*) FROM profiles WHERE fake=0'), 'complete' => $c('SELECT COUNT(*) FROM profiles WHERE complete=1 AND fake=0'),
         'places' => $c('SELECT COUNT(*) FROM places'), 'teams' => $c('SELECT COUNT(*) FROM teams'), 'invites' => $c("SELECT COUNT(*) FROM invites WHERE status='pending'"), 'tickets' => $c("SELECT COUNT(*) FROM tickets WHERE status='open'"), 'sms_day' => $c('SELECT COUNT(*) FROM sms WHERE created>?', [time() - 86400])],
         'flags' => ['sms_invite' => flag('sms_invite'), 'sms_arrive' => flag('sms_arrive'), 'auto_arrive' => flag('auto_arrive'), 'test_tools' => flag('test_tools'), 'signup_open' => flag('signup_open'), 'otp_dev' => flag('otp_dev'), 'sms_direct' => flag('sms_direct'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')],
-        'settings' => ['map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '297000'), 'free_permanent' => (int)getv('free_permanent', '1'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'sub_interest' => (int)getv('sub_interest', '0')],
+        'settings' => ['map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '297000'), 'free_permanent' => (int)getv('free_permanent', '1'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'sub_interest' => (int)getv('sub_interest', '0'), 'kave_sender' => (string)getv('kave_sender', ''), 'kave_sender_auto' => (string)getv('kave_sender_auto', '')],
         'services' => ['db' => C('r6_db'), 'php' => PHP_VERSION, 'kavenegar' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'), 'neshan_service' => (bool)C('neshan_service_key'), 'neshan_web' => (bool)C('neshan_web_key'), 'curl' => function_exists('curl_init'), 'tpl_login' => C('kavenegar_template', 'residim-login'), 'tpl_invite' => C('kavenegar_tpl_invite'), 'tpl_arrived' => C('kavenegar_tpl_arrived')],
         'default_pass' => C('admin_pass') === 'mot']);
 }
@@ -651,9 +688,11 @@ case 'sub_interest': { $u = auth(); $k = 'subi_' . $u['user_id']; if (getv($k) =
 case 'admin_setting': { need_admin(); $k = (string)($in['k'] ?? ''); $v = trim((string)($in['v'] ?? ''));
     if ($k === 'map_provider' && in_array($v, ['neshan', 'openfree'], true)) setv($k, $v);
     elseif (in_array($k, ['sub_price', 'free_permanent', 'free_temp_month'], true) && ctype_digit($v)) setv($k, $v);
+    elseif ($k === 'kave_sender' && ($v === '' || ctype_digit($v))) { setv($k, $v); setv('kave_sender_at', '0'); }
     else NO('مقدار نامعتبر.'); YES(); }
 case 'admin_premium_user': { need_admin(); $ph = phone_norm((string)($in['phone'] ?? '')); $u = $ph ? row('SELECT id FROM users WHERE phone=?', [$ph]) : null; if (!$u) NO('کاربری با این شماره نیست.');
     $days = max(0, min(3650, (int)($in['days'] ?? 30))); q('UPDATE users SET premium_until=? WHERE id=?', [$days ? time() + $days * 86400 : 0, $u['id']]); YES(['until' => $days ? time() + $days * 86400 : 0]); }
+case 'admin_place_nv': { need_admin(); $pl = row('SELECT * FROM places WHERE id=?', [(string)($in['id'] ?? '')]); if (!$pl) NO('پیدا نشد.'); $r = neshan_check($pl); YES(['result' => $r]); }
 case 'admin_places': { need_admin(); YES(['list' => array_map(fn($p) => place_out($p), rows('SELECT * FROM places ORDER BY created DESC LIMIT 200'))]); }
 case 'admin_place': { need_admin(); $id = (string)($in['id'] ?? ''); if (!empty($in['delete'])) { foreach (rows('SELECT id FROM profiles WHERE place_id=?', [$id]) as $p) q('UPDATE profiles SET place_id=NULL, team_id=NULL, complete=0 WHERE id=?', [$p['id']]); q('DELETE FROM teams WHERE place_id=?', [$id]); q('DELETE FROM places WHERE id=?', [$id]); YES(); }
     if (isset($in['verified'])) q('UPDATE places SET verified=? WHERE id=?', [!empty($in['verified']) ? 1 : 0, $id]); if (!empty($in['name'])) q('UPDATE places SET name=? WHERE id=?', [mb_substr((string)$in['name'], 0, 150), $id]); YES(); }

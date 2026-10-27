@@ -71,3 +71,6 @@ https://residim.ir/t/01/ ؛ نمونه تعاملی https://residim.ir/t/01/app/
 
 ## نسخه ۰۹ — مدرسه در مرکز (۲۰۲۶/۱۰/۲۷)
 - /t/09 و ریشه. جزئیات: docs/design/TEST-09-UX.md. پرچم تازه: `sms_direct` (روشن). اکشن مدیر: `admin_fake`. اینماد: `landing/77919266.txt` + متاتگ.
+
+## نسخه ۱۰ — منوی آرام و اینماد (۲۰۲۶/۱۰/۲۷)
+- /t/10 و ریشه. جزئیات: docs/design/TEST-10-UX.md. اکشن‌ها: `place_report`، `admin_place_nv`؛ تنظیم `kave_sender`.

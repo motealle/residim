@@ -555,3 +555,25 @@ input.tgl:checked::after{inset-inline-start:21px}
 .adm .card{min-width:0;overflow-x:auto}
 .adm table{table-layout:fixed}
 .adm td{overflow-wrap:anywhere}
+
+/* ═════════ v10 ═════════ */
+.pgroup{display:grid;gap:8px}
+.pwrap.on .pcard{border-radius:18px 18px 0 0;opacity:1;outline:0}
+.pc-panel{display:grid;gap:2px;padding:6px;border:2px solid var(--kc);border-top:0;border-radius:0 0 18px 18px;background:color-mix(in srgb,var(--kc) 9%,var(--surface));animation:fade .2s ease}
+.pc-panel button{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 10px;border:0;border-radius:12px;background:transparent;font:inherit;font-weight:700;text-align:right;color:var(--ink,inherit);cursor:pointer;position:relative}
+.pc-panel button:hover{background:color-mix(in srgb,var(--kc) 14%,transparent)}
+.pc-panel svg{width:18px;height:18px;fill:none;stroke:color-mix(in srgb,var(--kc) 80%,#000);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pc-panel .badge{position:static;margin-inline-start:auto}
+.pcard{opacity:1!important}
+.drawer .sec-h{cursor:default}
+.drawer .plist{transition:max-height .28s ease}
+.popt-row{display:flex;gap:6px;align-items:stretch}
+.popt-row .place-opt{flex:1;min-width:0}
+.icon-btn.rep{width:44px;flex:none;border-radius:16px;color:var(--muted)}
+.nv{display:inline-flex;align-items:center;gap:2px;font-size:.68rem;font-weight:800;padding:1px 7px;border-radius:99px;background:#E6F4FF;color:#0B5CAD;vertical-align:middle}
+.nv svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.6}
+.link.danger{color:var(--warn,#C2410C)}
+.trust{display:grid;justify-items:center;gap:8px;text-align:center;padding:18px 16px 110px}
+.trust.hide{display:none}
+.trust-slot{display:flex;justify-content:center;padding:6px 0}
+.trust-slot img,.trust img{max-width:110px;height:auto}
