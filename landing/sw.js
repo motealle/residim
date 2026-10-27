@@ -1,5 +1,5 @@
-const CACHE='residim-10-v1';
-const SHELL=['./','index.html','manifest.webmanifest','radio.json','assets/app.css?v=10','assets/app.js?v=10','assets/qrcode.js?v=10','assets/maplibre-gl.css','assets/icon.svg','assets/icon-192.png','assets/icon-512.png','assets/vazirmatn.woff2'];
+const CACHE='residim-11-v1';
+const SHELL=['./','index.html','manifest.webmanifest','radio.json','assets/app.css?v=11','assets/app.js?v=11','assets/qrcode.js?v=11','assets/maplibre-gl.css','assets/icon.svg?v=11','assets/icon-192.png','assets/icon-512.png','assets/vazirmatn.woff2'];
 const SCOPE=new URL('./',self.registration.scope).pathname;
 const TILES='residim-tiles-v1',MAX=900,AGE=14*864e5;
 const MAPS=/(^|\.)(openfreemap\.org|neshan\.org)$/;
@@ -9,7 +9,7 @@ async function tile(req,age){const c=await caches.open(TILES);const h=await c.ma
 let trimT=0;async function trim(c){if(Date.now()-trimT<30000)return;trimT=Date.now();const k=await c.keys();for(let i=0;i<k.length-MAX;i++)await c.delete(k[i])}
 const OTHER=/^\/(app|t|test|smoke)\//;
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>n.startsWith('residim-10')&&n!==CACHE).map(n=>caches.delete(n)))).then(()=>self.clients.claim()))});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>n.startsWith('residim-11')&&n!==CACHE).map(n=>caches.delete(n)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{
   const u=new URL(e.request.url);
   if(e.request.method==='GET'&&MAPS.test(u.hostname)&&u.protocol==='https:'){e.respondWith(tile(e.request,/\.json$/.test(u.pathname)?864e5:AGE));return}

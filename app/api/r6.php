@@ -31,10 +31,25 @@ function YES(array $d = []): never { J(['ok' => true] + $d); }
 function NO(string $msg, int $s = 400, string $code = 'error'): never { J(['ok' => false, 'error' => $code, 'message' => $msg], $s); }
 
 /* ───────── db ───────── */
+const MYSQL_FILE = __DIR__ . '/../storage/mysql.local.php';
+function mysql_cfg(): array { if (!is_file(MYSQL_FILE)) return []; $c = @include MYSQL_FILE; return is_array($c) ? $c : []; }
+function mysql_save(array $c): void { $tmp = MYSQL_FILE . '.tmp'; file_put_contents($tmp, "<?php\n// written by the Residim admin panel; never served (storage/.htaccess denies all)\nreturn " . var_export($c, true) . ";\n"); @chmod($tmp, 0600); rename($tmp, MYSQL_FILE); }
+function mysql_pdo(array $c): PDO {
+    $dsn = 'mysql:host=' . ($c['host'] ?? 'localhost') . ';port=' . (int)($c['port'] ?? 3306) . ';dbname=' . ($c['name'] ?? '') . ';charset=utf8mb4';
+    $p = new PDO($dsn, (string)($c['user'] ?? ''), (string)($c['pass'] ?? ''), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_TIMEOUT => 8]);
+    $p->exec("SET NAMES utf8mb4"); return $p;
+}
+function sqlite_pdo(): PDO { $dir = dirname(__DIR__) . '/storage'; if (!is_dir($dir)) @mkdir($dir, 0750, true);
+    $p = new PDO('sqlite:' . $dir . '/r6.sqlite', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
+    $p->exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=4000'); return $p; }
+const R6_TABLES = ['settings', 'users', 'tokens', 'otps', 'places', 'profiles', 'teams', 'invites', 'trips', 'ledger', 'notes', 'dist', 'tickets', 'quiz', 'sms', 'msgs', 'place_flags'];
+function db_engine(): string { $m = mysql_cfg(); return (C('r6_db') === 'mysql' || !empty($m['active'])) ? 'mysql' : 'sqlite'; }
 function db6(): PDO {
     static $p = null; if ($p) return $p;
     $opt = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC];
-    if (C('r6_db') === 'mysql') {
+    $mc = mysql_cfg();
+    if (!empty($mc['active']) && C('r6_db') !== 'mysql') { $p = mysql_pdo($mc); }
+    elseif (C('r6_db') === 'mysql') {
         $p = new PDO(C('r6_mysql_dsn') ?: (string)C('db_dsn'), C('r6_mysql_user') ?: C('db_user'), C('r6_mysql_pass') ?: C('db_pass'), $opt);
         $p->exec("SET NAMES utf8mb4");
     } else {
@@ -48,7 +63,7 @@ function db6(): PDO {
 function schema(PDO $p): void {
     $v = 0;
     try { $v = (int)$p->query("SELECT v FROM settings WHERE k='schema'")->fetchColumn(); } catch (Throwable $e) {}
-    if ($v >= 5) return;
+    if ($v >= 6) return;
     $K = 'VARCHAR(40)';
     $sql = [
         "CREATE TABLE IF NOT EXISTS settings (k VARCHAR(40) PRIMARY KEY, v TEXT)",
@@ -59,7 +74,7 @@ function schema(PDO $p): void {
         "CREATE TABLE IF NOT EXISTS profiles (id $K PRIMARY KEY, user_id $K, place_id $K, label VARCHAR(80), kind VARCHAR(16), color INT, data TEXT, step INT DEFAULT 0, complete INT DEFAULT 0, team_id $K, fake INT DEFAULT 0, created INT, updated INT)",
         "CREATE TABLE IF NOT EXISTS teams (id $K PRIMARY KEY, place_id $K, no INT, hood VARCHAR(60), color INT, coord $K, price INT, prize VARCHAR(160), premium INT DEFAULT 0, created INT)",
         "CREATE TABLE IF NOT EXISTS invites (id $K PRIMARY KEY, from_p $K, to_p $K, status VARCHAR(12), created INT, responded INT)",
-        "CREATE TABLE IF NOT EXISTS trips (id VARCHAR(80) PRIMARY KEY, team_id $K, wk VARCHAR(10), slot VARCHAR(10), status VARCHAR(10), exec $K, arr TEXT, empty INT DEFAULT 0, thanks INT DEFAULT 0, updated INT)",
+        "CREATE TABLE IF NOT EXISTS trips (id VARCHAR(80) PRIMARY KEY, team_id $K, wk VARCHAR(10), slot VARCHAR(10), status VARCHAR(10), exec $K, arr TEXT, `empty` INT DEFAULT 0, thanks INT DEFAULT 0, updated INT)",
         "CREATE TABLE IF NOT EXISTS ledger (id $K PRIMARY KEY, team_id $K, kind VARCHAR(8), ref VARCHAR(80), text VARCHAR(255), d TEXT, created INT)",
         "CREATE TABLE IF NOT EXISTS notes (id $K PRIMARY KEY, profile_id $K, text VARCHAR(255), kind VARCHAR(16), ref $K, rd INT DEFAULT 0, created INT)",
         "CREATE TABLE IF NOT EXISTS dist (k VARCHAR(64) PRIMARY KEY, m INT, s INT, src VARCHAR(8), created INT)",
@@ -68,14 +83,20 @@ function schema(PDO $p): void {
         "CREATE TABLE IF NOT EXISTS sms (id $K PRIMARY KEY, phone VARCHAR(16), tpl VARCHAR(40), status VARCHAR(160), by_user $K, created INT)",
         "CREATE TABLE IF NOT EXISTS msgs (id $K PRIMARY KEY, team_id $K, profile_id $K, text VARCHAR(500), created INT)",
     ];
-    foreach ($sql as $s) $p->exec($s);
+    $my = $p->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql';
+    foreach ($sql as $s) $p->exec($my ? $s . ' DEFAULT CHARSET=utf8mb4' : $s);
     foreach (['CREATE INDEX ix_prof_place ON profiles(place_id)', 'CREATE INDEX ix_prof_user ON profiles(user_id)', 'CREATE INDEX ix_inv_to ON invites(to_p)', 'CREATE INDEX ix_notes_p ON notes(profile_id)', 'CREATE INDEX ix_trips_t ON trips(team_id)', 'CREATE INDEX ix_ledger_t ON ledger(team_id)'] as $s) { try { $p->exec($s); } catch (Throwable $e) {} }
     try { $p->exec('CREATE INDEX ix_msgs_t ON msgs(team_id)'); } catch (Throwable $e) {}
     try { $p->exec('ALTER TABLE users ADD COLUMN premium_until INT DEFAULT 0'); } catch (Throwable $e) {}
     try { $p->exec('ALTER TABLE places ADD COLUMN nv INT DEFAULT 0'); } catch (Throwable $e) {}
     try { $p->exec('ALTER TABLE places ADD COLUMN nv_title VARCHAR(160)'); } catch (Throwable $e) {}
     try { $p->exec('CREATE TABLE IF NOT EXISTS place_flags (place_id VARCHAR(40), user_id VARCHAR(40), created INT, PRIMARY KEY(place_id, user_id))'); } catch (Throwable $e) {}
-    setv('schema', '5', $p);
+    try { $p->exec('ALTER TABLE places ADD COLUMN t_in2 VARCHAR(5)'); } catch (Throwable $e) {}
+    try { $p->exec('ALTER TABLE places ADD COLUMN t_out2 VARCHAR(5)'); } catch (Throwable $e) {}
+    try { $p->exec('ALTER TABLE tickets ADD COLUMN name VARCHAR(80)'); } catch (Throwable $e) {}
+    try { $p->exec('ALTER TABLE tickets ADD COLUMN contact VARCHAR(120)'); } catch (Throwable $e) {}
+    try { $p->exec('ALTER TABLE tickets ADD COLUMN seen INT DEFAULT 0'); } catch (Throwable $e) {}
+    setv('schema', '6', $p);
     foreach (['sms_invite' => '1', 'sms_arrive' => '0', 'auto_arrive' => '1', 'test_tools' => '1', 'signup_open' => '1', 'otp_dev' => '0', 'sms_direct' => '1', 'league_on' => '0', 'paid_mode' => '0', 'station_on' => '1', 'map_provider' => 'neshan', 'sub_price' => '297000', 'free_permanent' => '1', 'free_temp_month' => '2'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
 }
 function q(string $sql, array $a = []): PDOStatement { $s = db6()->prepare($sql); $s->execute($a); return $s; }
@@ -240,7 +261,7 @@ function neshan_check(array $pl): array {
 }
 function place_out(array $p, bool $counts = true): array {
     $o = ['id' => $p['id'], 'code' => $p['code'], 'kind' => $p['kind'], 'name' => $p['name'], 'city' => $p['city'], 'gender' => $p['gender'], 'shift' => $p['shift'],
-        'lat' => (float)$p['lat'], 'lng' => (float)$p['lng'], 'in' => $p['t_in'], 'out' => $p['t_out'], 'days' => array_map('intval', array_filter(explode(',', (string)$p['days']), 'strlen')), 'verified' => (int)$p['verified'], 'nv' => (int)($p['nv'] ?? 0), 'nv_title' => (string)($p['nv_title'] ?? '')];
+        'lat' => (float)$p['lat'], 'lng' => (float)$p['lng'], 'in' => $p['t_in'], 'out' => $p['t_out'], 'days' => array_map('intval', array_filter(explode(',', (string)$p['days']), 'strlen')), 'verified' => (int)$p['verified'], 'nv' => (int)($p['nv'] ?? 0), 'nv_title' => (string)($p['nv_title'] ?? ''), 'in2' => (string)($p['t_in2'] ?? ''), 'out2' => (string)($p['t_out2'] ?? ''), 'rot' => mb_strpos((string)$p['shift'], 'چرخشی') !== false];
     if ($counts) {
         $o['families'] = (int)q('SELECT COUNT(*) FROM profiles WHERE place_id=? AND complete=1', [$p['id']])->fetchColumn();
         $o['drivers'] = 0; foreach (rows('SELECT data FROM profiles WHERE place_id=? AND complete=1', [$p['id']]) as $r) { $d = json_decode((string)$r['data'], true); if (in_array($d['role'] ?? '', ['drive', 'both'], true)) $o['drivers']++; }
@@ -342,7 +363,7 @@ try {
 switch ($a) {
 
 case 'cfg': YES(['web_key' => getv('map_provider', 'neshan') === 'neshan' ? (string)C('neshan_web_key') : '', 'map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '297000'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'service' => (bool)C('neshan_service_key'), 'sms' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'),
-    'flags' => ['sms_direct' => flag('sms_direct'), 'test_tools' => flag('test_tools'), 'auto_arrive' => flag('auto_arrive'), 'sms_arrive' => flag('sms_arrive'), 'signup_open' => flag('signup_open'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')], 'jyear' => jyear(), 'wk' => week_key(), 'radio_votes' => (int)getv('radio_votes', '0')]);
+    'flags' => ['sms_direct' => flag('sms_direct'), 'test_tools' => flag('test_tools'), 'auto_arrive' => flag('auto_arrive'), 'sms_arrive' => flag('sms_arrive'), 'signup_open' => flag('signup_open'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')], 'donate' => ['card' => (string)getv('donate_card', ''), 'name' => (string)getv('donate_name', '')], 'jyear' => jyear(), 'wk' => week_key(), 'radio_votes' => (int)getv('radio_votes', '0')]);
 
 /* auth */
 case 'otp_send': {
@@ -413,6 +434,7 @@ case 'place_create': {
     q('INSERT INTO places(id,code,kind,name,city,gender,shift,lat,lng,t_in,t_out,days,created_by,verified,fake,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,0,0,?)',
       [$id, $code, $kind, mb_substr($name, 0, 150), mb_substr((string)($in['city'] ?? ''), 0, 50), in_array($in['gender'] ?? '', ['f', 'm', 'fm'], true) ? $in['gender'] : 'fm', mb_substr((string)($in['shift'] ?? ''), 0, 40), $lat, $lng, substr((string)($in['in'] ?? '07:30'), 0, 5), substr((string)($in['out'] ?? '13:30'), 0, 5), $days, $u['user_id'], time()]);
     try { neshan_check(row('SELECT * FROM places WHERE id=?', [$id])); } catch (Throwable $e) {}
+    if (!empty($in['in2'])) q('UPDATE places SET t_in2=?, t_out2=? WHERE id=?', [substr((string)$in['in2'], 0, 5), substr((string)($in['out2'] ?? ''), 0, 5), $id]);
     YES(['place' => place_out(row('SELECT * FROM places WHERE id=?', [$id]))]);
 }
 case 'route': {
@@ -494,6 +516,7 @@ case 'candidates': {
         $others = array_values(array_filter($others, function ($o) use ($md, $t0) { $od = pdata($o); $t1 = strtotime((string)($od['arrive'] ?? '')) ?: 0;
             return ($od['pg'] ?? '') === ($md['pg'] ?? '') && (!$t0 || !$t1 || abs($t1 - $t0) <= 3600) && hav((float)($md['lat'] ?? 0), (float)($md['lng'] ?? 0), (float)($od['lat'] ?? 0), (float)($od['lng'] ?? 0)) <= 8000; }));
     }
+    if ($mplace && mb_strpos((string)$mplace['shift'], 'چرخشی') !== false && isset($md['rot_par'])) $others = array_values(array_filter($others, fn($o) => !isset(pdata($o)['rot_par']) || (int)pdata($o)['rot_par'] === (int)$md['rot_par']));
     $mlat = (float)($md['lat'] ?? 0); $mlng = (float)($md['lng'] ?? 0);
     usort($others, fn($x, $y) => hav($mlat, $mlng, (float)(pdata($x)['lat'] ?? 0), (float)(pdata($x)['lng'] ?? 0)) <=> hav($mlat, $mlng, (float)(pdata($y)['lat'] ?? 0), (float)(pdata($y)['lng'] ?? 0)));
     $near = array_slice($others, 0, 40);
@@ -553,6 +576,14 @@ case 'inbox': {
     if (!empty($in['mark'])) q('UPDATE notes SET rd=1 WHERE profile_id=?', [$me['id']]);
     YES(['invites' => $inv, 'notes' => $notes, 'unread' => (int)q('SELECT COUNT(*) FROM notes WHERE profile_id=? AND rd=0', [$me['id']])->fetchColumn(), 'profile' => profile_out(row('SELECT * FROM profiles WHERE id=?', [$me['id']]))]);
 }
+case 'team_history': { // every recorded trip of the team with its calendar date (weeks start Saturday)
+    $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); if (!$me['team_id']) YES(['trips' => []]);
+    $out = []; foreach (rows('SELECT wk,slot,status,exec,arr,thanks FROM trips WHERE team_id=? ORDER BY wk', [$me['team_id']]) as $r) {
+        [$y, $w] = array_map('intval', explode('-', (string)$r['wk']) + [0, 0]); if (!$y || !$w) continue;
+        $mon = (new DateTime())->setISODate($y, $w, 1); $mon->modify('-2 days'); [$d, $dir] = explode('-', (string)$r['slot']) + ['0', 'out']; $mon->modify('+' . (int)$d . ' days');
+        $out[] = ['date' => $mon->format('Y-m-d'), 'dir' => $dir, 'status' => $r['status'], 'exec' => $r['exec'], 'kids' => count((array)(json_decode((string)$r['arr'], true) ?: [])), 'thanks' => (int)$r['thanks']]; }
+    $sat = new DateTime(); $sat->setTime(0, 0); while ((int)$sat->format('w') !== 6) $sat->modify('-1 day');
+    YES(['trips' => $out, 'sat' => $sat->format('Y-m-d'), 'today' => date('Y-m-d')]); }
 case 'team_leave': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); YES(['result' => team_leave($me)]); }
 
 /* team daily */
@@ -576,8 +607,8 @@ case 'team_act': {
     $dir = str_ends_with($slot, 'out') ? 'out' : 'back';
     $riders = []; foreach ($members as $m) { $n = pdata($m)['needs'] ?? ['out' => true, 'back' => true]; if (!empty($n[$dir])) foreach (riders_of($m) as $r) $riders[] = $r + ['pid' => $m['id']]; }
     $save = function (array $f) use ($rid, $t, $wk, $slot, &$tr) {
-        if ($tr) { $sets = implode(',', array_map(fn($k) => "$k=?", array_keys($f))); q("UPDATE trips SET $sets, updated=? WHERE id=?", array_merge(array_values($f), [time(), $rid])); }
-        else { $f += ['status' => 'pending', 'exec' => null, 'arr' => '{}', 'empty' => 0, 'thanks' => 0]; q('INSERT INTO trips(id,team_id,wk,slot,status,exec,arr,empty,thanks,updated) VALUES(?,?,?,?,?,?,?,?,?,?)', [$rid, $t['id'], $wk, $slot, $f['status'], $f['exec'], $f['arr'], $f['empty'], $f['thanks'], time()]); }
+        if ($tr) { $sets = implode(',', array_map(fn($k) => "`$k`=?", array_keys($f))); q("UPDATE trips SET $sets, updated=? WHERE id=?", array_merge(array_values($f), [time(), $rid])); }
+        else { $f += ['status' => 'pending', 'exec' => null, 'arr' => '{}', 'empty' => 0, 'thanks' => 0]; q('INSERT INTO trips(id,team_id,wk,slot,status,exec,arr,`empty`,thanks,updated) VALUES(?,?,?,?,?,?,?,?,?,?)', [$rid, $t['id'], $wk, $slot, $f['status'], $f['exec'], $f['arr'], $f['empty'], $f['thanks'], time()]); }
         $tr = row('SELECT * FROM trips WHERE id=?', [$rid]);
     };
     switch ($act) {
@@ -647,6 +678,14 @@ case 'ticket': {
     q('INSERT INTO tickets(id,no,user_id,profile_id,cat,text,status,reply,created,updated) VALUES(?,?,?,?,?,?,?,?,?,?)', [uid(), $no, $u['user_id'], $in['profile_id'] ?? null, mb_substr((string)($in['cat'] ?? 'سایر'), 0, 30), mb_substr($txt, 0, 2000), 'open', '', time(), time()]);
     YES(['no' => $no]);
 }
+case 'contact': { // public contact form (with or without an account)
+    $u = auth(false); $txt = trim((string)($in['text'] ?? '')); $ct = trim((string)($in['contact'] ?? '')); $nm = trim((string)($in['name'] ?? ''));
+    if (mb_strlen($txt) < 5) NO('چند کلمه بیشتر بنویسید.'); if (!$u && mb_strlen($ct) < 5) NO('یک راه تماس (شماره یا ایمیل) بنویسید تا جواب بدهیم.');
+    $ip = substr(hash('sha256', ($_SERVER['REMOTE_ADDR'] ?? '') . 'r6'), 0, 16); $k = 'ct_' . $ip . '_' . date('YmdH');
+    $n = (int)getv($k, '0'); if ($n >= 5) NO('پیام‌های زیادی فرستادید؛ کمی بعد دوباره امتحان کنید.', 429); setv($k, (string)($n + 1));
+    $no = 1024 + (int)q('SELECT COUNT(*) FROM tickets')->fetchColumn();
+    q('INSERT INTO tickets(id,no,user_id,profile_id,cat,text,status,reply,created,updated,name,contact,seen) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0)', [uid(), $no, $u['user_id'] ?? null, null, mb_substr((string)($in['cat'] ?? 'تماس با ما'), 0, 30), mb_substr($txt, 0, 3000), 'open', '', time(), time(), mb_substr($nm, 0, 80), mb_substr($ct ?: (string)($u['phone'] ?? ''), 0, 120)]);
+    YES(['no' => $no]); }
 case 'tickets': { $u = auth(); YES(['list' => rows('SELECT no,cat,text,status,reply,created FROM tickets WHERE user_id=? ORDER BY created DESC', [$u['user_id']])]); }
 
 /* test tools (switch off from admin when going public) */
@@ -677,18 +716,63 @@ case 'admin_login': {
 case 'admin_overview': {
     need_admin(); $c = fn($s, $a = []) => (int)q($s, $a)->fetchColumn();
     YES(['counts' => ['users' => $c('SELECT COUNT(*) FROM users WHERE fake=0'), 'fake' => $c('SELECT COUNT(*) FROM users WHERE fake=1'), 'profiles' => $c('SELECT COUNT(*) FROM profiles WHERE fake=0'), 'complete' => $c('SELECT COUNT(*) FROM profiles WHERE complete=1 AND fake=0'),
-        'places' => $c('SELECT COUNT(*) FROM places'), 'teams' => $c('SELECT COUNT(*) FROM teams'), 'invites' => $c("SELECT COUNT(*) FROM invites WHERE status='pending'"), 'tickets' => $c("SELECT COUNT(*) FROM tickets WHERE status='open'"), 'sms_day' => $c('SELECT COUNT(*) FROM sms WHERE created>?', [time() - 86400])],
+        'places' => $c('SELECT COUNT(*) FROM places'), 'teams' => $c('SELECT COUNT(*) FROM teams'), 'invites' => $c("SELECT COUNT(*) FROM invites WHERE status='pending'"), 'tickets' => $c("SELECT COUNT(*) FROM tickets WHERE status='open'"), 'sms_day' => $c('SELECT COUNT(*) FROM sms WHERE created>?', [time() - 86400]), 'unseen' => $c('SELECT COUNT(*) FROM tickets WHERE seen=0 OR seen IS NULL')],
         'flags' => ['sms_invite' => flag('sms_invite'), 'sms_arrive' => flag('sms_arrive'), 'auto_arrive' => flag('auto_arrive'), 'test_tools' => flag('test_tools'), 'signup_open' => flag('signup_open'), 'otp_dev' => flag('otp_dev'), 'sms_direct' => flag('sms_direct'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')],
-        'settings' => ['map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '297000'), 'free_permanent' => (int)getv('free_permanent', '1'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'sub_interest' => (int)getv('sub_interest', '0'), 'kave_sender' => (string)getv('kave_sender', ''), 'kave_sender_auto' => (string)getv('kave_sender_auto', '')],
+        'settings' => ['map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '297000'), 'free_permanent' => (int)getv('free_permanent', '1'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'sub_interest' => (int)getv('sub_interest', '0'), 'kave_sender' => (string)getv('kave_sender', ''), 'kave_sender_auto' => (string)getv('kave_sender_auto', ''), 'donate_card' => (string)getv('donate_card', ''), 'donate_name' => (string)getv('donate_name', ''), 'engine' => db_engine()],
         'services' => ['db' => C('r6_db'), 'php' => PHP_VERSION, 'kavenegar' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'), 'neshan_service' => (bool)C('neshan_service_key'), 'neshan_web' => (bool)C('neshan_web_key'), 'curl' => function_exists('curl_init'), 'tpl_login' => C('kavenegar_template', 'residim-login'), 'tpl_invite' => C('kavenegar_tpl_invite'), 'tpl_arrived' => C('kavenegar_tpl_arrived')],
         'default_pass' => C('admin_pass') === 'mot']);
 }
 case 'admin_flag': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_array($k, ['sms_invite', 'sms_arrive', 'auto_arrive', 'test_tools', 'signup_open', 'otp_dev', 'sms_direct', 'league_on', 'paid_mode', 'station_on'], true)) NO('کلید نامعتبر.'); setv($k, !empty($in['v']) ? '1' : '0'); YES(); }
 case 'sub_interest': { $u = auth(); $k = 'subi_' . $u['user_id']; if (getv($k) === null) { setv($k, (string)time()); setv('sub_interest', (string)((int)getv('sub_interest', '0') + 1)); } YES(); }
+case 'admin_seen': { need_admin(); q('UPDATE tickets SET seen=1 WHERE seen=0 OR seen IS NULL'); YES(); }
+case 'admin_ticket_close': { need_admin(); q("UPDATE tickets SET status=?, updated=? WHERE id=?", [!empty($in['open']) ? 'open' : 'closed', time(), (string)($in['id'] ?? '')]); YES(); }
+/* MySQL: save credentials to a protected server file, smoke test, copy SQLite -> MySQL, switch */
+case 'admin_mysql_get': { need_admin(); $c = mysql_cfg(); YES(['host' => $c['host'] ?? 'localhost', 'port' => (int)($c['port'] ?? 3306), 'name' => $c['name'] ?? '', 'user' => $c['user'] ?? '', 'pass_set' => !empty($c['pass']), 'active' => !empty($c['active']), 'engine' => db_engine(), 'tested' => $c['tested'] ?? null, 'migrated' => $c['migrated'] ?? null, 'pdo_mysql' => in_array('mysql', PDO::getAvailableDrivers(), true), 'locked' => C('r6_db') === 'mysql']); }
+case 'admin_mysql_save': { need_admin(); $c = mysql_cfg();
+    foreach (['host', 'name', 'user'] as $k) if (isset($in[$k])) $c[$k] = mb_substr(trim((string)$in[$k]), 0, 120);
+    $c['port'] = max(1, min(65535, (int)($in['port'] ?? ($c['port'] ?? 3306)))); if ((string)($in['pass'] ?? '') !== '') $c['pass'] = (string)$in['pass'];
+    if (!preg_match('/^[A-Za-z0-9_.\-]+$/', (string)($c['host'] ?? '')) || !preg_match('/^[A-Za-z0-9_\-]+$/', (string)($c['name'] ?? ''))) NO('نام میزبان یا پایگاه داده نامعتبر است.');
+    $c['tested'] = null; $c['migrated'] = null; if (!empty($c['active'])) NO('اول به SQLite برگردید، بعد مشخصات را عوض کنید.'); mysql_save($c); YES(); }
+case 'admin_mysql_test': { need_admin(); $c = mysql_cfg(); if (empty($c['name'])) NO('اول مشخصات را ذخیره کنید.');
+    try { $m = mysql_pdo($c); $t = 'r6_smoke_' . bin2hex(random_bytes(3)); $m->exec("CREATE TABLE $t (k VARCHAR(20) PRIMARY KEY, v TEXT) DEFAULT CHARSET=utf8mb4"); $m->prepare("INSERT INTO $t(k,v) VALUES(?,?)")->execute(['fa', 'رسیدیم ✓']);
+        $v = $m->query("SELECT v FROM $t WHERE k='fa'")->fetchColumn(); $m->exec("DROP TABLE $t"); $ver = $m->query('SELECT VERSION()')->fetchColumn();
+        if ($v !== 'رسیدیم ✓') throw new RuntimeException('متن فارسی درست برنگشت (charset).'); $c['tested'] = time(); mysql_save($c); YES(['version' => $ver]); }
+    catch (Throwable $e) { NO('اتصال ناموفق: ' . mb_substr($e->getMessage(), 0, 200)); } }
+case 'admin_mysql_migrate': { need_admin(); $c = mysql_cfg(); if (empty($c['tested'])) NO('اول تست دود را موفق بگذرانید.'); if (!empty($c['active'])) NO('الان روی MySQL هستید.');
+    try { $src = sqlite_pdo(); $m = mysql_pdo($c); schema($m); $counts = [];
+        foreach (R6_TABLES as $tb) { try { $rs = $src->query("SELECT * FROM $tb")->fetchAll(); } catch (Throwable $e) { continue; }
+            $m->exec("DELETE FROM $tb"); $counts[$tb] = 0; if (!$rs) continue; $cols = array_keys($rs[0]);
+            $ins = $m->prepare("INSERT INTO $tb(" . implode(',', array_map(fn($x) => "`$x`", $cols)) . ') VALUES(' . implode(',', array_fill(0, count($cols), '?')) . ')');
+            $m->beginTransaction(); foreach ($rs as $r) { $ins->execute(array_values($r)); $counts[$tb]++; } $m->commit();
+            $n = (int)$m->query("SELECT COUNT(*) FROM $tb")->fetchColumn(); if ($n !== count($rs)) throw new RuntimeException("$tb: $n از " . count($rs)); }
+        $c['migrated'] = time(); $c['counts'] = $counts; mysql_save($c); YES(['counts' => $counts]); }
+    catch (Throwable $e) { NO('انتقال ناموفق: ' . mb_substr($e->getMessage(), 0, 200)); } }
+case 'admin_mysql_switch': { need_admin(); $c = mysql_cfg(); $on = !empty($in['on']);
+    if ($on && empty($c['migrated'])) NO('اول انتقال داده‌ها را انجام دهید.'); if ($on) { mysql_pdo($c); }
+    $c['active'] = $on; if (!$on) $c['migrated'] = null; mysql_save($c); YES(['engine' => $on ? 'mysql' : 'sqlite']); }
+/* Neshan: schools near a point, import as places for posters */
+case 'admin_neshan_search': { need_admin(); $lat = (float)($in['lat'] ?? 0); $lng = (float)($in['lng'] ?? 0); if (!$lat) NO('مرکز جستجو را انتخاب کنید.'); if (!C('neshan_service_key')) NO('کلید سرویس نشان تنظیم نشده است.');
+    $seen = []; $out = []; $all = rows('SELECT id,name,lat,lng,code FROM places');
+    foreach ((array)($in['terms'] ?? ['دبستان', 'مدرسه', 'دبیرستان']) as $term) { $r = neshan('/v1/search', ['term' => mb_substr((string)$term, 0, 40), 'lat' => $lat, 'lng' => $lng]);
+        foreach ((array)($r['items'] ?? []) as $it) { $x = (float)($it['location']['x'] ?? 0); $y = (float)($it['location']['y'] ?? 0); $t = trim((string)($it['title'] ?? '')); if (!$x || $t === '') continue;
+            $key = $t . '|' . round($y, 4) . '|' . round($x, 4); if (isset($seen[$key])) continue; $seen[$key] = 1; $have = null;
+            foreach ($all as $pp) if (hav($y, $x, (float)$pp['lat'], (float)$pp['lng']) < 150 && pname_norm($pp['name']) === pname_norm($t)) { $have = $pp['code']; break; }
+            $out[] = ['title' => $t, 'address' => (string)($it['address'] ?? ''), 'region' => (string)($it['region'] ?? ''), 'type' => (string)($it['type'] ?? ''), 'lat' => $y, 'lng' => $x, 'd' => (int)hav($lat, $lng, $y, $x), 'code' => $have]; } }
+    usort($out, fn($a, $b) => $a['d'] <=> $b['d']); YES(['items' => array_slice($out, 0, 120)]); }
+case 'admin_import_places': { need_admin(); $made = [];
+    foreach (array_slice((array)($in['items'] ?? []), 0, 100) as $it) { $nm = trim((string)($it['title'] ?? '')); $la = (float)($it['lat'] ?? 0); $lo = (float)($it['lng'] ?? 0); if (mb_strlen($nm) < 3 || !$la) continue;
+        $ex = null; foreach (rows('SELECT * FROM places') as $pp) if (hav($la, $lo, (float)$pp['lat'], (float)$pp['lng']) < 150 && pname_norm($pp['name']) === pname_norm($nm)) { $ex = $pp; break; }
+        if (!$ex) { $g = mb_strpos($nm, 'دخترانه') !== false ? 'f' : (mb_strpos($nm, 'پسرانه') !== false ? 'm' : 'fm'); $kind = preg_match('/مهد|پیش ?دبستان/u', $nm) ? 'kinder' : 'school';
+            $id = uid(); q('INSERT INTO places(id,code,kind,name,city,gender,shift,lat,lng,t_in,t_out,days,created_by,verified,fake,created,nv,nv_title) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,NULL,0,0,?,1,?)', [$id, code8(), $kind, mb_substr($nm, 0, 150), mb_substr((string)($it['city'] ?? 'تهران'), 0, 50), $g, '', $la, $lo, '07:30', '13:30', '0,1,2,3,4', time(), mb_substr($nm, 0, 150)]);
+            $ex = row('SELECT * FROM places WHERE id=?', [$id]); }
+        $o = place_out($ex, false); $o['address'] = (string)($it['address'] ?? ''); $made[] = $o; }
+    YES(['places' => $made]); }
 case 'admin_setting': { need_admin(); $k = (string)($in['k'] ?? ''); $v = trim((string)($in['v'] ?? ''));
     if ($k === 'map_provider' && in_array($v, ['neshan', 'openfree'], true)) setv($k, $v);
     elseif (in_array($k, ['sub_price', 'free_permanent', 'free_temp_month'], true) && ctype_digit($v)) setv($k, $v);
     elseif ($k === 'kave_sender' && ($v === '' || ctype_digit($v))) { setv($k, $v); setv('kave_sender_at', '0'); }
+    elseif ($k === 'donate_card' && ($v === '' || preg_match('/^\d{16}$/', $v))) setv($k, $v);
+    elseif ($k === 'donate_name') setv($k, mb_substr($v, 0, 60));
     else NO('مقدار نامعتبر.'); YES(); }
 case 'admin_premium_user': { need_admin(); $ph = phone_norm((string)($in['phone'] ?? '')); $u = $ph ? row('SELECT id FROM users WHERE phone=?', [$ph]) : null; if (!$u) NO('کاربری با این شماره نیست.');
     $days = max(0, min(3650, (int)($in['days'] ?? 30))); q('UPDATE users SET premium_until=? WHERE id=?', [$days ? time() + $days * 86400 : 0, $u['id']]); YES(['until' => $days ? time() + $days * 86400 : 0]); }
@@ -698,7 +782,7 @@ case 'admin_place': { need_admin(); $id = (string)($in['id'] ?? ''); if (!empty(
     if (isset($in['verified'])) q('UPDATE places SET verified=? WHERE id=?', [!empty($in['verified']) ? 1 : 0, $id]); if (!empty($in['name'])) q('UPDATE places SET name=? WHERE id=?', [mb_substr((string)$in['name'], 0, 150), $id]); YES(); }
 case 'admin_teams': { need_admin(); $l = []; foreach (rows('SELECT t.*, p.name pname FROM teams t LEFT JOIN places p ON p.id=t.place_id ORDER BY t.created DESC LIMIT 200') as $t) { $o = team_out($t); $o['place'] = $t['pname']; $o['members'] = (int)q('SELECT COUNT(*) FROM profiles WHERE team_id=?', [$t['id']])->fetchColumn(); $l[] = $o; } YES(['list' => $l]); }
 case 'admin_team': { need_admin(); q('UPDATE teams SET premium=? WHERE id=?', [!empty($in['premium']) ? 1 : 0, (string)($in['id'] ?? '')]); YES(); }
-case 'admin_tickets': { need_admin(); YES(['list' => rows('SELECT t.id,t.no,t.cat,t.text,t.status,t.reply,t.created,u.phone FROM tickets t LEFT JOIN users u ON u.id=t.user_id ORDER BY t.created DESC LIMIT 200')]); }
+case 'admin_tickets': { need_admin(); YES(['list' => rows('SELECT t.id,t.no,t.cat,t.text,t.status,t.reply,t.created,t.name,t.contact,t.seen,u.phone FROM tickets t LEFT JOIN users u ON u.id=t.user_id ORDER BY t.created DESC LIMIT 200')]); }
 case 'admin_ticket': { need_admin(); q('UPDATE tickets SET reply=?, status=?, updated=? WHERE id=?', [mb_substr((string)($in['reply'] ?? ''), 0, 2000), in_array($in['status'] ?? '', ['open', 'answered', 'closed'], true) ? $in['status'] : 'answered', time(), (string)($in['id'] ?? '')]); YES(); }
 case 'admin_users': { need_admin(); YES(['list' => rows('SELECT u.phone,u.fake,u.created,(SELECT COUNT(*) FROM profiles p WHERE p.user_id=u.id) profiles FROM users u ORDER BY u.created DESC LIMIT 200')]); }
 case 'admin_sms': { need_admin(); YES(['list' => rows('SELECT phone,tpl,status,created FROM sms ORDER BY created DESC LIMIT 100')]); }
