@@ -475,3 +475,57 @@ button.kid:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line-2)}
 .chat-foot input{flex:1;min-height:50px;border-radius:16px;border:2px solid var(--line-2);padding:0 14px;background:var(--surface);font-weight:600}
 .chat-foot .btn{min-width:56px;padding:0}
 .chat-foot .btn svg{transform:rotate(180deg)}
+
+/* ═════════ v08 ═════════ */
+.dr-head{display:grid;grid-template-columns:auto minmax(0,1fr) 44px 44px;align-items:center;gap:10px;padding:4px 4px 12px}
+.dr-head img{width:40px;height:40px;border-radius:12px}
+.dr-title{min-width:0;display:grid;line-height:1.35}
+.dr-title b{font-weight:900}
+.dr-title small{color:var(--muted);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn.sq{width:44px!important;height:44px!important;min-height:0;padding:0;flex:none;border-radius:13px}
+.pcard{display:flex;align-items:center;gap:12px;width:100%;text-align:right;padding:12px 14px;border-radius:18px;border:0;color:#fff;background:linear-gradient(135deg,color-mix(in srgb,var(--kc) 78%,#0B1A12),color-mix(in srgb,var(--kc) 58%,#0B1A12));box-shadow:0 10px 24px -14px color-mix(in srgb,var(--kc) 70%,#000)}
+.pcard b{display:block;font-weight:900;line-height:1.3}
+.pcard small{display:block;opacity:.82;font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcard .pc-ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#ffffff26;flex:none}
+.pcard .pc-ic svg,.pcard > svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pcard .pc-st{font-size:.7rem;font-weight:800;padding:3px 9px;border-radius:99px;background:#ffffff26;white-space:nowrap}
+.pcard:not(.active){opacity:.92}
+.pcard.active{outline:2px solid color-mix(in srgb,var(--kc) 40%,transparent);outline-offset:2px}
+.plist .pcard{padding:9px 12px}
+.tile{background:var(--surface)!important;border:1.5px solid var(--line)!important}
+.tile:hover{border-color:color-mix(in srgb,var(--ac) 50%,var(--line))!important}
+.emo-pair{display:inline-flex;gap:4px;flex:none}
+
+.seg{position:absolute;top:10px;inset-inline-start:10px;z-index:3;display:flex;background:var(--surface);border:1.5px solid var(--line);border-radius:99px;padding:3px;box-shadow:0 6px 16px -10px #0005}
+.seg button{border:0;background:none;font:inherit;font-size:.8rem;font-weight:800;padding:6px 12px;border-radius:99px;color:var(--muted);display:flex;align-items:center;gap:4px;cursor:pointer}
+.seg button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.seg button[aria-pressed="true"]{background:var(--ink,#0C1410);color:var(--bg,#fff)}
+.mapbox .tools{top:56px!important}
+.mk.dest .pill{background:#0C1410;color:#fff;border-color:#fff;font-size:12px;padding:6px 10px}
+.mk.dest .tip{border-top-color:#0C1410}
+.hood-ring{width:92px;height:92px;border-radius:50%;border:2px dashed color-mix(in srgb,var(--ac) 70%,transparent);background:color-mix(in srgb,var(--ac) 12%,transparent);display:grid;place-items:end center;pointer-events:none}
+.hood-ring span{font:800 11px/1 "Vazirmatn",sans-serif;background:var(--surface);color:var(--ink,#0C1410);padding:4px 8px;border-radius:99px;margin-bottom:-12px;white-space:nowrap;box-shadow:0 4px 10px -6px #0006}
+.trip-card{background:linear-gradient(135deg,#0F2A1D,#163B2A)!important;color:#fff;border:0!important}
+.trip-card svg{stroke:#fff}
+.trip-card .btn.line{color:#fff!important;background:#ffffff1f!important;border-color:#ffffff55!important;box-shadow:none!important}
+.cardno{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--bg2,#F2F5F1);border:1.5px solid var(--line)}
+.cardno b{display:block;font-size:1.02rem;letter-spacing:.06em}
+.guide{display:grid;gap:8px}
+.guide details{border:1.5px solid var(--line);border-radius:14px;background:var(--surface)}
+.guide summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;font-weight:800}
+.guide summary::-webkit-details-marker{display:none}
+.guide summary svg{width:18px;height:18px;transition:transform .2s}
+.guide details[open] summary svg{transform:rotate(180deg)}
+.guide p{margin:0;padding:0 14px 14px;line-height:1.95;color:var(--muted)}
+.steps{margin:0;padding-inline-start:22px;display:grid;gap:10px;line-height:1.9}
+.sub-hero{display:grid;gap:4px;text-align:center;padding:16px;border-radius:18px;background:linear-gradient(135deg,#0F2A1D,#1B4B34);color:#fff}
+.sub-hero b{font-size:1.5rem;font-weight:900}
+.sub-hero span{opacity:.85;font-size:.85rem}
+.ticks{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ticks li{display:flex;gap:8px;align-items:flex-start;line-height:1.8}
+.ticks svg{width:18px;height:18px;flex:none;margin-top:5px;stroke:var(--ac)}
+input.tgl{appearance:none;width:42px;height:24px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;flex:none;transition:background .2s}
+input.tgl::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:inset-inline-start .2s;box-shadow:0 1px 3px #0004}
+input.tgl:checked{background:var(--brand,#22C55E)}
+input.tgl:checked::after{inset-inline-start:21px}
+.drawer .mi{color:var(--ink,inherit)}

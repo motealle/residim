@@ -48,7 +48,7 @@ function db6(): PDO {
 function schema(PDO $p): void {
     $v = 0;
     try { $v = (int)$p->query("SELECT v FROM settings WHERE k='schema'")->fetchColumn(); } catch (Throwable $e) {}
-    if ($v >= 2) return;
+    if ($v >= 3) return;
     $K = 'VARCHAR(40)';
     $sql = [
         "CREATE TABLE IF NOT EXISTS settings (k VARCHAR(40) PRIMARY KEY, v TEXT)",
@@ -71,8 +71,9 @@ function schema(PDO $p): void {
     foreach ($sql as $s) $p->exec($s);
     foreach (['CREATE INDEX ix_prof_place ON profiles(place_id)', 'CREATE INDEX ix_prof_user ON profiles(user_id)', 'CREATE INDEX ix_inv_to ON invites(to_p)', 'CREATE INDEX ix_notes_p ON notes(profile_id)', 'CREATE INDEX ix_trips_t ON trips(team_id)', 'CREATE INDEX ix_ledger_t ON ledger(team_id)'] as $s) { try { $p->exec($s); } catch (Throwable $e) {} }
     try { $p->exec('CREATE INDEX ix_msgs_t ON msgs(team_id)'); } catch (Throwable $e) {}
-    setv('schema', '2', $p);
-    foreach (['sms_invite' => '1', 'sms_arrive' => '0', 'auto_arrive' => '1', 'test_tools' => '1', 'signup_open' => '1', 'otp_dev' => '0'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
+    try { $p->exec('ALTER TABLE users ADD COLUMN premium_until INT DEFAULT 0'); } catch (Throwable $e) {}
+    setv('schema', '3', $p);
+    foreach (['sms_invite' => '1', 'sms_arrive' => '0', 'auto_arrive' => '1', 'test_tools' => '1', 'signup_open' => '1', 'otp_dev' => '0', 'league_on' => '0', 'paid_mode' => '0', 'station_on' => '1', 'map_provider' => 'neshan', 'sub_price' => '297000', 'free_permanent' => '1', 'free_temp_month' => '2'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
 }
 function q(string $sql, array $a = []): PDOStatement { $s = db6()->prepare($sql); $s->execute($a); return $s; }
 function row(string $sql, array $a = []): ?array { $r = q($sql, $a)->fetch(); return $r ?: null; }
@@ -112,6 +113,12 @@ function riders_of(array $p): array { // kids for child-kinds, the member themse
     if (!empty($d['kids'])) return array_map(fn($k) => ['id' => $k['id'] ?? '', 'g' => $k['g'] ?? 'f', 'age' => isset($k['by']) ? max(0, jyear() - (int)$k['by']) : null, 'first' => $k['first'] ?? ''], $d['kids']);
     return [['id' => $p['id'] . '-s', 'g' => $d['pg'] ?? 'f', 'age' => 30, 'first' => '']];
 }
+const TEMP_KINDS = ['station'];
+function team_rule_ok(?array $place, array $riders): bool {
+    if ($place && in_array($place['kind'], TEMP_KINDS, true)) { $g = array_unique(array_column($riders, 'g')); return count($g) <= 1; }
+    return gender_age_ok($riders);
+}
+function is_premium(?string $uid): bool { if (!$uid) return false; $u = row('SELECT premium_until FROM users WHERE id=?', [$uid]); return $u && (int)($u['premium_until'] ?? 0) > time(); }
 /** Platform rule: girls over 8 and boys over 12 never share a service with the opposite gender. */
 function gender_age_ok(array $ridersAll): bool {
     $girls = array_filter($ridersAll, fn($r) => $r['g'] === 'f'); $boys = array_filter($ridersAll, fn($r) => $r['g'] === 'm');
@@ -210,7 +217,7 @@ function public_member(array $p, bool $mate, ?array $me = null, bool $viewerVeri
     return ['id' => $p['id'], 'family' => $d['family'] ?? '', 'title' => $d['title'] ?? '', 'pg' => $d['pg'] ?? 'f', 'role' => $d['role'] ?? 'pay', 'seats' => (int)($d['seats'] ?? 0), 'days' => $d['days'] ?? [],
         'needs' => $d['needs'] ?? ['out' => true, 'back' => true], 'values' => $d['values'] ?? [], 'hood' => $d['hood'] ?? '', 'lat' => $lat, 'lng' => $lng, 'exact' => $exact, 'snapp' => (int)($d['snapp'] ?? 0),
         'kids' => array_map(fn($r) => ['g' => $r['g'], 'age' => $r['age']] + ($mate ? ['first' => $r['first'], 'id' => $r['id']] : []), riders_of($p)),
-        'phone' => $phone, 'phone_hidden' => !$phone, 'verified' => (bool)$verified, 'contact' => $d['contact'] ?? (!empty($d['phone_show']) ? 'phone' : 'app'), 'pickup' => $d['pickup'] ?? '', 'fake' => (int)$p['fake'], 'team' => team_out($t)];
+        'phone' => $phone, 'phone_hidden' => !$phone, 'verified' => (bool)$verified, 'contact' => $d['contact'] ?? (!empty($d['phone_show']) ? 'phone' : 'app'), 'pickup' => $d['pickup'] ?? '', 'rel' => $d['rel'] ?? '', 'arrive' => $d['arrive'] ?? '', 'free_ride' => !empty($d['free_ride']), 'card' => $mate ? (string)($d['card'] ?? '') : '', 'dest_name' => $mate ? (string)($d['hood'] ?? '') : '', 'fake' => (int)$p['fake'], 'team' => team_out($t)];
 }
 
 /* ───────── teams ───────── */
@@ -254,7 +261,8 @@ function make_fake(array $me, array $place, bool $driver): string {
     $lat = $lat0 + ($r * cos($a)) / 110570; $lng = $lng0 + ($r * sin($a)) / (111320 * cos($lat0 * M_PI / 180));
     $uidv = uid(); q('INSERT INTO users(id,phone,fake,created) VALUES(?,?,1,?)', [$uidv, '0900' . str_pad((string)random_int(0, 9999999), 7, '0', STR_PAD_LEFT), time()]);
     $child = in_array($place['kind'], ['school', 'kinder', 'institute', 'club'], true);
-    $pg = random_int(0, 1) ? 'f' : 'm'; $kids = [];
+    $temp = in_array($place['kind'], TEMP_KINDS, true);
+    $pg = $temp ? ($d0['pg'] ?? 'f') : (random_int(0, 1) ? 'f' : 'm'); $kids = [];
     if ($child) { $n = random_int(1, 10) > 8 ? 2 : 1; $g0 = $place['gender'] === 'm' ? 'm' : ($place['gender'] === 'f' ? 'f' : (random_int(0, 1) ? 'f' : 'm'));
         for ($i = 0; $i < $n; $i++) { $g = $g0; $kids[] = ['id' => uid(8), 'first' => $g === 'f' ? GIRLS[array_rand(GIRLS)] : BOYS[array_rand(BOYS)], 'g' => $g, 'by' => jyear() - random_int(7, 12), 'grade' => '']; } }
     $role = $driver ? (random_int(0, 1) ? 'drive' : 'both') : ['drive', 'pay', 'both', 'pay', 'both'][random_int(0, 4)];
@@ -263,6 +271,7 @@ function make_fake(array $me, array $place, bool $driver): string {
     $data = ['family' => FAMS[array_rand(FAMS)], 'pg' => $pg, 'kids' => $kids, 'hood' => $d0['hood'] ?? HOODS[array_rand(HOODS)], 'lat' => round($lat, 5), 'lng' => round($lng, 5),
         'needs' => ['out' => true, 'back' => random_int(0, 5) > 0], 'role' => $role, 'days' => $days, 'seats' => $role === 'pay' ? 0 : random_int(3, 4), 'snapp' => (int)(round((45000 + 18 * hav($lat, $lng, (float)$place['lat'], (float)$place['lng'])) / 5000) * 5000),
         'values' => $vals, 'phone_show' => true, 'rules_at' => time()];
+    if ($temp) { $t0 = strtotime((string)($d0['arrive'] ?? '')) ?: time() + 86400; $data['arrive'] = date('Y-m-d\\TH:i', $t0 + random_int(-40, 40) * 60); $data['needs'] = ['out' => true, 'back' => false]; $data['seats'] = $role === 'pay' ? 0 : random_int(1, 3); $data['free_ride'] = $role !== 'pay' && random_int(0, 2) === 0; if ($role !== 'pay') $data['card'] = '6037 99' . random_int(10, 99) . ' ' . random_int(1000, 9999) . ' ' . random_int(1000, 9999); }
     $id = uid(); q('INSERT INTO profiles(id,user_id,place_id,label,kind,color,data,step,complete,team_id,fake,created,updated) VALUES(?,?,?,?,?,?,?,99,1,NULL,1,?,?)', [$id, $uidv, $place['id'], $place['name'], $place['kind'], 0, json_encode($data, JSON_UNESCAPED_UNICODE), time(), time()]);
     return $id;
 }
@@ -285,8 +294,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' && $a !== 'cfg') NO('روش
 try {
 switch ($a) {
 
-case 'cfg': YES(['web_key' => (string)C('neshan_web_key'), 'service' => (bool)C('neshan_service_key'), 'sms' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'),
-    'flags' => ['test_tools' => flag('test_tools'), 'auto_arrive' => flag('auto_arrive'), 'sms_arrive' => flag('sms_arrive'), 'signup_open' => flag('signup_open')], 'jyear' => jyear(), 'wk' => week_key(), 'radio_votes' => (int)getv('radio_votes', '0')]);
+case 'cfg': YES(['web_key' => getv('map_provider', 'neshan') === 'neshan' ? (string)C('neshan_web_key') : '', 'map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '297000'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'service' => (bool)C('neshan_service_key'), 'sms' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'),
+    'flags' => ['test_tools' => flag('test_tools'), 'auto_arrive' => flag('auto_arrive'), 'sms_arrive' => flag('sms_arrive'), 'signup_open' => flag('signup_open'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')], 'jyear' => jyear(), 'wk' => week_key(), 'radio_votes' => (int)getv('radio_votes', '0')]);
 
 /* auth */
 case 'otp_send': {
@@ -326,7 +335,7 @@ case 'guest_start': {
     $id = uid(); q('INSERT INTO users(id,phone,fake,created) VALUES(?,NULL,0,?)', [$id, time()]);
     YES(['token' => issue_token($id), 'phone' => null]);
 }
-case 'me': { $u = auth(); YES(['phone' => $u['phone'], 'profiles' => array_map('profile_out', rows('SELECT * FROM profiles WHERE user_id=? ORDER BY created', [$u['user_id']]))]); }
+case 'me': { $u = auth(); $pu = (int)(row('SELECT premium_until FROM users WHERE id=?', [$u['user_id']])['premium_until'] ?? 0); YES(['phone' => $u['phone'], 'premium_until' => $pu, 'profiles' => array_map('profile_out', rows('SELECT * FROM profiles WHERE user_id=? ORDER BY created', [$u['user_id']]))]); }
 case 'logout': { $t = $_SERVER['HTTP_X_TOKEN'] ?? ''; if ($t) q('DELETE FROM tokens WHERE token=?', [hash('sha256', $t)]); YES(); }
 
 /* places */
@@ -395,7 +404,16 @@ case 'profile_save': {
         q('UPDATE profiles SET place_id=?, label=?, kind=?, color=?, data=?, step=?, complete=?, updated=? WHERE id=?', [$place, $label, $kind, $old['team_id'] ? (int)$old['color'] : $color, $json, $step, max($complete, (int)$old['complete']), time(), $id]);
         if ($old['team_id']) q('UPDATE teams SET price=? WHERE id=?', [fair_price($old['team_id']), $old['team_id']]);
     } else {
-        if ((int)q('SELECT COUNT(*) FROM profiles WHERE user_id=?', [$u['user_id']])->fetchColumn() >= 8) NO('حداکثر ۸ مسیرک.');
+        if ((int)q('SELECT COUNT(*) FROM profiles WHERE user_id=?', [$u['user_id']])->fetchColumn() >= 8 && !is_premium($u['user_id'])) NO('حداکثر ۸ مسیرک.');
+        if (flag('paid_mode') && !is_premium($u['user_id'])) {
+            if (in_array($kind, TEMP_KINDS, true)) {
+                $used = (int)q('SELECT COUNT(*) FROM profiles WHERE user_id=? AND kind IN (\'station\') AND created>?', [$u['user_id'], time() - 30 * 86400])->fetchColumn();
+                if ($used >= (int)getv('free_temp_month', '2') && empty($data['free_ride'])) J(['ok' => false, 'error' => 'paywall', 'reason' => 'temp', 'message' => 'مسیرک‌های سفرِ رایگانِ این ماه تمام شد.'], 402);
+            } else {
+                $perm = (int)q('SELECT COUNT(*) FROM profiles WHERE user_id=? AND kind NOT IN (\'station\')', [$u['user_id']])->fetchColumn();
+                if ($perm >= (int)getv('free_permanent', '1')) J(['ok' => false, 'error' => 'paywall', 'reason' => 'perm', 'message' => 'مسیرک اول مهمان ما بودید؛ برای مسیرک‌های بیشتر اشتراک لازم است.'], 402);
+            }
+        }
         $id = uid(); q('INSERT INTO profiles(id,user_id,place_id,label,kind,color,data,step,complete,team_id,fake,created,updated) VALUES(?,?,?,?,?,?,?,?,?,NULL,0,?,?)', [$id, $u['user_id'], $place, $label, $kind, $color, $json, $step, $complete, time(), time()]);
     }
     $p = row('SELECT * FROM profiles WHERE id=?', [$id]);
@@ -411,6 +429,12 @@ case 'account_reset': { $u = auth(); foreach (rows('SELECT id FROM profiles WHER
 case 'candidates': {
     $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); if (!$me['place_id']) YES(['list' => []]);
     $md = pdata($me); $others = rows('SELECT * FROM profiles WHERE place_id=? AND complete=1 AND id<>?', [$me['place_id'], $me['id']]);
+    $mplace = row('SELECT * FROM places WHERE id=?', [$me['place_id']]);
+    if ($mplace && in_array($mplace['kind'], TEMP_KINDS, true)) {
+        $t0 = strtotime((string)($md['arrive'] ?? '')) ?: 0;
+        $others = array_values(array_filter($others, function ($o) use ($md, $t0) { $od = pdata($o); $t1 = strtotime((string)($od['arrive'] ?? '')) ?: 0;
+            return ($od['pg'] ?? '') === ($md['pg'] ?? '') && (!$t0 || !$t1 || abs($t1 - $t0) <= 3600) && hav((float)($md['lat'] ?? 0), (float)($md['lng'] ?? 0), (float)($od['lat'] ?? 0), (float)($od['lng'] ?? 0)) <= 8000; }));
+    }
     $mlat = (float)($md['lat'] ?? 0); $mlng = (float)($md['lng'] ?? 0);
     usort($others, fn($x, $y) => hav($mlat, $mlng, (float)(pdata($x)['lat'] ?? 0), (float)(pdata($x)['lng'] ?? 0)) <=> hav($mlat, $mlng, (float)(pdata($y)['lat'] ?? 0), (float)(pdata($y)['lng'] ?? 0)));
     $near = array_slice($others, 0, 40);
@@ -421,7 +445,7 @@ case 'candidates': {
         $mate = $me['team_id'] && $o['team_id'] === $me['team_id']; $m = public_member($o, (bool)$mate, $me, (bool)$u['phone']);
         $m['dist'] = $dist[$i] ?? null; $m['invite'] = $inv[$o['id']] ?? null; $m['mate'] = (bool)$mate;
         $team = $o['team_id'] ? array_merge(...array_map('riders_of', rows('SELECT * FROM profiles WHERE team_id=?', [$o['team_id']]))) : riders_of($o);
-        $m['rule_ok'] = gender_age_ok(array_merge($myR, $team, $me['team_id'] && !$mate ? array_merge(...array_map('riders_of', rows('SELECT * FROM profiles WHERE team_id=? AND id<>?', [$me['team_id'], $me['id']]))) : []));
+        $m['rule_ok'] = team_rule_ok($mplace, array_merge($myR, $team, $me['team_id'] && !$mate ? array_merge(...array_map('riders_of', rows('SELECT * FROM profiles WHERE team_id=? AND id<>?', [$me['team_id'], $me['id']]))) : []));
         $list[] = $m;
     }
     $mates = []; if ($me['team_id']) foreach (rows('SELECT * FROM profiles WHERE team_id=? AND id<>?', [$me['team_id'], $me['id']]) as $o) $mates[] = $o['id'];
@@ -433,7 +457,7 @@ case 'invite': {
     if ($me['team_id'] && $to['team_id']) NO('هر دو در تیم هستید؛ برای جابه‌جایی اول از تیم خودتان جدا شوید.');
     if ($me['team_id'] && $me['team_id'] === $to['team_id']) NO('هم‌تیمی شما هستند.');
     $all = array_merge(riders_of($me), riders_of($to)); foreach ([$me['team_id'], $to['team_id']] as $tid) if ($tid) foreach (rows('SELECT * FROM profiles WHERE team_id=?', [$tid]) as $x) if ($x['id'] !== $me['id'] && $x['id'] !== $to['id']) $all = array_merge($all, riders_of($x));
-    if (!gender_age_ok($all)) NO('طبق قانون رسیدیم، دختران بالای ۸ سال و پسران بالای ۱۲ سال با غیرهم‌جنس در یک سرویس قرار نمی‌گیرند.', 400, 'rule');
+    if (!team_rule_ok(row('SELECT * FROM places WHERE id=?', [$me['place_id']]), $all)) NO('طبق قانون رسیدیم این هم‌مسیری ممکن نیست (قاعده‌ی سن و جنسیت، یا هم‌جنس بودن در مسیرک‌های سفر).', 400, 'rule');
     if (row('SELECT 1 FROM invites WHERE status=? AND ((from_p=? AND to_p=?) OR (from_p=? AND to_p=?))', ['pending', $me['id'], $to['id'], $to['id'], $me['id']])) NO('پیشنهاد قبلاً فرستاده شده و منتظر پاسخ است.');
     $today = (int)q('SELECT COUNT(*) FROM invites WHERE from_p=? AND created>?', [$me['id'], time() - 86400])->fetchColumn(); if ($today >= 12) NO('امروز پیشنهاد کافی فرستاده‌اید؛ فردا دوباره.', 429);
     $id = uid(); q('INSERT INTO invites(id,from_p,to_p,status,created,responded) VALUES(?,?,?,?,?,NULL)', [$id, $me['id'], $to['id'], 'pending', time()]);
@@ -542,6 +566,7 @@ case 'team_act': {
 
 /* quiz */
 case 'quiz_today': {
+    if (!flag('league_on')) NO('لیگ فعلاً خاموش است.', 403);
     $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $ages = array_filter(array_column(riders_of($me), 'age'), fn($x) => $x !== null);
     $avg = $ages ? array_sum($ages) / count($ages) : 30; $lvl = $avg <= 9 ? 1 : ($avg <= 12 ? 2 : 3); $qq = quiz_today($lvl); if (!$qq) YES(['q' => null]);
     $done = row('SELECT ok FROM quiz WHERE profile_id=? AND day=? AND qid=?', [$me['id'], date('Y-m-d'), $qq['id']]);
@@ -594,11 +619,19 @@ case 'admin_overview': {
     need_admin(); $c = fn($s, $a = []) => (int)q($s, $a)->fetchColumn();
     YES(['counts' => ['users' => $c('SELECT COUNT(*) FROM users WHERE fake=0'), 'fake' => $c('SELECT COUNT(*) FROM users WHERE fake=1'), 'profiles' => $c('SELECT COUNT(*) FROM profiles WHERE fake=0'), 'complete' => $c('SELECT COUNT(*) FROM profiles WHERE complete=1 AND fake=0'),
         'places' => $c('SELECT COUNT(*) FROM places'), 'teams' => $c('SELECT COUNT(*) FROM teams'), 'invites' => $c("SELECT COUNT(*) FROM invites WHERE status='pending'"), 'tickets' => $c("SELECT COUNT(*) FROM tickets WHERE status='open'"), 'sms_day' => $c('SELECT COUNT(*) FROM sms WHERE created>?', [time() - 86400])],
-        'flags' => ['sms_invite' => flag('sms_invite'), 'sms_arrive' => flag('sms_arrive'), 'auto_arrive' => flag('auto_arrive'), 'test_tools' => flag('test_tools'), 'signup_open' => flag('signup_open'), 'otp_dev' => flag('otp_dev')],
+        'flags' => ['sms_invite' => flag('sms_invite'), 'sms_arrive' => flag('sms_arrive'), 'auto_arrive' => flag('auto_arrive'), 'test_tools' => flag('test_tools'), 'signup_open' => flag('signup_open'), 'otp_dev' => flag('otp_dev'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')],
+        'settings' => ['map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '297000'), 'free_permanent' => (int)getv('free_permanent', '1'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'sub_interest' => (int)getv('sub_interest', '0')],
         'services' => ['db' => C('r6_db'), 'php' => PHP_VERSION, 'kavenegar' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'), 'neshan_service' => (bool)C('neshan_service_key'), 'neshan_web' => (bool)C('neshan_web_key'), 'curl' => function_exists('curl_init'), 'tpl_login' => C('kavenegar_template', 'residim-login'), 'tpl_invite' => C('kavenegar_tpl_invite'), 'tpl_arrived' => C('kavenegar_tpl_arrived')],
         'default_pass' => C('admin_pass') === 'mot']);
 }
-case 'admin_flag': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_array($k, ['sms_invite', 'sms_arrive', 'auto_arrive', 'test_tools', 'signup_open', 'otp_dev'], true)) NO('کلید نامعتبر.'); setv($k, !empty($in['v']) ? '1' : '0'); YES(); }
+case 'admin_flag': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_array($k, ['sms_invite', 'sms_arrive', 'auto_arrive', 'test_tools', 'signup_open', 'otp_dev', 'league_on', 'paid_mode', 'station_on'], true)) NO('کلید نامعتبر.'); setv($k, !empty($in['v']) ? '1' : '0'); YES(); }
+case 'sub_interest': { $u = auth(); $k = 'subi_' . $u['user_id']; if (getv($k) === null) { setv($k, (string)time()); setv('sub_interest', (string)((int)getv('sub_interest', '0') + 1)); } YES(); }
+case 'admin_setting': { need_admin(); $k = (string)($in['k'] ?? ''); $v = trim((string)($in['v'] ?? ''));
+    if ($k === 'map_provider' && in_array($v, ['neshan', 'openfree'], true)) setv($k, $v);
+    elseif (in_array($k, ['sub_price', 'free_permanent', 'free_temp_month'], true) && ctype_digit($v)) setv($k, $v);
+    else NO('مقدار نامعتبر.'); YES(); }
+case 'admin_premium_user': { need_admin(); $ph = phone_norm((string)($in['phone'] ?? '')); $u = $ph ? row('SELECT id FROM users WHERE phone=?', [$ph]) : null; if (!$u) NO('کاربری با این شماره نیست.');
+    $days = max(0, min(3650, (int)($in['days'] ?? 30))); q('UPDATE users SET premium_until=? WHERE id=?', [$days ? time() + $days * 86400 : 0, $u['id']]); YES(['until' => $days ? time() + $days * 86400 : 0]); }
 case 'admin_places': { need_admin(); YES(['list' => array_map(fn($p) => place_out($p), rows('SELECT * FROM places ORDER BY created DESC LIMIT 200'))]); }
 case 'admin_place': { need_admin(); $id = (string)($in['id'] ?? ''); if (!empty($in['delete'])) { foreach (rows('SELECT id FROM profiles WHERE place_id=?', [$id]) as $p) q('UPDATE profiles SET place_id=NULL, team_id=NULL, complete=0 WHERE id=?', [$p['id']]); q('DELETE FROM teams WHERE place_id=?', [$id]); q('DELETE FROM places WHERE id=?', [$id]); YES(); }
     if (isset($in['verified'])) q('UPDATE places SET verified=? WHERE id=?', [!empty($in['verified']) ? 1 : 0, $id]); if (!empty($in['name'])) q('UPDATE places SET name=? WHERE id=?', [mb_substr((string)$in['name'], 0, 150), $id]); YES(); }
@@ -630,7 +663,7 @@ default: NO('درخواست ناشناخته.', 404);
 function accept_invite(array $i, array $from, array $to): ?array {
     $from = row('SELECT * FROM profiles WHERE id=?', [$from['id']]); $to = row('SELECT * FROM profiles WHERE id=?', [$to['id']]);
     $all = array_merge(riders_of($from), riders_of($to)); foreach ([$from['team_id'], $to['team_id']] as $tid) if ($tid) foreach (rows('SELECT * FROM profiles WHERE team_id=?', [$tid]) as $x) if ($x['id'] !== $from['id'] && $x['id'] !== $to['id']) $all = array_merge($all, riders_of($x));
-    if (!gender_age_ok($all)) { q('UPDATE invites SET status=?, responded=? WHERE id=?', ['declined', time(), $i['id']]); throw new RuntimeException('طبق قانون سن و جنسیت این هم‌تیمی ممکن نیست.'); }
+    if (!team_rule_ok(row('SELECT * FROM places WHERE id=?', [$from['place_id']]), $all)) { q('UPDATE invites SET status=?, responded=? WHERE id=?', ['declined', time(), $i['id']]); throw new RuntimeException('طبق قانون سن و جنسیت این هم‌تیمی ممکن نیست.'); }
     if ($from['team_id'] && $to['team_id']) { q('UPDATE invites SET status=?, responded=? WHERE id=?', ['declined', time(), $i['id']]); throw new RuntimeException('هر دو در تیم هستید.'); }
     $place = row('SELECT * FROM places WHERE id=?', [$from['place_id']]);
     if ($from['team_id']) { $t = row('SELECT * FROM teams WHERE id=?', [$from['team_id']]); team_join($t, $to); }
