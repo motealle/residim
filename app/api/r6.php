@@ -48,7 +48,7 @@ function db6(): PDO {
 function schema(PDO $p): void {
     $v = 0;
     try { $v = (int)$p->query("SELECT v FROM settings WHERE k='schema'")->fetchColumn(); } catch (Throwable $e) {}
-    if ($v >= 3) return;
+    if ($v >= 4) return;
     $K = 'VARCHAR(40)';
     $sql = [
         "CREATE TABLE IF NOT EXISTS settings (k VARCHAR(40) PRIMARY KEY, v TEXT)",
@@ -72,8 +72,8 @@ function schema(PDO $p): void {
     foreach (['CREATE INDEX ix_prof_place ON profiles(place_id)', 'CREATE INDEX ix_prof_user ON profiles(user_id)', 'CREATE INDEX ix_inv_to ON invites(to_p)', 'CREATE INDEX ix_notes_p ON notes(profile_id)', 'CREATE INDEX ix_trips_t ON trips(team_id)', 'CREATE INDEX ix_ledger_t ON ledger(team_id)'] as $s) { try { $p->exec($s); } catch (Throwable $e) {} }
     try { $p->exec('CREATE INDEX ix_msgs_t ON msgs(team_id)'); } catch (Throwable $e) {}
     try { $p->exec('ALTER TABLE users ADD COLUMN premium_until INT DEFAULT 0'); } catch (Throwable $e) {}
-    setv('schema', '3', $p);
-    foreach (['sms_invite' => '1', 'sms_arrive' => '0', 'auto_arrive' => '1', 'test_tools' => '1', 'signup_open' => '1', 'otp_dev' => '0', 'league_on' => '0', 'paid_mode' => '0', 'station_on' => '1', 'map_provider' => 'neshan', 'sub_price' => '297000', 'free_permanent' => '1', 'free_temp_month' => '2'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
+    setv('schema', '4', $p);
+    foreach (['sms_invite' => '1', 'sms_arrive' => '0', 'auto_arrive' => '1', 'test_tools' => '1', 'signup_open' => '1', 'otp_dev' => '0', 'sms_direct' => '1', 'league_on' => '0', 'paid_mode' => '0', 'station_on' => '1', 'map_provider' => 'neshan', 'sub_price' => '297000', 'free_permanent' => '1', 'free_temp_month' => '2'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
 }
 function q(string $sql, array $a = []): PDOStatement { $s = db6()->prepare($sql); $s->execute($a); return $s; }
 function row(string $sql, array $a = []): ?array { $r = q($sql, $a)->fetch(); return $r ?: null; }
@@ -166,7 +166,29 @@ function road_many(float $lat, float $lng, array $pts): array {
     return $out;
 }
 /** Kavenegar verify/lookup. Returns ['ok'=>bool,'code'=>int,'msg'=>string]. Every attempt (and the provider's reason) is logged. */
+/** Dispatcher: with flag sms_direct, plain sms/send (no approved template needed); otherwise verify/lookup. */
 function kave(string $phone, string $tpl, array $tokens, ?string $by = null, string $type = 'sms'): array {
+    if ($type !== 'call' && flag('sms_direct')) return kave_send($phone, sms_text($tpl, $tokens), $tpl, $by);
+    return kave_lookup($phone, $tpl, $tokens, $by, $type);
+}
+function sms_text(string $tpl, array $t): string {
+    $g = fn($k) => (string)($t[$k] ?? '');
+    if ($tpl === C('kavenegar_tpl_invite')) return 'خانواده ' . $g('token10') . ' پیشنهاد هم‌مسیری برای ' . $g('token20') . " داده‌اند.\nدیدن و پاسخ: residim.ir/" . $g('token');
+    if ($tpl === C('kavenegar_tpl_arrived')) return $g('token10') . ' ساعت ' . $g('token') . ' به ' . $g('token20') . ' رسید. راننده: خانواده ' . $g('token2') . "\nرسیدیم";
+    return 'کد ورود رسیدیم: ' . $g('token') . "\nاین کد را به کسی ندهید.\n\n@residim.ir #" . $g('token');
+}
+function kave_send(string $phone, string $text, string $tpl, ?string $by = null): array {
+    $key = (string)C('kavenegar_api_key'); $res = ['ok' => false, 'code' => 0, 'msg' => 'skipped'];
+    if ($key && $key !== 'PUT_KEY_HERE' && $phone && !str_starts_with($phone, '0900')) {
+        $qs = ['receptor' => $phone, 'message' => $text]; if ((string)C('kavenegar_sender', '') !== '') $qs['sender'] = (string)C('kavenegar_sender');
+        [$http, $body] = http_raw('https://api.kavenegar.com/v1/' . rawurlencode($key) . '/sms/send.json?' . http_build_query($qs));
+        $j = json_decode($body, true); $st = (int)($j['return']['status'] ?? $http);
+        $res = ['ok' => $st === 200, 'code' => $st, 'msg' => $st === 200 ? 'sent' : (KAVE_CODES[$st] ?? ((string)($j['return']['message'] ?? '') ?: ($http ? 'HTTP ' . $http : mb_substr($body, 0, 120))))];
+    }
+    try { q('INSERT INTO sms(id,phone,tpl,status,by_user,created) VALUES(?,?,?,?,?,?)', [uid(), $phone, $tpl . ' (مستقیم)', $res['ok'] ? 'sent' : ('err ' . $res['code'] . ': ' . $res['msg']), $by, time()]); } catch (Throwable $e) {}
+    return $res;
+}
+function kave_lookup(string $phone, string $tpl, array $tokens, ?string $by = null, string $type = 'sms'): array {
     $key = (string)C('kavenegar_api_key'); $res = ['ok' => false, 'code' => 0, 'msg' => 'skipped'];
     if ($key && $key !== 'PUT_KEY_HERE' && $phone && !str_starts_with($phone, '0900')) {
         $qs = ['receptor' => $phone, 'template' => $tpl] + $tokens; if ($type === 'call') $qs['type'] = 'call';
@@ -619,12 +641,12 @@ case 'admin_overview': {
     need_admin(); $c = fn($s, $a = []) => (int)q($s, $a)->fetchColumn();
     YES(['counts' => ['users' => $c('SELECT COUNT(*) FROM users WHERE fake=0'), 'fake' => $c('SELECT COUNT(*) FROM users WHERE fake=1'), 'profiles' => $c('SELECT COUNT(*) FROM profiles WHERE fake=0'), 'complete' => $c('SELECT COUNT(*) FROM profiles WHERE complete=1 AND fake=0'),
         'places' => $c('SELECT COUNT(*) FROM places'), 'teams' => $c('SELECT COUNT(*) FROM teams'), 'invites' => $c("SELECT COUNT(*) FROM invites WHERE status='pending'"), 'tickets' => $c("SELECT COUNT(*) FROM tickets WHERE status='open'"), 'sms_day' => $c('SELECT COUNT(*) FROM sms WHERE created>?', [time() - 86400])],
-        'flags' => ['sms_invite' => flag('sms_invite'), 'sms_arrive' => flag('sms_arrive'), 'auto_arrive' => flag('auto_arrive'), 'test_tools' => flag('test_tools'), 'signup_open' => flag('signup_open'), 'otp_dev' => flag('otp_dev'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')],
+        'flags' => ['sms_invite' => flag('sms_invite'), 'sms_arrive' => flag('sms_arrive'), 'auto_arrive' => flag('auto_arrive'), 'test_tools' => flag('test_tools'), 'signup_open' => flag('signup_open'), 'otp_dev' => flag('otp_dev'), 'sms_direct' => flag('sms_direct'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')],
         'settings' => ['map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '297000'), 'free_permanent' => (int)getv('free_permanent', '1'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'sub_interest' => (int)getv('sub_interest', '0')],
         'services' => ['db' => C('r6_db'), 'php' => PHP_VERSION, 'kavenegar' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'), 'neshan_service' => (bool)C('neshan_service_key'), 'neshan_web' => (bool)C('neshan_web_key'), 'curl' => function_exists('curl_init'), 'tpl_login' => C('kavenegar_template', 'residim-login'), 'tpl_invite' => C('kavenegar_tpl_invite'), 'tpl_arrived' => C('kavenegar_tpl_arrived')],
         'default_pass' => C('admin_pass') === 'mot']);
 }
-case 'admin_flag': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_array($k, ['sms_invite', 'sms_arrive', 'auto_arrive', 'test_tools', 'signup_open', 'otp_dev', 'league_on', 'paid_mode', 'station_on'], true)) NO('کلید نامعتبر.'); setv($k, !empty($in['v']) ? '1' : '0'); YES(); }
+case 'admin_flag': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_array($k, ['sms_invite', 'sms_arrive', 'auto_arrive', 'test_tools', 'signup_open', 'otp_dev', 'sms_direct', 'league_on', 'paid_mode', 'station_on'], true)) NO('کلید نامعتبر.'); setv($k, !empty($in['v']) ? '1' : '0'); YES(); }
 case 'sub_interest': { $u = auth(); $k = 'subi_' . $u['user_id']; if (getv($k) === null) { setv($k, (string)time()); setv('sub_interest', (string)((int)getv('sub_interest', '0') + 1)); } YES(); }
 case 'admin_setting': { need_admin(); $k = (string)($in['k'] ?? ''); $v = trim((string)($in['v'] ?? ''));
     if ($k === 'map_provider' && in_array($v, ['neshan', 'openfree'], true)) setv($k, $v);
@@ -647,8 +669,19 @@ case 'admin_sms_test': {
     if ($tpl === C('kavenegar_tpl_invite')) $tok = ['token' => 'TEST2345', 'token10' => 'آزمایشی', 'token20' => 'مدرسه آزمایشی'];
     if ($tpl === C('kavenegar_tpl_arrived')) $tok = ['token' => date('H:i'), 'token2' => 'آزمایشی', 'token10' => 'فرزند آزمایشی', 'token20' => 'مدرسه'];
     $r = kave($ph, $tpl, $tok, null, ($in['type'] ?? '') === 'call' ? 'call' : 'sms');
-    YES(['result' => $r, 'key_set' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'), 'template' => $tpl]);
+    YES(['result' => $r, 'direct' => flag('sms_direct') && ($in['type'] ?? '') !== 'call', 'key_set' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'), 'template' => $tpl]);
 }
+case 'admin_fake': { // test users around a place (by code) or around a real user's home (by phone)
+    need_admin(); $n = max(1, min(50, (int)($in['n'] ?? 5))); $tgt = trim((string)($in['target'] ?? ''));
+    $ph = phone_norm($tgt); $place = null; $me = null;
+    if ($ph) { $u = row('SELECT id FROM users WHERE phone=? AND fake=0', [$ph]); if (!$u) NO('کاربر واقعی با این شماره نیست.');
+        $me = row('SELECT * FROM profiles WHERE user_id=? AND complete=1 AND place_id IS NOT NULL ORDER BY updated DESC', [$u['id']]); if (!$me) NO('این کاربر هنوز مسیرکِ کامل ندارد.');
+        $place = row('SELECT * FROM places WHERE id=?', [$me['place_id']]); }
+    else { $place = row('SELECT * FROM places WHERE code=?', [strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $tgt))]); if (!$place) NO('کد مکان یا شماره‌ی کاربر را درست بنویسید.');
+        $me = ['data' => json_encode(['lat' => (float)$place['lat'], 'lng' => (float)$place['lng'], 'pg' => random_int(0, 1) ? 'f' : 'm'])]; }
+    $dr = max(0, min(100, (int)($in['drivers'] ?? 35))); $made = 0;
+    for ($i = 0; $i < $n; $i++) { make_fake($me, $place, random_int(1, 100) <= $dr); $made++; }
+    YES(['made' => $made, 'place' => $place['name']]); }
 case 'admin_purge_fake': { need_admin(); $n = 0; foreach (rows('SELECT * FROM profiles WHERE fake=1') as $f) { wipe_profile($f['id']); $n++; } q('DELETE FROM users WHERE fake=1'); YES(['removed' => $n]); }
 
 default: NO('درخواست ناشناخته.', 404);

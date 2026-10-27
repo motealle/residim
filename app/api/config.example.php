@@ -25,6 +25,7 @@ return [
     'neshan_web_key'     => '',   // web.xxxxxxxx
 
     // Kavenegar lookup templates (create & get them approved in the Kavenegar panel)
+    // 'kavenegar_sender' => '2000660110', // optional line number for direct (no-template) SMS; empty = Kavenegar default line
     'kavenegar_tpl_invite'  => 'residim-invite',
     'kavenegar_tpl_arrived' => 'residim-arrived',
 

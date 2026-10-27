@@ -529,3 +529,29 @@ input.tgl::after{content:"";position:absolute;top:3px;inset-inline-start:3px;wid
 input.tgl:checked{background:var(--brand,#22C55E)}
 input.tgl:checked::after{inset-inline-start:21px}
 .drawer .mi{color:var(--ink,inherit)}
+
+/* ═════════ v09 ═════════ */
+.school-main{display:grid;gap:10px;width:100%;margin-top:14px;text-align:right;padding:20px 18px;border:0;border-radius:24px;cursor:pointer;color:#fff;font:inherit;
+  background:radial-gradient(120% 90% at 0% 0%,#2F8F5B 0%,transparent 60%),linear-gradient(140deg,#0E2A1C,#14432C 60%,#0F3322);box-shadow:0 18px 40px -22px #0B3D24}
+.school-main:active{transform:scale(.99)}
+.school-main .sm-top{display:flex;justify-content:space-between;align-items:center}
+.school-main .sm-tag{font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:99px;background:#ffffff22}
+.school-main b{font-size:1.45rem;font-weight:900;line-height:1.3}
+.school-main .sm-txt{opacity:.88;line-height:1.9;font-size:.92rem}
+.school-main .sm-pts{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.8rem;font-weight:700}
+.school-main .sm-pts span{display:inline-flex;align-items:center;gap:4px}
+.school-main .sm-pts svg{width:15px;height:15px;fill:none;stroke:#7CF0B0;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.school-main .sm-cta{justify-self:stretch;justify-content:center;background:#fff!important;color:#0E2A1C!important;margin-top:4px}
+.school-main .sm-cta svg{transform:scaleX(-1)}
+.kchip{display:inline-flex;align-items:center;gap:6px}
+.kchip svg{width:16px;height:16px}
+.kinds .choice[data-v="school"]{grid-column:1/-1;min-height:76px;font-size:1.05rem;border-width:2px}
+.adm-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.adm-form.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.adm-form .full{grid-column:1/-1}
+.adm-form .field{min-width:0}
+.adm-form input,.adm-form select{width:100%;min-width:0}
+@media (max-width:480px){.adm-form.three{grid-template-columns:repeat(2,minmax(0,1fr))}.adm-form.three .field:first-child:not(.full){grid-column:1/-1}}
+.adm .card{min-width:0;overflow-x:auto}
+.adm table{table-layout:fixed}
+.adm td{overflow-wrap:anywhere}

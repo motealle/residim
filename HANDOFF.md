@@ -68,3 +68,6 @@ https://residim.ir/t/01/ ؛ نمونه تعاملی https://residim.ir/t/01/app/
 - پرچم‌های تازه در پیشخوان: `league_on` (خاموش)، `paid_mode` (خاموش = همه رایگان)، `station_on` (روشن)؛ تنظیمات `map_provider` (neshan|openfree)، `sub_price`، `free_permanent`، `free_temp_month`؛ اشتراک دستی با شماره.
 - schema نسخه‌ی ۳: ستون `users.premium_until` (مهاجرت خودکار).
 - پیامک: خطای ۴۲۴ = الگو تعریف نشده؛ docs/SMS-KAVENEGAR.md. اندروید: docs/ANDROID-CAPACITOR.md.
+
+## نسخه ۰۹ — مدرسه در مرکز (۲۰۲۶/۱۰/۲۷)
+- /t/09 و ریشه. جزئیات: docs/design/TEST-09-UX.md. پرچم تازه: `sms_direct` (روشن). اکشن مدیر: `admin_fake`. اینماد: `landing/77919266.txt` + متاتگ.
