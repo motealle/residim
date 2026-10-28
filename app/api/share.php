@@ -14,7 +14,7 @@ if ($html === '') { http_response_code(404); exit('not found'); }
 
 $place = null;
 try { if ($code !== '') $place = row('SELECT name, city, kind FROM places WHERE code=?', [$code]); } catch (Throwable $e) {}
-$host = 'https://' . ($_SERVER['HTTP_HOST'] ?? 'residim.ir');
+$host = 'https://residim.ir'; // canonical: never the hosting account's technical domain
 $e = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 
 if ($place) {

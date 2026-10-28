@@ -42,7 +42,7 @@ function mysql_pdo(array $c): PDO {
 function sqlite_pdo(): PDO { $dir = dirname(__DIR__) . '/storage'; if (!is_dir($dir)) @mkdir($dir, 0750, true);
     $p = new PDO('sqlite:' . $dir . '/r6.sqlite', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
     $p->exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=4000'); return $p; }
-const R6_TABLES = ['settings', 'users', 'tokens', 'otps', 'places', 'profiles', 'teams', 'invites', 'trips', 'ledger', 'notes', 'dist', 'tickets', 'quiz', 'sms', 'msgs', 'place_flags'];
+const R6_TABLES = ['hits', 'live', 'settings', 'users', 'tokens', 'otps', 'places', 'profiles', 'teams', 'invites', 'trips', 'ledger', 'notes', 'dist', 'tickets', 'quiz', 'sms', 'msgs', 'place_flags'];
 function db_engine(): string { $m = mysql_cfg(); return (C('r6_db') === 'mysql' || !empty($m['active'])) ? 'mysql' : 'sqlite'; }
 function db6(): PDO {
     static $p = null; if ($p) return $p;
@@ -63,7 +63,7 @@ function db6(): PDO {
 function schema(PDO $p): void {
     $v = 0;
     try { $v = (int)$p->query("SELECT v FROM settings WHERE k='schema'")->fetchColumn(); } catch (Throwable $e) {}
-    if ($v >= 6) return;
+    if ($v >= 7) return;
     $K = 'VARCHAR(40)';
     $sql = [
         "CREATE TABLE IF NOT EXISTS settings (k VARCHAR(40) PRIMARY KEY, v TEXT)",
@@ -96,7 +96,9 @@ function schema(PDO $p): void {
     try { $p->exec('ALTER TABLE tickets ADD COLUMN name VARCHAR(80)'); } catch (Throwable $e) {}
     try { $p->exec('ALTER TABLE tickets ADD COLUMN contact VARCHAR(120)'); } catch (Throwable $e) {}
     try { $p->exec('ALTER TABLE tickets ADD COLUMN seen INT DEFAULT 0'); } catch (Throwable $e) {}
-    setv('schema', '6', $p);
+    try { $p->exec('CREATE TABLE IF NOT EXISTS hits (k VARCHAR(80) PRIMARY KEY, n INT, exp INT)'); } catch (Throwable $e) {}
+    try { $p->exec('CREATE TABLE IF NOT EXISTS live (team_id VARCHAR(40) PRIMARY KEY, profile_id VARCHAR(40), lat DOUBLE, lng DOUBLE, acc INT, at INT)'); } catch (Throwable $e) {}
+    setv('schema', '7', $p);
     foreach (['sms_invite' => '1', 'sms_arrive' => '0', 'auto_arrive' => '1', 'test_tools' => '1', 'signup_open' => '1', 'otp_dev' => '0', 'sms_direct' => '1', 'league_on' => '0', 'paid_mode' => '0', 'station_on' => '1', 'map_provider' => 'neshan', 'sub_price' => '297000', 'free_permanent' => '1', 'free_temp_month' => '2'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
 }
 function q(string $sql, array $a = []): PDOStatement { $s = db6()->prepare($sql); $s->execute($a); return $s; }
@@ -240,6 +242,13 @@ function auth(bool $required = true): ?array {
     if (!$r) { if ($required) NO('نشست شما تمام شده؛ دوباره وارد شوید.', 401, 'auth'); return null; }
     return $r;
 }
+/** Rate counter: returns how many times $k was hit inside its window (window starts on the first hit). */
+function hit(string $k, int $ttl): int { $now = time(); $k = substr($k, 0, 80);
+    if (random_int(1, 50) === 1) q('DELETE FROM hits WHERE exp<?', [$now]);
+    $r = row('SELECT n,exp FROM hits WHERE k=?', [$k]);
+    if (!$r || (int)$r['exp'] < $now) { q('DELETE FROM hits WHERE k=?', [$k]); q('INSERT INTO hits(k,n,exp) VALUES(?,?,?)', [$k, 1, $now + $ttl]); return 1; }
+    q('UPDATE hits SET n=n+1 WHERE k=?', [$k]); return (int)$r['n'] + 1; }
+function ip_tag(): string { return substr(hash('sha256', ($_SERVER['REMOTE_ADDR'] ?? '') . 'r6'), 0, 16); }
 function need_admin(): array { $a = auth(); if (!(int)$a['admin']) NO('دسترسی مدیر لازم است.', 403, 'admin'); return $a; }
 function issue_token(?string $uid, int $admin = 0): string { $t = bin2hex(random_bytes(24)); q('INSERT INTO tokens(token,user_id,admin,created) VALUES(?,?,?,?)', [hash('sha256', $t), $uid, $admin, time()]); return $t; }
 function my_profile(array $u, string $pid): array { $p = row('SELECT * FROM profiles WHERE id=? AND user_id=?', [$pid, $u['user_id']]); if (!$p) NO('این مسیرک پیدا نشد.', 404, 'profile'); return $p; }
@@ -368,6 +377,8 @@ case 'cfg': YES(['web_key' => getv('map_provider', 'neshan') === 'neshan' ? (str
 /* auth */
 case 'otp_send': {
     $ph = phone_norm((string)($in['phone'] ?? '')); if (!$ph) NO('شماره را به شکل ۰۹۱۲۳۴۵۶۷۸۹ بنویسید.');
+    if (hit('otp_ip_' . ip_tag(), 3600) > 12) NO('از این اینترنت درخواست کد زیاد شد؛ یک ساعت دیگر امتحان کنید.', 429, 'wait');
+    if (hit('otp_all', 3600) > 400) NO('سرویس کد ورود کمی شلوغ است؛ چند دقیقه‌ی دیگر امتحان کنید.', 429, 'wait');
     if (!flag('signup_open') && !row('SELECT 1 FROM users WHERE phone=?', [$ph])) NO('ثبت‌نام فعلاً بسته است.', 403);
     $o = row('SELECT * FROM otps WHERE phone=?', [$ph]); $now = time();
     if ($o && $now - (int)$o['sent'] < 60) NO('یک دقیقه صبر کنید و دوباره بخواهید.', 429, 'wait');
@@ -455,7 +466,7 @@ case 'radio_vote': { $v = (int)getv('radio_votes', '0') + 1; setv('radio_votes',
 case 'chat_list': {
     $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); if (!$me['team_id']) YES(['list' => []]);
     $after = (int)($in['after'] ?? 0); $l = [];
-    foreach (rows('SELECT m.*, p.data pdata FROM msgs m LEFT JOIN profiles p ON p.id=m.profile_id WHERE m.team_id=? AND m.created>? ORDER BY m.created DESC LIMIT 80', [$me['team_id'], $after]) as $m) { $d = json_decode((string)$m['pdata'], true) ?: []; $l[] = ['id' => $m['id'], 'text' => $m['text'], 'at' => (int)$m['created'], 'mine' => $m['profile_id'] === $me['id'], 'who' => $d['family'] ?? '']; }
+    foreach (rows('SELECT m.*, p.data pdata FROM msgs m LEFT JOIN profiles p ON p.id=m.profile_id WHERE m.team_id=? AND m.created>? ORDER BY m.created DESC LIMIT 80', [$me['team_id'], $after]) as $m) { $d = json_decode((string)$m['pdata'], true) ?: []; $l[] = ['id' => $m['id'], 'text' => $m['text'], 'at' => (int)$m['created'], 'mine' => $m['profile_id'] === $me['id'], 'who' => 'خانواده ' . ($d['family'] ?? ''), 'who_id' => $m['profile_id']]; }
     YES(['list' => array_reverse($l)]);
 }
 case 'chat_send': {
@@ -584,6 +595,17 @@ case 'team_history': { // every recorded trip of the team with its calendar date
         $out[] = ['date' => $mon->format('Y-m-d'), 'dir' => $dir, 'status' => $r['status'], 'exec' => $r['exec'], 'kids' => count((array)(json_decode((string)$r['arr'], true) ?: [])), 'thanks' => (int)$r['thanks']]; }
     $sat = new DateTime(); $sat->setTime(0, 0); while ((int)$sat->format('w') !== 6) $sat->modify('-1 day');
     YES(['trips' => $out, 'sat' => $sat->format('Y-m-d'), 'today' => date('Y-m-d')]); }
+case 'live_push': { // the driver of a started trip shares a live position with their team
+    $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); if (!$me['team_id']) NO('تیم ندارید.');
+    $la = (float)($in['lat'] ?? 0); $lo = (float)($in['lng'] ?? 0); if (!$la || abs($la) > 90 || abs($lo) > 180) NO('موقعیت نامعتبر.');
+    if (hit('live_' . $me['id'], 60) > 12) YES(['ok' => true]);
+    q('DELETE FROM live WHERE team_id=?', [$me['team_id']]); q('INSERT INTO live(team_id,profile_id,lat,lng,acc,at) VALUES(?,?,?,?,?,?)', [$me['team_id'], $me['id'], round($la, 5), round($lo, 5), (int)($in['acc'] ?? 0), time()]); YES(); }
+case 'live_get': {
+    $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); if (!$me['team_id']) YES(['live' => null]);
+    $t = row('SELECT premium FROM teams WHERE id=?', [$me['team_id']]);
+    if (flag('paid_mode') && !(int)($t['premium'] ?? 0) && !is_premium($u['user_id'])) YES(['live' => null, 'locked' => true]);
+    $l = row('SELECT profile_id,lat,lng,acc,at FROM live WHERE team_id=? AND at>?', [$me['team_id'], time() - 180]);
+    YES(['live' => $l ? ['by' => $l['profile_id'], 'lat' => (float)$l['lat'], 'lng' => (float)$l['lng'], 'acc' => (int)$l['acc'], 'ago' => time() - (int)$l['at']] : null]); }
 case 'team_leave': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); YES(['result' => team_leave($me)]); }
 
 /* team daily */
@@ -680,9 +702,14 @@ case 'ticket': {
 }
 case 'contact': { // public contact form (with or without an account)
     $u = auth(false); $txt = trim((string)($in['text'] ?? '')); $ct = trim((string)($in['contact'] ?? '')); $nm = trim((string)($in['name'] ?? ''));
-    if (mb_strlen($txt) < 5) NO('چند کلمه بیشتر بنویسید.'); if (!$u && mb_strlen($ct) < 5) NO('یک راه تماس (شماره یا ایمیل) بنویسید تا جواب بدهیم.');
-    $ip = substr(hash('sha256', ($_SERVER['REMOTE_ADDR'] ?? '') . 'r6'), 0, 16); $k = 'ct_' . $ip . '_' . date('YmdH');
-    $n = (int)getv($k, '0'); if ($n >= 5) NO('پیام‌های زیادی فرستادید؛ کمی بعد دوباره امتحان کنید.', 429); setv($k, (string)($n + 1));
+    if ((string)($in['hp'] ?? '') !== '') YES(['no' => 0]); // honeypot: bots fill every field; answer politely and drop it
+    if (mb_strlen($txt) < 5) NO('چند کلمه بیشتر بنویسید.'); if (mb_strlen($txt) > 3000) NO('پیام کمی طولانی است؛ کوتاه‌ترش کنید.');
+    if (!$u && mb_strlen($ct) < 5) NO('یک راه تماس (شماره یا ایمیل) بنویسید تا جواب بدهیم.');
+    if ((int)($in['t'] ?? 0) < 2500) NO('کمی آهسته‌تر 🙂 پیام را یک بار دیگر بفرستید.');
+    if (preg_match_all('#https?://|www\.#i', $txt) > 2) NO('لطفاً بیش از دو لینک نفرستید.');
+    if (row('SELECT 1 FROM tickets WHERE text=? AND created>?', [mb_substr($txt, 0, 3000), time() - 86400])) YES(['no' => 0, 'dup' => true]);
+    if (hit('ct_' . ip_tag(), 3600) > 5) NO('پیام‌های زیادی فرستادید؛ یک ساعت دیگر دوباره امتحان کنید.', 429);
+    if (hit('ct_all', 86400) > 300) NO('صندوق پیام امروز پر است؛ فردا دوباره بنویسید.', 429);
     $no = 1024 + (int)q('SELECT COUNT(*) FROM tickets')->fetchColumn();
     q('INSERT INTO tickets(id,no,user_id,profile_id,cat,text,status,reply,created,updated,name,contact,seen) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0)', [uid(), $no, $u['user_id'] ?? null, null, mb_substr((string)($in['cat'] ?? 'تماس با ما'), 0, 30), mb_substr($txt, 0, 3000), 'open', '', time(), time(), mb_substr($nm, 0, 80), mb_substr($ct ?: (string)($u['phone'] ?? ''), 0, 120)]);
     YES(['no' => $no]); }
@@ -710,7 +737,8 @@ case 'test_clear': {
 /* admin */
 case 'admin_login': {
     $user = (string)($in['u'] ?? ''); $pass = (string)($in['p'] ?? '');
-    usleep(300000); if (!hash_equals((string)C('admin_user'), $user) || !hash_equals((string)C('admin_pass'), $pass)) NO('نام کاربری یا رمز درست نیست. اگر در config.local.php مقدار admin_pass گذاشته‌اید، همان رمز را بزنید.', 401);
+    $ipk = 'adm_' . ip_tag(); $f = (int)(row('SELECT n FROM hits WHERE k=? AND exp>?', [$ipk, time()])['n'] ?? 0); if ($f >= 8) NO('تلاش ناموفق زیاد شد؛ ۱۵ دقیقه‌ی دیگر امتحان کنید.', 429);
+    usleep(300000); if (!hash_equals((string)C('admin_user'), $user) || !hash_equals((string)C('admin_pass'), $pass)) { hit($ipk, 900); NO('نام کاربری یا رمز درست نیست. اگر در config.local.php مقدار admin_pass گذاشته‌اید، همان رمز را بزنید.', 401); }
     YES(['token' => issue_token(null, 1), 'default_pass' => C('admin_pass') === 'mot']);
 }
 case 'admin_overview': {

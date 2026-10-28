@@ -17,6 +17,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const $ = s => document.querySelector(s);
 const ic = (n, cls = 'i') => `<svg class="${cls}"><use href="#i-${n}"/></svg>`;
 const uid = () => Math.random().toString(36).slice(2, 10);
+const SITE = 'https://residim.ir', SITE_HOST = 'residim.ir'; // never the hosting account's technical domain
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const hav = (a, b, c, d) => { const R = 6371000, t = Math.PI / 180, x = Math.sin((c - a) * t / 2) ** 2 + Math.cos(a * t) * Math.cos(c * t) * Math.sin((d - b) * t / 2) ** 2; return 2 * R * Math.asin(Math.min(1, Math.sqrt(x))); };
 let JY = (() => { try { return parseInt(new Intl.DateTimeFormat('en-u-ca-persian', { year: 'numeric' }).format(new Date()), 10) || 1405; } catch (e) { return 1405; } })();
@@ -67,6 +68,13 @@ async function api(a, body, admin) {
   }
   return j;
 }
+const QUIPS = {
+  invite: ['حالا نوبت صبر است؛ که گفته‌اند گنج است!', 'ان‌شاءالله جواب‌شان مثل زنگ مدرسه سر وقت برسد.', 'دعوت مؤدبانه، نصف راه است؛ نصف دیگرش «بله» است.'],
+  team: ['از امروز ترافیک صبح یک نفر را کم دارد: شما را!', 'مبارک است! صبح‌های شلوغ رسماً نیمه‌وقت شد.', 'تیم که شدید، چای صبح هم داغ‌تر می‌ماند.'],
+  done: ['قهرمان امروز بی‌ادعا پشت فرمان نشسته بود.', 'جای مدال، یک چای داغ پیشنهاد می‌شود.', 'بچه‌ها رسیدند؛ آرامش هم رسید.'],
+  welcome: ['از امروز «دیر شد!» را کمتر می‌شنوید.', 'به جمع آدم‌های وقت‌شناس خوش آمدید!', 'صبح‌های شما رسماً بهتر شد؛ امضا: رسیدیم.']
+};
+function quip(k, prob = .45) { const L = QUIPS[k]; if (!L || Math.random() > prob) return ''; S.q = S.q || {}; let i = Math.floor(Math.random() * L.length); if (i === S.q[k]) i = (i + 1) % L.length; S.q[k] = i; persist(); return ' ' + L[i]; }
 const fail = e => toast(e && e.message ? e.message : 'خطایی پیش آمد.');
 
 /* ═════════ profiles ═════════ */
@@ -98,9 +106,11 @@ function snd(kind) {
     if (!SND.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; SND.ctx = new AC(); }
     const c = SND.ctx; if (c.state === 'suspended') c.resume();
     const N = { tap: [[880, 0, .05, .025]], step: [[660, 0, .09, .04], [880, .07, .12, .035]], ok: [[587, 0, .12, .05], [880, .1, .2, .045]],
-      done: [[523, 0, .14, .05], [659, .11, .14, .05], [784, .22, .16, .05], [1047, .34, .34, .045], [1568, .42, .3, .015]] }[kind] || [];
+      done: [[523, 0, .14, .05], [659, .11, .14, .05], [784, .22, .16, .05], [1047, .34, .34, .045], [1568, .42, .3, .015]],
+      arrive: [[784, 0, .16, .05], [988, .16, .16, .05], [1175, .32, .18, .05], [988, .5, .14, .04], [1319, .66, .4, .05]],
+      honk: [[392, 0, .1, .035, 'square'], [392, .16, .14, .035, 'square']], whoosh: [[900, 0, .5, .02, 'sawtooth', 160]] }[kind] || [];
     const t0 = c.currentTime + .01;
-    N.forEach(([f, at, dur, vol]) => { const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = f;
+    N.forEach(([f, at, dur, vol, type, to]) => { const o = c.createOscillator(), g = c.createGain(); o.type = type || 'sine'; o.frequency.value = f; if (to) o.frequency.exponentialRampToValueAtTime(to, t0 + at + dur);
       g.gain.setValueAtTime(0, t0 + at); g.gain.linearRampToValueAtTime(vol, t0 + at + .012); g.gain.exponentialRampToValueAtTime(.0001, t0 + at + dur);
       o.connect(g).connect(c.destination); o.start(t0 + at); o.stop(t0 + at + dur + .05); });
   } catch (e) {}
@@ -254,6 +264,8 @@ async function mountPeerMap() {
   if (PM.map) { PM.map.resize(); drawPeers(); }
   const src = $('#map-src'); if (src) src.textContent = PM.L ? (PM.L.name === 'neshan' ? 'نقشه‌ی نشان' : 'نقشه‌ی باز (OSM)') : '';
 }
+const isDesk = () => matchMedia('(min-width:1100px)').matches;
+const fitPad = t => isDesk() && !document.body.classList.contains('map-full') ? { top: t + 30, bottom: 60, left: 60, right: 470 } : { top: t, bottom: 50, left: 45, right: 45 };
 function drawPeers() {
   if (!PM.map || !ui.cand) return;
   const p = active(); const list = filtered(ui.cand.list);
@@ -279,10 +291,11 @@ function drawPeers() {
     if (!trip) { const he = document.createElement('div'); he.className = 'hood-ring'; he.innerHTML = `<span>محله‌ی شما${near.length ? ' و ' + fa(Math.min(6, near.length)) + ' هم‌مسیر' : ''}</span>`; PM.markers.push(new G.Marker({ element: he, anchor: 'center' }).setLngLat(home).addTo(PM.map)); }
     arcLayer(from, to, profColor(p).c);
     B.extend(from); B.extend(to);
-    return PM.map.fitBounds(B, { padding: { top: 80, bottom: 50, left: 50, right: 50 }, maxZoom: 15, duration: 650 });
+    return PM.map.fitBounds(B, { padding: fitPad(80), maxZoom: 15, duration: 650 });
   }
   arcLayer(null);
-  if (near.length) PM.map.fitBounds(B, { padding: { top: 70, bottom: 40, left: 40, right: 40 }, maxZoom: 15.5, duration: 600 });
+  liveMarker();
+  if (near.length) PM.map.fitBounds(B, { padding: fitPad(70), maxZoom: 15.5, duration: 600 });
   else PM.map.flyTo({ center: [p.data.lng, p.data.lat], zoom: 14.5, duration: 400 });
 }
 function arcPts(a, b) { // quadratic bezier bulging to the side: reads as "from here to there"
@@ -487,7 +500,7 @@ function peersTab(p) {
       <div class="mapbox"><div id="peermap-slot" style="position:absolute;inset:0"></div>
         <div class="seg" role="group" aria-label="نمای نقشه"><button data-a="mview" data-v="peers" aria-pressed="${ui.mview !== 'dest'}">${isTrip(p) ? 'هم‌سفرها' : 'هم‌مسیرها'}</button><button data-a="mview" data-v="dest" aria-pressed="${ui.mview === 'dest'}">${ic('flag')}تا ${esc(isTrip(p) ? 'مقصد' : destWord(p))}</button></div>
         <div class="tools"><div class="chiprow">${[['all', 'همه'], ['free', 'بی‌تیم'], ['drivers', 'راننده‌ها'], ['teams', 'تیم‌ها']].map(([k, v]) => `<button class="fchip" data-a="filter" data-v="${k}" aria-pressed="${ui.filter === k}">${v}</button>`).join('')}</div></div>
-        <button class="fab" data-a="fit" aria-label="نمایش همه‌ی هم‌مسیرها">${ic('locate')}</button><span class="badge-src" id="map-src"></span></div>
+        <button class="fab" data-a="fit" aria-label="نمایش همه‌ی هم‌مسیرها">${ic('locate')}</button><div class="map-ctl"><button data-a="map-clean" aria-pressed="${document.body.classList.contains('map-clean')}" aria-label="نمایش یا پنهان کردن برچسب‌ها و فیلترها">${ic('eye')}</button><button data-a="map-full" aria-label="نقشه‌ی تمام‌صفحه">${ic(document.body.classList.contains('map-full') ? 'shrink' : 'expand')}</button></div><span class="badge-src" id="map-src"></span></div>
       <div class="legend" style="border:0;padding:0 4px">${ic('wheel')} رانندگی ${ic('coin')} هزینه ${ic('woman')} مادر ${ic('man')} پدر <span><i class="team-dot" style="background:#8E9892;box-shadow:none"></i>بی‌تیم</span></div>
       ${!list.length ? `<div class="card empty">${cityAnim('هر خانواده‌ای که بیاید، مسیر کوتاه‌تر می‌شود')}<b>اینجا به‌زودی شلوغ می‌شود!</b><p class="muted small">پوستر و لینک ${esc(placeName(p))} را بفرستید؛ هر ثبت‌نام نزدیک شما را خبر می‌دهیم.</p><button class="btn ac" data-a="poster">${ic('share')}لینک و پوستر</button></div>` : ''}
     </div>
@@ -500,6 +513,10 @@ function peersTab(p) {
       <div class="row wrap"><button class="btn line sm" data-a="poster">${ic('print')}لینک و پوستر ${esc(destWord(p))}</button></div>
     </aside></div>`;
 }
+const SHAPES = ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z', 'M5 5h14v14H5Z', 'M12 3.5 21 19.5H3Z', 'M12 2.5 21.5 12 12 21.5 2.5 12Z', 'M12 2.8 20 7.4v9.2l-8 4.6-8-4.6V7.4Z', 'M12 2.8l2.6 6 6.4.6-4.9 4.2 1.5 6.3L12 16.6l-5.6 3.3 1.5-6.3L3 9.4l6.4-.6Z', 'M12 2.8 21 9.3l-3.4 10.4H6.4L3 9.3Z', 'M12 3c5 0 9 4 9 9h-9Zm0 18c-5 0-9-4-9-9h9Z'];
+const SHAPE_C = ['#22C55E', '#2563EB', '#F97316', '#DB2777', '#7C3AED', '#0D9488', '#F59E0B', '#DC2626'];
+function shapeOf(id) { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return { d: SHAPES[h % SHAPES.length], c: SHAPE_C[(h >>> 4) % SHAPE_C.length] }; }
+const shapeAv = (id, size = 46) => { const g = shapeOf(id); return `<span class="shp" style="--sc:${g.c};width:${size}px;height:${size}px" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="${g.d}"/></svg></span>`; };
 function candCard(p, m) {
   const sc = score(p, m), t = m.team, c = t ? col(t.color) : null;
   let act;
@@ -508,12 +525,13 @@ function candCard(p, m) {
   else if (m.invite) act = `<button class="btn line sm" disabled>دعوت رفت؛ منتظر پاسخ…</button>`;
   else if (t && p.team) act = `<span class="muted small">هر دو در تیم هستید</span>`;
   else act = `<button class="btn ac sm" data-a="invite" data-id="${m.id}">${t ? 'درخواست پیوستن' : 'هم‌مسیر شویم؟'}</button>`;
-  return `<article class="cand ${m.rule_ok ? '' : 'blocked'}"><div class="head"><span class="av ${t ? '' : 'grey'}" style="${c ? `--pc:${c.c};--pi:${c.i}` : ''}">${esc(m.family[0] || '؟')}</span>
-    <span class="grow"><b>خانواده ${esc(m.family)}</b>${m.verified === false ? ' <span class="tag warn" style="font-size:.66rem">تأییدنشده</span>' : ''} <span class="roles">${m.role !== 'pay' ? ic('wheel') : ''}${m.role !== 'drive' ? ic('coin') : ''}${ic(m.pg === 'f' ? 'woman' : 'man')}</span><br>
-    <span class="meta">${m.dist ? `<span><b>${km1(m.dist.m / 1000)} کیلومتر</b> مسیر · ${mins(m.dist.s)} دقیقه</span>` : ''}<span>${esc(m.hood)}</span><span>${t ? teamName(t) : 'بی‌تیم'}</span></span></span>
-    <span class="score">${fa(sc.score)}٪<small>هم‌خوانی</small></span></div>
-    <div class="why">${sc.reasons.slice(1, 3).map(([x, ok]) => (ok ? '✓ ' : '! ') + esc(x)).join(' · ')}</div>
-    <div class="row between wrap"><button class="link" data-a="cand" data-id="${m.id}">جزئیات</button>${act}</div></article>`;
+  const why = sc.reasons.slice(1, 3);
+  return `<article class="cand2 ${m.rule_ok ? '' : 'blocked'}" style="${c ? `--tc:${c.c}` : ''}">
+    <div class="c-top">${shapeAv(m.id)}<div class="c-name"><b>خانواده ${esc(m.family)}</b><small>${esc(m.hood || '')}${m.dist ? ` · <b>${km1(m.dist.m / 1000)}</b> کیلومتر · ${mins(m.dist.s)} دقیقه` : ''}</small></div>
+      <div class="ring" style="--p:${Math.max(0, Math.min(100, sc.score))}" title="هم‌خوانی"><b>${fa(sc.score)}٪</b></div></div>
+    <div class="c-tags">${m.role !== 'pay' ? `<span>${ic('wheel')}رانندگی</span>` : ''}${m.role !== 'drive' ? `<span>${ic('coin')}هزینه</span>` : ''}<span>${ic(m.pg === 'f' ? 'woman' : 'man')}${isChild(p) ? relLabel(m) : m.pg === 'f' ? 'خانم' : 'آقا'}</span><span class="${t ? 'tm' : ''}">${t ? esc(teamName(t)) : 'بی‌تیم'}</span>${m.verified === false ? '<span class="warn">تأییدنشده</span>' : ''}</div>
+    ${why.length ? `<div class="c-why">${why.map(([x, ok]) => `<span class="${ok ? 'ok' : 'no'}">${ok ? '✓' : '!'} ${esc(x)}</span>`).join('')}</div>` : ''}
+    <div class="c-act"><button class="btn line sm" data-a="cand" data-id="${m.id}">جزئیات</button>${act}</div></article>`;
 }
 
 function teamTab(p) {
@@ -527,7 +545,7 @@ function teamTab(p) {
       ${CFG.flags.league_on ? `<button class="card row" data-a="quiz" style="text-align:right;border-color:var(--ac)">${ic('trophy')}<span class="grow"><b>لیگ راه ${esc(destWord(p))}</b><br><span class="muted small">معمای امروز را با هم حل کنید؛ پاسخ بعد از رسیدن.</span></span>${ic('back')}</button>` : ''}</div>
     <aside class="stack">${calCard(T, plan)}${statsCard(T)}
       <div class="card"><div class="row between" style="margin-bottom:6px"><h2><i class="team-dot"></i>${esc(teamName(t))}</h2><span class="tag ac">هر سفر ${money(T.team.price)}</span></div>
-        ${T.members.map(m => `<div class="member"><span class="av" style="--pc:var(--ac);--pi:var(--ac-ink)">${esc(m.family[0])}</span><span class="grow"><b>${esc(fam(m))}</b>${m.id === p.id ? ' <span class="tag ac">شما</span>' : ''}${T.team.coord === m.id ? ' <span class="tag">هماهنگ‌کننده</span>' : ''}<br><span class="muted small">${m.kids.map(k => esc(kidName(k, m))).join('، ')}</span></span>
+        ${T.members.map(m => `<div class="member">${shapeAv(m.id, 40)}<span class="grow"><b>${esc(fam(m))}</b>${m.id === p.id ? ' <span class="tag ac">شما</span>' : ''}${T.team.coord === m.id ? ' <span class="tag">هماهنگ‌کننده</span>' : ''}<br><span class="muted small">${m.kids.map(k => esc(kidName(k, m))).join('، ')}</span></span>
           <span class="roles">${m.role !== 'pay' ? ic('wheel') : ''}${m.role !== 'drive' ? ic('coin') : ''}</span>${m.id !== p.id && m.phone ? `<a class="icon-btn" href="tel:${esc(m.phone)}" aria-label="تماس">${ic('phone')}</a>` : ''}</div>`).join('')}
         <p class="muted small" style="margin-top:8px">مبلغ هر سفر ۶۰٪ میانگین برآورد اسنپ اعضاست. هماهنگ‌کننده خودکار است؛ اگر برود، نفر بعدی می‌شود.</p></div></aside></div>`;
 }
@@ -564,17 +582,18 @@ function todayCard(T, x, plan, p) {
     body = `<p class="muted small">هر کس رسید رویش بزنید؛ خانواده‌اش خبردار می‌شود.</p><div class="kids">${ks.map(k => `<button class="kid ${r.arr[k.id] ? 'ok' : ''}" style="--kc:var(--ac)" data-a="t-arrive" data-k="${k.id}" ${r.arr[k.id] ? 'aria-pressed="true"' : ''}>${r.arr[k.id] ? ic('check') : '<i></i>'}${esc(kidName(k, mem(T, k.pid)))}${r.arr[k.id] ? ' رسید' : ''}</button>`).join('')}</div>`;
     act = `<label class="check"><input type="checkbox" data-a="t-empty" ${r.empty ? 'checked' : ''} ${all ? '' : 'disabled'}>خودرو خالی است و چیزی جا نمانده</label><button class="btn ac block" data-a="t-finish" ${all && r.empty ? '' : 'disabled'}>ثبت پایان سفر</button>`;
   } else {
-    body = `<div class="done"><b>خدا قوت! همه به سلامت رسیدند.</b><span class="muted">${money(T.team.price)} به اعتبار ${esc(fam(ex))} ثبت شد.</span></div>`;
+    body = `<div class="done"><b>خدا قوت! همه به سلامت رسیدند.</b>${(ui.qDone = ui.qDone ?? quip('done', .6)) ? `<span>${esc(ui.qDone.trim())}</span>` : ''}<span class="muted">${money(T.team.price)} به اعتبار ${esc(fam(ex))} ثبت شد.</span></div>`;
     act = `<button class="btn line block" data-a="t-thanks" ${r.thanks ? 'disabled' : ''}>${ic('heart')}${r.thanks ? 'تشکر شما رسید' : 'دست‌شان درد نکند'}</button><button class="btn ac block" data-a="t-next">نوبت بعدی</button>`;
   }
   const notes = [];
   if (ex && planned && ex.id !== planned.id) notes.push(`به‌جای ${esc(fam(planned))}؛ ممنون از هم‌دلی‌شان.`);
   if (ex && !(ex.days || []).includes(x.d) && r.status === 'pending') notes.push('این روز را اعلام نکرده بودند؛ یک پیام هماهنگی کافی است.');
   if (!ex) notes.push('راننده‌ی سازگاری برای این نوبت نیست؛ یک داوطلب لازم است.');
+  const liveRow = r.status === 'started' && ex && ex.id !== p.id ? liveStrip() : '';
   return `<article class="today" aria-live="polite">
     <div class="row between wrap"><div class="seg" role="group">${same.map(y => `<button data-a="t-pick" data-s="${y.id}" aria-pressed="${y.id === x.id}">${y.dir === 'out' ? 'رفت' : 'برگشت'} ${clock(y.time)}</button>`).join('')}</div>
       <span class="tag ${r.status === 'done' ? 'ok' : r.status === 'started' ? 'ac' : ''}">${{ pending: 'هنوز راه نیفتاده', started: 'در مسیر', done: 'رسیدیم' }[r.status]}</span></div>
-    <div class="when"><b>${dayWord(x.d)}${x.d === TODAY ? '، ' + DAYS[x.d] : ''}</b><span>${x.dir === 'out' ? 'به ' + esc(T.place.name) : 'برگشت به خانه'}</span></div>
+    ${liveRow}<div class="when"><b>${dayWord(x.d)}${x.d === TODAY ? '، ' + DAYS[x.d] : ''}</b><span>${x.dir === 'out' ? 'به ' + esc(T.place.name) : 'برگشت به خانه'}</span></div>
     <div class="who">${ex ? `${esc(fam(ex))} <em>می‌برند</em>` : 'بدون راننده'}</div>
     ${notes.map(n => `<p class="note">${ic('warn')}${n}</p>`).join('')}${body}
     ${rem.length && r.status !== 'done' ? `<p class="note">${ic('heart')}یادآوری محترمانه: ${rem.map(esc).join(' · ')}</p>` : ''}
@@ -645,9 +664,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=11" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=12" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)} <span class="pchip">${ic('down', '')}</span></b><small>${p.team ? esc(teamName(p.team)) + ' · ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</small></span>`; }
-  else t = `<img src="assets/icon.svg?v=11" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=12" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -670,7 +689,13 @@ function renderMain(anim) {
   if (anim) { main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter'); }
   if ($('#peermap-slot')) mountPeerMap();
 }
-function render(anim) { renderTop(); renderMain(anim); }
+function render(anim) { renderTop(); renderMain(anim); renderSide(); }
+function renderSide() {
+  const el = $('#side'); if (!el) return; if (!isDesk() || ui.admin) { el.innerHTML = ''; return; }
+  const p = active(), st = el.scrollTop, tabs = p && p.complete ? `<nav class="side-tabs" aria-label="صفحه‌ها">${[['peers', 'map', isTrip(p) ? 'هم‌سفرها' : 'هم‌مسیرها'], ['team', 'team', 'تیم ما'], ...(isTrip(p) ? [] : [['money', 'money', 'حساب']])].map(([k, i, t]) => `<button data-tab="${k}" ${ui.tab === k ? 'aria-current="page"' : ''}>${ic(i)}<span>${t}</span></button>`).join('')}</nav>` : '';
+  el.innerHTML = tabs + drawer('html'); el.scrollTop = st; putTrust(el.querySelector('.trust-slot'));
+}
+addEventListener('resize', () => { clearTimeout(ui.rsT); ui.rsT = setTimeout(() => { renderSide(); if (PM.map) PM.map.resize(); }, 200); });
 
 /* ═════════ layers ═════════ */
 let lastFocus;
@@ -710,7 +735,7 @@ function drawer(keep) {
   const mi = (a, i, txt, extra = '') => `<button class="mi" data-a="${a}" ${extra}>${ic(i)}<span class="grow">${txt}</span></button>`;
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=11" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم</b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان · شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="شب و روز">${ic('moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=12" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم</b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان · شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="شب و روز">${ic('moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     <div class="sec-h"><span>مسیرک‌ها (${fa(ps.length)})</span></div>
     <div class="pgroup">${ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${x.id === S.active ? profPanel(x) : ''}</div>`).join('')}
     <button class="mi" data-a="new-profile">${ic('plus')}<span class="grow">مسیرکِ تازه</span></button></div>
@@ -737,7 +762,8 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <p class="muted small" style="padding:8px">نسخه ۱۰ · ${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی (کلید سرویس نشان تنظیم نشده)'}</p>`;
+    <p class="muted small" style="padding:8px">نسخه ۱۲ · ${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی (کلید سرویس نشان تنظیم نشده)'}</p>`;
+  if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
   putTrust($('.drawer .trust-slot'));
@@ -753,9 +779,10 @@ function donateSheet() {
     <p class="muted small">${ic('shield')} این کمک داوطلبانه است و هیچ امکانی را برای کسی باز یا بسته نمی‌کند.</p>`);
 }
 function contactSheet() {
-  ui.ct = ui.ct || { cat: 'پیشنهاد' };
+  ui.ct = ui.ct || { cat: 'پیشنهاد' }; ui.ct.t0 = Date.now();
   sheet('تماس با ما', `<div class="chips">${['پیشنهاد', 'مشکل فنی', 'مدرسه‌ها و همکاری', 'حساب و پرداخت', 'سایر'].map(c => `<button class="chip" data-a="ct-cat" data-v="${c}" aria-pressed="${ui.ct.cat === c}">${c}</button>`).join('')}</div>
     <div class="adm-form"><div class="field"><label for="ct-name">نام (اختیاری)</label><input id="ct-name" autocomplete="name"></div><div class="field"><label for="ct-c">شماره یا ایمیل برای جواب${S.token ? ' (اختیاری)' : ''}</label><input id="ct-c" dir="ltr" value="${esc(S.phone || '')}" autocomplete="tel"></div></div>
+    <input id="ct-hp" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
     <div class="field"><label for="ct-t">پیام شما</label><textarea id="ct-t" rows="5" placeholder="هر چه می‌خواهید بگویید؛ کوتاه یا مفصل."></textarea></div>
     <button class="btn ac block" data-a="ct-send">فرستادن پیام</button>
     ${S.token ? '<button class="link" data-a="ticket">پیام‌ها و تیکت‌های قبلی من</button>' : ''}`, 'پیام شما مستقیم به پیشخوان رسیدیم می‌رسد.');
@@ -794,7 +821,7 @@ async function inboxSheet() {
 }
 function posterSheet() {
   const p = active(); const pl = p && p.place; if (!pl) return toast('اول مکان را در مسیرک انتخاب کنید.');
-  const link = `${location.origin}/${pl.code}`, pretty = `${location.host}/${pl.code}`, hook = isChild(p) ? HOOK.child : HOOK.adult, K = KINDS[pl.kind] || KINDS.other;
+  const link = `${SITE}/${pl.code}`, pretty = `${SITE_HOST}/${pl.code}`, hook = isChild(p) ? HOOK.child : HOOK.adult, K = KINDS[pl.kind] || KINDS.other;
   const caption = `🚗 سرویس مشارکتی «${pl.name}»\n${hook}\n\nثبت‌نام در ۲ دقیقه و پیدا کردن هم‌مسیرهای نزدیک:\n${link}\n\n#رسیدیم`;
   ui.caption = caption;
   let qr = ''; try { const q = qrcode(0, 'M'); q.addData(link); q.make(); qr = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); } catch (e) {}
@@ -804,7 +831,7 @@ function posterSheet() {
       <p>QR را اسکن کنید یا وارد این لینک شوید:</p><p class="url">${esc(pretty)}</p><b>با رسیدیم همیشه ما زود می‌رسیم!</b></div>
     <div class="share-grid no-print"><button class="btn sm" data-a="share">${ic('share')}فرستادن</button><button class="btn line sm" data-a="copy-cap">${ic('copy')}کپی متن و لینک</button>
       <button class="btn line sm" data-a="img">${ic('download')}عکس‌نوشت (PNG)</button><button class="btn line sm" data-a="print">${ic('print')}چاپ یا PDF</button>
-      <a class="btn line sm" target="_blank" rel="noopener" href="https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(caption.replace(link, ''))}">تلگرام</a><a class="btn line sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(caption)}">واتساپ</a></div>
+      <button class="btn line sm" data-a="share-app" data-v="eitaa">ایتا</button><button class="btn line sm" data-a="share-app" data-v="bale">بله</button></div>
     <div class="caption no-print">${esc(caption)}</div>`, 'برای دیوار، بورد اعلانات، گروه کلاس و شبکه‌های اجتماعی');
 }
 function printPoster() {
@@ -815,7 +842,7 @@ function printPoster() {
   addEventListener('afterprint', done); setTimeout(() => window.print(), 80);
 }
 async function posterPng() {
-  const p = active(), pl = p.place, link = `${location.origin}/${pl.code}`, hook = isChild(p) ? HOOK.child : HOOK.adult;
+  const p = active(), pl = p.place, link = `${SITE}/${pl.code}`, hook = isChild(p) ? HOOK.child : HOOK.adult;
   await document.fonts.load('900 40px Vazirmatn'); await document.fonts.load('400 30px Vazirmatn');
   const W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
   g.fillStyle = '#1DBF73'; g.fillRect(0, 0, W, H);
@@ -828,7 +855,7 @@ async function posterPng() {
   await new Promise(r => { img.onload = r; img.onerror = r; }); try { g.drawImage(img, W / 2 - 200, 440, 400, 220); } catch (e) {}
   g.fillStyle = '#04140B'; wrap(g, pl.name + (pl.shift ? ' · ' + pl.shift : ''), W / 2, 720, W - 200, 58, '900 50px Vazirmatn');
   try { const q = qrcode(0, 'M'); q.addData(link); q.make(); const n = q.getModuleCount(), size = 340, cell = size / n, x0 = W / 2 - size / 2, y0 = 800; g.fillStyle = '#fff'; g.fillRect(x0 - 16, y0 - 16, size + 32, size + 32); g.fillStyle = '#04140B'; for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect(x0 + k * cell, y0 + r * cell, Math.ceil(cell), Math.ceil(cell)); } catch (e) {}
-  g.direction = 'ltr'; g.font = '900 46px Vazirmatn'; g.fillText(`${location.host}/${pl.code}`, W / 2, 1220);
+  g.direction = 'ltr'; g.font = '900 46px Vazirmatn'; g.fillText(`${SITE_HOST}/${pl.code}`, W / 2, 1220);
   g.direction = 'rtl'; g.fillStyle = '#04140B'; g.font = '900 40px Vazirmatn'; g.fillText('با رسیدیم همیشه ما زود می‌رسیم!', W / 2, 1320);
   return new Promise(r => c.toBlob(r, 'image/png'));
 }
@@ -1026,7 +1053,8 @@ function wizRender() {
     <div class="wiz-foot"><div class="foot-row"><button class="btn line" data-a="w-prev" ${w.step > 0 && !w.busy ? '' : 'disabled'}>قبلی</button><button class="btn" data-a="w-next" ${w.busy ? 'disabled' : ''}>${w.busy ? 'لطفاً صبر کنید…' : nextLabel(w, st, steps)}</button></div></div></div>`;
   watchScrollHint();
   if (same) { $('.wiz-body').scrollTop = sc; const n = sel && root.querySelector(sel); if (n) n.focus({ preventScroll: true }); }
-  else { const f = root.querySelector('.wiz-body input:not([type=checkbox]), .wiz-body .choice, [data-a="w-next"]'); f && f.focus({ preventScroll: true }); }
+  else { const q = $('#wq'); if (q) { q.tabIndex = -1; q.focus({ preventScroll: true }); } clearTimeout(ui.wfT); const key = st.key;
+    ui.wfT = setTimeout(() => { const cur = ui.wiz; if (!cur || cur._shown !== key) return; const a = document.activeElement; if (a && a !== q && a !== document.body && root.contains(a)) return; const inp = [...root.querySelectorAll('.wiz-body input:not([type=checkbox]):not([type=radio]):not([type=time]):not([type=hidden]):not(.hp), .wiz-body textarea')].find(x => !x.value && x.offsetParent); if (inp) inp.focus({ preventScroll: true }); }, 2000); }
   if (st.mount) st.mount(w);
 }
 function nextLabel(w, st, steps) {
@@ -1038,7 +1066,7 @@ function wizDone(w) {
   const p = active();
   return `<div class="wiz" role="dialog" aria-modal="true" aria-labelledby="wq"><div class="wiz-body" style="text-align:center;justify-items:center;align-content:center;flex:1">${ART.party}
     <h1 class="wiz-q" id="wq">مسیرکِ «${esc(p ? p.label : '')}» آماده است!</h1>
-    <p class="wiz-help">حالا نزدیک‌ترین هم‌مسیرها را می‌بینید. اگر هنوز کسی نیست، لینک و پوستر ${esc(p ? destWord(p) : '')} را بفرستید تا بقیه بیایند؛ هر ثبت‌نام نزدیک را خبر می‌دهیم.</p>
+    <p class="wiz-help">${quip('welcome', .8).trim()} حالا نزدیک‌ترین هم‌مسیرها را می‌بینید. اگر هنوز کسی نیست، لینک و پوستر ${esc(p ? destWord(p) : '')} را بفرستید تا بقیه بیایند؛ هر ثبت‌نام نزدیک را خبر می‌دهیم.</p>
     <button class="btn line" data-a="notify">${ic('bell')}نوتیف را روشن کن</button></div>
     <div class="wiz-foot"><button class="btn block" data-a="w-finish">دیدن هم‌مسیرها</button><button class="btn line block" data-a="w-poster">${ic('share')}لینک و پوستر</button></div></div>`;
 }
@@ -1130,7 +1158,7 @@ function cityAnim(label) {
     <path d="M-10 128H370" stroke="#fff" stroke-width="22"/><path d="M-10 128H370" stroke="#B9C7BF" stroke-width="2" stroke-dasharray="10 12"/>
     ${[300, 215, 130].map((x, i) => `<g transform="translate(${x} 96)"><path d="M-14 18V2l14-12L14 2v16Z" fill="#fff" stroke="#04140B" stroke-width="2"/><rect x="-4" y="7" width="8" height="11" fill="#FFD84D" stroke="#04140B" stroke-width="1.6"/><g class="kid k${i}"><circle cx="20" cy="10" r="4" fill="#fff" stroke="#04140B" stroke-width="1.6"/><path d="M20 14l-5 9h10Z" fill="${['#FF8FA3', '#7FD8FF', '#FFD84D'][i]}" stroke="#04140B" stroke-width="1.6"/></g></g>`).join('')}
     <g transform="translate(40 92)"><path d="M-22 18V0l22-14L22 0v18Z" fill="#fff" stroke="#04140B" stroke-width="2"/><path d="M-6 -2h12" stroke="#04140B" stroke-width="2"/><path d="M0 -14v-10l10 4-10 4" fill="#1DBF73" stroke="#04140B" stroke-width="1.6"/><g class="kid kin">${[-12, 0, 12].map((dx, i) => `<circle cx="${dx}" cy="30" r="3.4" fill="#fff" stroke="#04140B" stroke-width="1.4"/><path d="M${dx} 33l-4 7h8Z" fill="${['#FF8FA3', '#7FD8FF', '#FFD84D'][i]}" stroke="#04140B" stroke-width="1.4"/>`).join('')}</g></g>
-    <g class="city-car"><g transform="translate(0 112)"><path d="M-20 16V6c0-3 2-5 5-5l6-2 6-8c1-2 3-3 5-3h12c2 0 4 1 5 3l5 8 5 1c3 1 4 3 4 6v10Z" fill="#fff" stroke="#04140B" stroke-width="2.2" stroke-linejoin="round" transform="scale(-1 1)"/><circle cx="-12" cy="17" r="5" fill="#04140B"/><circle cx="14" cy="17" r="5" fill="#04140B"/><circle cx="-2" cy="-1" r="3.2" fill="#FFE1C4" stroke="#04140B" stroke-width="1.2"/></g></g>
+    <g class="city-car"><g transform="translate(0 112)"><path d="M-20 16V6c0-3 2-5 5-5l6-2 6-8c1-2 3-3 5-3h12c2 0 4 1 5 3l5 8 5 1c3 1 4 3 4 6v10Z" fill="#fff" stroke="#04140B" stroke-width="2.2" stroke-linejoin="round"/><circle cx="-12" cy="17" r="5" fill="#04140B"/><circle cx="14" cy="17" r="5" fill="#04140B"/><circle cx="-2" cy="-1" r="3.2" fill="#FFE1C4" stroke="#04140B" stroke-width="1.2"/></g></g>
   </svg>${label ? `<span class="city-label">${label}</span>` : ''}</div>`;
 }
 /* full-screen map picker (Snapp-style centre pin) */
@@ -1152,19 +1180,30 @@ function offerUndo(msg, fn) {
   el.classList.add('show'); ui.undoFn = fn; clearTimeout(undoT); undoT = setTimeout(() => { el.classList.remove('show'); ui.undoFn = null; }, 9000);
 }
 /* team chat */
+const QUICK = ['سلام، صبح بخیر 🌤', 'پنج دقیقه دیرتر می‌رسم', 'امروز نمی‌توانم ببرم؛ کسی هست؟', 'بچه‌ها رسیدند ✓', 'دست‌تان درد نکند 🌸'];
 async function chatSheet() {
   const p = active(); if (!p || !p.team) return;
-  ui.chat = { list: [], after: 0 };
-  $('#layer').innerHTML = `<div class="scrim" data-a="chat-close"></div><div class="chat" role="dialog" aria-modal="true" aria-labelledby="ch-t">
-    <div class="chat-top"><i class="team-dot"></i><b id="ch-t" class="grow">گفتگوی ${esc(teamName(p.team))}</b><button class="icon-btn" data-a="chat-close" aria-label="بستن">${ic('close')}</button></div>
-    <div class="chat-list" id="chat-list"><p class="muted small" style="text-align:center">در حال آوردن پیام‌ها…</p></div>
-    <div class="chat-foot"><input id="chat-in" maxlength="400" placeholder="پیام محترمانه‌تان را بنویسید…" autocomplete="off"><button class="btn ac" data-a="chat-send" aria-label="فرستادن">${ic('back')}</button></div></div>`;
-  $('#chat-in').focus(); await chatPull(); clearInterval(ui.chatT); ui.chatT = setInterval(() => { if (!document.hidden) chatPull(); }, 5000);
+  ui.chat = { list: [], sig: '' }; lastFocus = document.activeElement;
+  const T = ui.team && ui.team.members ? ui.team.members : [];
+  $('#layer').innerHTML = `<div class="scrim cx-scrim" data-a="chat-close"></div><section class="chatx" role="dialog" aria-modal="true" aria-labelledby="ch-t">
+    <header class="cx-top"><button class="icon-btn" data-a="chat-close" aria-label="بازگشت">${ic('back')}</button>
+      <div class="cx-ttl"><b id="ch-t">گفتگوی تیم</b><small>${esc(teamName(p.team))}${T.length ? ' · ' + fa(T.length) + ' خانواده' : ''}</small></div>
+      <div class="cx-avs">${T.slice(0, 4).map(m => shapeAv(m.id, 26)).join('')}</div></header>
+    <div class="cx-list" id="chat-list"><div class="cx-load"><i></i><i></i><i></i></div></div>
+    <div class="cx-quick" role="group" aria-label="پاسخ سریع">${QUICK.map(q => `<button data-a="chat-quick" data-v="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+    <div class="cx-foot"><input id="chat-in" maxlength="400" placeholder="یک پیام محترمانه…" autocomplete="off" enterkeyhint="send"><button class="cx-send" data-a="chat-send" aria-label="فرستادن">${ic('send')}</button></div></section>`;
+  document.body.classList.add('chat-open');
+  if (matchMedia('(min-width:900px)').matches) $('#chat-in').focus();
+  await chatPull(); clearInterval(ui.chatT); ui.chatT = setInterval(() => { if (!document.hidden) chatPull(); }, 4000);
 }
+function chatClose() { clearInterval(ui.chatT); document.body.classList.remove('chat-open'); closeLayer(); }
 async function chatPull() {
   const p = active(), el = $('#chat-list'); if (!el || !p) return clearInterval(ui.chatT);
-  try { const r = await api('chat_list', { profile_id: p.id, after: 0 }); const atBottom = el.scrollHeight - el.clientHeight - el.scrollTop < 40;
-    el.innerHTML = r.list.length ? r.list.map(m => `<div class="msg ${m.mine ? 'me' : ''}">${m.mine ? '' : `<b>${esc(m.who)}</b>`}<span>${esc(m.text)}</span><small>${fa(new Date(m.at * 1000).toTimeString().slice(0, 5))}</small></div>`).join('') : `<div class="empty"><b>اولین پیام را بنویسید!</b><span class="muted small">هماهنگی، تشکر، خبر تأخیر؛ کوتاه و محترمانه.</span></div>`;
+  try { const r = await api('chat_list', { profile_id: p.id, after: 0 }); const sig = r.list.map(m => m.at + m.text).join('|'); if (sig === ui.chat.sig && el.dataset.ok) return; ui.chat.sig = sig; el.dataset.ok = 1;
+    const atBottom = el.scrollHeight - el.clientHeight - el.scrollTop < 60; let lastDay = '';
+    el.innerHTML = r.list.length ? r.list.map(m => { const dt = new Date(m.at * 1000), dk = ymd(dt), sep = dk !== lastDay ? `<div class="cx-day"><span>${dk === ymd(new Date()) ? 'امروز' : dk === ymd(addD(new Date(), -1)) ? 'دیروز' : jLabel(dt)}</span></div>` : ''; lastDay = dk;
+      return `${sep}<div class="cx-row ${m.mine ? 'me' : ''}">${m.mine ? '' : shapeAv(m.who_id || m.who, 30)}<div class="cx-b">${m.mine ? '' : `<b>${esc(m.who)}</b>`}<span>${esc(m.text)}</span><small>${fa(dt.toTimeString().slice(0, 5))}${m.mine ? ' ✓' : ''}</small></div></div>`; }).join('')
+      : `<div class="cx-empty">${artTeam()}<b>اولین پیام را بنویسید!</b><span>یخ گروه با یک «سلام، صبح بخیر» آب می‌شود. پاسخ‌های سریع پایین صفحه‌اند.</span></div>`;
     if (atBottom || !ui.chat.seen) { el.scrollTop = el.scrollHeight; ui.chat.seen = true; } S.chatSeen = Date.now(); persist(); } catch (e) {}
 }
 
@@ -1264,7 +1303,7 @@ function admPosters(A) {
       <div class="row wrap">${Array.from({ length: Math.ceil(pick.length / 20) }, (_, b) => `<button class="btn sm" data-a="po-print" data-b="${b}">${ic('print')}دسته‌ی ${fa(b + 1)} (${fa(b * 20 + 1)}–${fa(Math.min(pick.length, b * 20 + 20))})</button>`).join('') || '<span class="muted small">مدرسه‌ها را انتخاب کنید.</span>'}</div></section></div>`;
 }
 function posterHtml(pl, mini) {
-  const K = KINDS[pl.kind] || KINDS.other, child = K.child !== false, link = `${location.origin}/${pl.code}`, pretty = `${location.host}/${pl.code}`;
+  const K = KINDS[pl.kind] || KINDS.other, child = K.child !== false, link = `${SITE}/${pl.code}`, pretty = `${SITE_HOST}/${pl.code}`;
   let qr = ''; try { const q = qrcode(0, 'M'); q.addData(link); q.make(); qr = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); } catch (e) {}
   return `<div class="poster ${mini ? 'mini' : ''}"><div class="ph"><b>سرویس مشارکتی!</b><h2>${child ? 'مامان، بابا، رسیدیم!' : 'هم‌مسیریم؟ رسیدیم!'}</h2><span>${esc(child ? HOOK.child : HOOK.adult)}</span></div>
     <div class="car">${artCar('')}</div><h3>${esc(pl.name)}${pl.shift ? ' · ' + esc(pl.shift) : ''}</h3><div class="qr">${qr}</div>
@@ -1297,15 +1336,42 @@ const GEO = { id: null };
 function watchArrival() {
   const p = active(), T = ui.team;
   if (GEO.id != null) { navigator.geolocation.clearWatch(GEO.id); GEO.id = null; }
-  if (!p || !T || !T.team || !CFG.flags.auto_arrive || !navigator.geolocation) return;
+  if (!p || !T || !T.team || !(CFG.flags.auto_arrive || S.liveOK) || !navigator.geolocation) return;
   const plan = planOf(T), x = focusSlot(T, plan), r = recOf(T, x, plan);
   if (r.status !== 'started' || r.exec !== p.id) return;
   GEO.id = navigator.geolocation.watchPosition(pos => {
     const { latitude: la, longitude: ln } = pos.coords, ks = ridersOf(T, x.dir).filter(k => !r.arr[k.id]);
+    if (S.liveOK && Date.now() - (GEO.sent || 0) > 12000) { GEO.sent = Date.now(); api('live_push', { profile_id: p.id, lat: la, lng: ln, acc: Math.round(pos.coords.accuracy || 0) }).catch(() => {}); }
+    if (!CFG.flags.auto_arrive) return;
     if (!ks.length) return;
     if (x.dir === 'out') { if (hav(la, ln, T.place.lat, T.place.lng) < 150) arrivalBanner(`به ${T.place.name} رسیدید؟`, '*'); }
     else for (const k of ks) { const m = mem(T, k.pid); if (m && hav(la, ln, m.lat, m.lng) < 120) { arrivalBanner(`نزدیک خانه‌ی ${fam(m)} هستید؛ ${kidName(k, m)} رسید؟`, k.id); break; } }
   }, () => {}, { enableHighAccuracy: true, maximumAge: 15000 });
+}
+/* riders: where is the car? (premium; free while paid_mode is off) */
+async function liveTick() {
+  const p = active(), T = ui.team; if (!p || !p.team || !T || !T.team || document.hidden) return;
+  const plan = planOf(T), x = focusSlot(T, plan), r = recOf(T, x, plan);
+  if (r.status !== 'started' || r.exec === p.id) { if (ui.live) { ui.live = null; liveMarker(); } return; }
+  try { const q = await api('live_get', { profile_id: p.id }); ui.liveLocked = !!q.locked; ui.live = q.live; } catch (e) { return; }
+  const L = ui.live; if (L && p.data && p.data.lat) {
+    L.m = Math.round(hav(L.lat, L.lng, p.data.lat, p.data.lng)); const key = ymd(new Date()) + x.id; S.liveN = S.liveN || {};
+    if (L.m <= 1000 && !S.liveN[key]) { S.liveN[key] = 1; persist(); snd('arrive'); notify('ماشین نزدیک است 🚗', `حدود ${L.m} متر تا خانه‌ی شما؛ کم‌کم آماده شوید.`); toast(`ماشین حدود ${fa(L.m)} متر با خانه‌ی شما فاصله دارد؛ کم‌کم آماده شوید.`); }
+  }
+  liveMarker(); const strip = $('#live-strip'); if (strip) strip.outerHTML = liveStrip();
+}
+function liveStrip() {
+  const L = ui.live;
+  if (ui.liveLocked) return `<div class="live" id="live-strip">${ic('car')}<span class="grow">دیدن زنده‌ی ماشین روی نقشه مخصوص اشتراک «همراه» است.</span><button class="btn sm line" data-a="sub-info">بیشتر</button></div>`;
+  if (!L) return `<div class="live dim" id="live-strip">${ic('car')}<span class="grow">راننده هنوز موقعیت زنده را روشن نکرده است.</span></div>`;
+  return `<div class="live" id="live-strip"><span class="live-dot"></span><span class="grow"><b>${L.m != null ? (L.m < 1000 ? fa(L.m) + ' متر' : km1(L.m / 1000) + ' کیلومتر') : 'ماشین'}</b> تا خانه‌ی شما <small>· ${L.ago < 60 ? 'همین حالا' : fa(Math.round(L.ago / 60)) + ' دقیقه پیش'}</small></span><button class="btn sm" data-a="live-map">${ic('map')}روی نقشه</button></div>`;
+}
+const CARTOON_CAR = `<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M6 30V21c0-2 1-3 3-3.5l7-1.5 6-8c1-1.4 2.4-2 4-2h14c1.6 0 3 .7 4 2l6 8 5 1c2 .5 3 1.6 3 3.5V30Z" fill="#22C55E" stroke="#04140B" stroke-width="2.2" stroke-linejoin="round"/><path d="M21 16l5-7h6v7Zm14-7h5l5 7H35Z" fill="#BFF3D8" stroke="#04140B" stroke-width="1.8" stroke-linejoin="round"/><circle cx="17" cy="31" r="5.5" fill="#04140B"/><circle cx="47" cy="31" r="5.5" fill="#04140B"/><circle cx="17" cy="31" r="2" fill="#fff"/><circle cx="47" cy="31" r="2" fill="#fff"/><circle cx="58" cy="22" r="1.6" fill="#FFD84D"/></svg>`;
+function liveMarker() {
+  if (!PM.map || !PM.L) return; const L = ui.live;
+  if (!L) { if (PM.car) { PM.car.remove(); PM.car = null; } return; }
+  if (!PM.car) { const el = document.createElement('div'); el.className = 'mk-car'; el.innerHTML = CARTOON_CAR + '<span>ماشین تیم</span>'; PM.car = new PM.L.G.Marker({ element: el, anchor: 'bottom' }).setLngLat([L.lng, L.lat]).addTo(PM.map); }
+  else PM.car.setLngLat([L.lng, L.lat]);
 }
 function arrivalBanner(text, kid) {
   if ($('.banner')) return;
@@ -1328,14 +1394,15 @@ async function act(a, el) {
     case 'toggle': { const k = el.dataset.v, o = ui.open[k] = !ui.open[k], L = el.nextElementSibling; el.setAttribute('aria-expanded', o); const cv = el.querySelector('.chev'); if (cv) cv.classList.toggle('open', o);
       if (L && L.classList.contains('plist')) { L.style.maxHeight = o ? L.scrollHeight + 'px' : '0px'; L.classList.toggle('closed', !o); } return; }
     case 'dim': return toast('این گزینه ' + (el.dataset.why || 'بعداً') + ' فعال می‌شود.');
-    case 'use': { const inD = !!el.closest('.drawer'); if (el.dataset.id === S.active) { if (!inD) { closeLayer(); return; } ui.pcol = !ui.pcol; snd('tap'); return drawer(true); } ui.pcol = false; const q = allProfiles().find(x => x.id === el.dataset.id);
+    case 'use': { if (el.closest('.side')) { if (el.dataset.id === S.active) { ui.pcol = !ui.pcol; snd('tap'); return renderSide(); } ui.pcol = false; return setActive(el.dataset.id); }
+      const inD = !!el.closest('.drawer'); if (el.dataset.id === S.active) { if (!inD) { closeLayer(); return; } ui.pcol = !ui.pcol; snd('tap'); return drawer(true); } ui.pcol = false; const q = allProfiles().find(x => x.id === el.dataset.id);
       if (inD && q && q.complete) { setActive(el.dataset.id); snd('tap'); return drawer(true); } closeLayer(); return setActive(el.dataset.id); }
     case 'about': closeLayer(); return aboutSheet();
     case 'donate': closeLayer(); return donateSheet();
     case 'donate-copy': return copyText(CFG.donate.card).then(ok => { snd('ok'); toast(ok ? 'شماره کارت کپی شد؛ دمتان گرم!' : 'کپی نشد؛ از روی صفحه بردارید.'); });
     case 'contact': closeLayer(); return contactSheet();
     case 'ct-cat': ui.ct.cat = el.dataset.v; $$('[data-a="ct-cat"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.ct.cat)); return;
-    case 'ct-send': { const body = { cat: ui.ct.cat, name: $('#ct-name').value, contact: $('#ct-c').value, text: $('#ct-t').value }; el.disabled = true; try { const r = await api('contact', body); ui.ct = null; snd('ok'); closeLayer(); toast(`پیام #${fa(r.no)} رسید؛ به‌زودی جواب می‌دهیم.`); } catch (e) { el.disabled = false; fail(e); } return; }
+    case 'ct-send': { const body = { cat: ui.ct.cat, name: $('#ct-name').value, contact: $('#ct-c').value, text: $('#ct-t').value, hp: $('#ct-hp').value, t: Date.now() - (ui.ct.t0 || Date.now()) }; el.disabled = true; try { const r = await api('contact', body); ui.ct = null; snd('ok'); closeLayer(); toast(`پیام #${fa(r.no)} رسید؛ به‌زودی جواب می‌دهیم.`); } catch (e) { el.disabled = false; fail(e); } return; }
     case 'new-profile': closeLayer(); ui.linkPlace = null; return wizOpen(null, { mode: 'new', kind: el.dataset.kind });
     case 'resume-draft': return wizOpen(S.drafts[0], { mode: 'resume' });
     case 'wiz-resume': return wizOpen(p, { mode: 'resume' });
@@ -1351,6 +1418,8 @@ async function act(a, el) {
     case 'theme': { const d = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = d; S.theme = d; persist(); return; }
     case 'filter': ui.filter = el.dataset.v; PM.key = ''; return renderMain();
     case 'fit': PM.key = ''; return drawPeers();
+    case 'map-full': { const on = document.body.classList.toggle('map-full'); $$('[data-a="map-full"]').forEach(b => b.innerHTML = ic(on ? 'shrink' : 'expand')); snd('tap'); setTimeout(() => { if (PM.map) { PM.map.resize(); PM.key = ''; drawPeers(); } }, 60); return; }
+    case 'map-clean': { const on = document.body.classList.toggle('map-clean'); $$('[data-a="map-clean"]').forEach(b => b.setAttribute('aria-pressed', on)); snd('tap'); return; }
     case 'cal-mode': ui.calMode = el.dataset.v; ui.calOff = 0; ui.calM = 0; return renderMain();
     case 'cal-go': if ((ui.calMode || 'week') === 'week') ui.calOff = (ui.calOff || 0) + +el.dataset.v; else ui.calM = Math.min(0, (ui.calM || 0) + +el.dataset.v); snd('tap'); return renderMain();
     case 'cal-now': ui.calOff = 0; ui.calM = 0; return renderMain();
@@ -1358,11 +1427,11 @@ async function act(a, el) {
     case 'cand': { const m = ui.cand && ui.cand.list.find(x => x.id === el.dataset.id); return m && famSheet(m); }
     case 'invite': {
       const m = ui.cand.list.find(x => x.id === el.dataset.id); closeLayer();
-      try { const r = await api('invite', { profile_id: p.id, to: m.id }); m.invite = { id: r.id, dir: 'out' }; PM.key = ''; renderMain(); snd('ok'); toast(`دعوت برای خانواده ${m.family} رفت${r.sms === 'sent' ? ' و پیامک شد' : ''}. منتظر پاسخ بمانید.`); setTimeout(() => loadInbox(), 4500); setTimeout(() => loadInbox(), 9000); } catch (e) { fail(e); }
+      try { const r = await api('invite', { profile_id: p.id, to: m.id }); m.invite = { id: r.id, dir: 'out' }; PM.key = ''; renderMain(); snd('ok'); toast(`دعوت برای خانواده ${m.family} رفت${r.sms === 'sent' ? ' و پیامک شد' : ''}.` + (quip('invite') || ' منتظر پاسخ بمانید.')); setTimeout(() => loadInbox(), 4500); setTimeout(() => loadInbox(), 9000); } catch (e) { fail(e); }
       return;
     }
     case 'invite-all': { const sm = smartTeam(p, ui.cand.list); if (!sm) return; let n = 0; for (const m of sm.list) { try { const r = await api('invite', { profile_id: p.id, to: m.id }); m.invite = { id: r.id, dir: 'out' }; n++; } catch (e) {} } PM.key = ''; renderMain(); toast(`${fa(n)} دعوت رفت. هر کس بپذیرد، تیم شکل می‌گیرد.`); setTimeout(() => loadInbox(), 4500); setTimeout(() => loadInbox(), 9000); return; }
-    case 'accept': try { const r = await api('invite_respond', { id: el.dataset.id, accept: 1 }); closeLayer(); await refreshMe(); applyAccent(); ui.tab = 'team'; await loadTeam(); loadPeers(); loadInbox(); render(true); snd('done'); toast(`خوش آمدید به ${teamName(r.team)}!`); } catch (e) { fail(e); } return;
+    case 'accept': try { const r = await api('invite_respond', { id: el.dataset.id, accept: 1 }); closeLayer(); await refreshMe(); applyAccent(); ui.tab = 'team'; await loadTeam(); loadPeers(); loadInbox(); render(true); snd('done'); toast(`خوش آمدید به ${teamName(r.team)}!` + quip('team', .7)); } catch (e) { fail(e); } return;
     case 'decline': { const id = el.dataset.id; try { await api('invite_respond', { id, accept: 0 }); closeLayer(); loadInbox(); offerUndo('با احترام رد شد؛ پیامی برای‌شان نمی‌رود.', async () => { try { await api('invite_undo', { id }); loadInbox(); toast('دعوت دوباره باز شد.'); } catch (e) { fail(e); } }); } catch (e) { fail(e); } return; }
     case 'inbox': closeLayer(); return inboxSheet();
     case 'leave': closeLayer(); return sheet('جدا شدن از تیم؟', `<p>از ${esc(teamName(p.team))} جدا می‌شوید. سابقه‌ی سفرها و حساب‌ها پاک نمی‌شود.</p><div class="row"><button class="btn grow" data-a="leave-ok">بله، جدا می‌شوم</button><button class="btn line grow" data-a="close">ماندن</button></div>`);
@@ -1370,6 +1439,10 @@ async function act(a, el) {
     case 'poster': closeLayer(); return posterSheet();
     case 'print': return printPoster();
     case 'copy-cap': return copyText(ui.caption).then(ok => toast(ok ? 'متن و لینک کپی شد؛ در گروه‌ها بچسبانید.' : 'کپی نشد.'));
+    case 'share-app': { const app = el.dataset.v, nm = app === 'eitaa' ? 'ایتا' : 'بله', t = ui.caption || '';
+      if (navigator.share) { try { await navigator.share({ text: t }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+      const ok = await copyText(t); window.open(app === 'eitaa' ? 'https://web.eitaa.com/' : 'https://web.bale.ai/', '_blank', 'noopener');
+      return toast(ok ? `متن و لینک کپی شد؛ در ${nm} گروه یا کانال را باز کنید و بچسبانید.` : `${nm} باز شد؛ لینک را از کادر پایین بردارید.`); }
     case 'share': { const t = ui.caption; try { const blob = await posterPng(); const file = new File([blob], 'residim.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) return navigator.share({ files: [file], text: t }).catch(() => {}); if (navigator.share) return navigator.share({ text: t }).catch(() => {}); } catch (e) {} return copyText(t).then(() => toast('متن و لینک کپی شد.')); }
     case 'img': { const b = await posterPng(); const u = URL.createObjectURL(b); const l = document.createElement('a'); l.href = u; l.download = `residim-${active().place.code}.png`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); return toast('عکس‌نوشت ذخیره شد.'); }
     case 'notify': if (!('Notification' in window)) return toast('این مرورگر نوتیف ندارد؛ خبرها در «دعوت‌ها و پیام‌ها» می‌آید.'); return Notification.requestPermission().then(r => toast(r === 'granted' ? 'نوتیف روشن شد.' : 'نوتیف روشن نشد؛ از تنظیمات مرورگر روشنش کنید.'));
@@ -1382,8 +1455,9 @@ async function act(a, el) {
     case 'pw-free': closeLayer(); if (ui.wiz) { ui.wiz.d.role = 'drive'; ui.wiz.d.free_ride = true; const st = wizSteps(ui.wiz); ui.wiz.step = Math.max(0, st.findIndex(x => x.key === 'role')); wizRender(); toast('«رایگان می‌برم» را زدیم؛ با «ادامه» جلو بروید.'); } return;
     case 'radio-vote': if (S.radioVoted) return; try { const r = await api('radio_vote'); CFG.radio_votes = r.votes; S.radioVoted = 1; persist(); toast('ممنون! صدای شما شمرده شد.'); return radioSheet(); } catch (e) { return fail(e); }
     case 'chat': closeLayer(); return chatSheet();
-    case 'chat-close': clearInterval(ui.chatT); return closeLayer();
-    case 'chat-send': { const i = $('#chat-in'), t = (i.value || '').trim(); if (!t) return; i.value = ''; try { await api('chat_send', { profile_id: p.id, text: t }); chatPull(); } catch (e) { i.value = t; fail(e); } return; }
+    case 'chat-close': return chatClose();
+    case 'chat-quick': { const i = $('#chat-in'); if (i) { i.value = el.dataset.v; snd('tap'); return act('chat-send', el); } return; }
+    case 'chat-send': { const i = $('#chat-in'), t = (i.value || '').trim(); if (!t) return; i.value = ''; const L = $('#chat-list'); if (L) { L.querySelector('.cx-empty')?.remove(); L.insertAdjacentHTML('beforeend', `<div class="cx-row me sending"><div class="cx-b"><span>${esc(t)}</span><small>در حال فرستادن…</small></div></div>`); L.scrollTop = L.scrollHeight; } try { await api('chat_send', { profile_id: p.id, text: t }); snd('tap'); ui.chat.sig = ''; chatPull(); } catch (e) { i.value = t; L && L.querySelector('.sending')?.remove(); fail(e); } return; }
     case 'verify': closeLayer(); ui.lg = null; return loginSheet(true);
     case 'quick-new': closeLayer(); ui.linkPlace = null; return wizOpen(null, { mode: 'new', kind: el.dataset.kind });
     case 'print-poster': return printPoster();
@@ -1401,7 +1475,12 @@ async function act(a, el) {
     /* team daily */
     case 't-pick': ui.slot = el.dataset.s; return renderMain();
     case 't-next': { ui.slot = null; const n = focusSlot(T, plan); ui.slot = n && n.id; return renderMain(); }
-    case 't-start': { const r = recOf(T, x, plan); if (!r.exec) return; ui.slot = x.id; return tact({ act: 'start', slot: x.id, exec: r.exec }, 'راه افتادید. هر کس رسید رویش بزنید.'); }
+    case 't-start': { const r = recOf(T, x, plan); if (!r.exec) return; ui.slot = x.id; await tact({ act: 'start', slot: x.id, exec: r.exec }, 'راه افتادید. هر کس رسید رویش بزنید.');
+      if (r.exec === p.id && S.liveOK == null && navigator.geolocation) sheet('موقعیت زنده را روشن کنیم؟', `<p style="line-height:2">تا پایان همین سفر، خانواده‌های تیم ماشین شما را روی نقشه می‌بینند و وقتی به هزار متری خانه‌شان رسیدید خبردار می‌شوند؛ تا بچه‌ها در سرما زودتر از لازم بیرون نروند.</p><p class="muted small">${ic('shield')} فقط هم‌تیمی‌ها و فقط در طول سفر. با «ثبت پایان سفر» خاموش می‌شود. این صفحه باید باز بماند.</p><div class="row"><button class="btn ac grow" data-a="live-ok" data-v="1">روشن کن</button><button class="btn line grow" data-a="live-ok" data-v="0">این بار نه</button></div>`);
+      return; }
+    case 'live-ok': S.liveOK = el.dataset.v === '1' ? true : null; persist(); closeLayer(); watchArrival(); return toast(S.liveOK ? 'موقعیت زنده روشن شد؛ سفر بی‌خطر!' : 'باشد؛ دفعه‌ی بعد دوباره می‌پرسیم.');
+    case 'live-map': ui.tab = 'peers'; ui.mview = 'peers'; render(true); return setTimeout(() => { if (PM.map && ui.live) PM.map.flyTo({ center: [ui.live.lng, ui.live.lat], zoom: 15, duration: 700 }); }, 900);
+    case 'sub-info': closeLayer(); return paywallSheet('info');
     case 't-arrive': { const b = $('.banner'); b && b.remove(); return tact({ act: 'arrive', slot: x.id, kid: el.dataset.k }, el.dataset.k === '*' ? 'رسیدن همه ثبت شد؛ خانواده‌ها خبردار شدند.' : 'ثبت شد؛ خانواده‌اش خبردار شد.'); }
     case 'banner-x': { const b = $('.banner'); b && b.remove(); return; }
     case 't-empty': return tact({ act: 'empty', slot: x.id, v: el.checked ? 1 : 0 });
@@ -1544,6 +1623,16 @@ async function openCode(code) {
 }
 
 /* ═════════ splash ═════════ */
+function dockFun() {
+  const dock = $('#dock'); if (!dock || dock.classList.contains('hide') || isDesk() || ui.wiz || $('#layer').innerHTML || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (Date.now() - (S.funAt || 0) < 3 * 3600e3) return;
+  const pats = ['honk', 'kids', 'smoke', 'hop'], k = pats[((S.funI ?? -1) + 1) % pats.length]; S.funI = pats.indexOf(k); S.funAt = Date.now(); persist();
+  const r = dock.getBoundingClientRect(), el = document.createElement('div'); el.className = 'dock-fun ' + k; el.style.bottom = (innerHeight - r.top - 6) + 'px'; el.setAttribute('aria-hidden', 'true');
+  const kid = c => `<svg viewBox="0 0 16 24" class="fk"><circle cx="8" cy="5" r="4" fill="#FFE1C4" stroke="#04140B" stroke-width="1.4"/><path d="M3 22l2-8h6l2 8M5 14l-3 3M11 14l3 3" stroke="#04140B" stroke-width="1.6" fill="${c}"/></svg>`;
+  el.innerHTML = k === 'smoke' ? `<div class="fr"><i class="pf"></i><i class="pf"></i><i class="pf"></i><em>ویژژژ…</em></div>` : `<div class="fr"><div class="fc">${CARTOON_CAR}</div>${k === 'kids' ? `<div class="kids3">${kid('#F97316')}${kid('#2563EB')}${kid('#DB2777')}</div>` : ''}${k === 'hop' ? '<span class="heart">❤</span>' : ''}<i class="pf"></i></div>`;
+  document.body.appendChild(el); snd(k === 'smoke' ? 'whoosh' : k === 'honk' ? 'honk' : 'step'); if (k === 'kids') setTimeout(() => snd('ok'), 900); if (k === 'hop') setTimeout(() => snd('honk'), 1500);
+  setTimeout(() => el.remove(), 6200);
+}
 function splash(force) {
   let el = $('#splash');
   if (!el && force) { location.reload(); return; }
@@ -1557,17 +1646,19 @@ function splash(force) {
 /* ═════════ events ═════════ */
 document.addEventListener('click', e => {
   const tab = e.target.closest('[data-tab]');
-  if (tab) { closeLayer(); ui.tab = tab.dataset.tab; render(true); scrollTo(0, 0); if (ui.tab !== 'peers') loadTeam(); return; }
+  if (tab) { if (!$('.chatx')) closeLayer(); ui.tab = tab.dataset.tab; render(true); scrollTo(0, 0); if (ui.tab !== 'peers') loadTeam(); return; }
   const el = e.target.closest('[data-a]');
   if (!el || el.disabled || el.dataset.a === '' ) return;
   if (el.tagName === 'INPUT' && el.type === 'checkbox') return;
   act(el.dataset.a, el);
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { if ($('#layer').innerHTML) closeLayer(); else if (ui.wiz && !ui.wiz.busy) act('w-close'); }
+  if (e.key === 'Escape') { if ($('.chatx')) chatClose(); else if ($('#layer').innerHTML) closeLayer(); else if (ui.wiz && !ui.wiz.busy) act('w-close'); }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('#title[data-a="switcher"]')) { e.preventDefault(); switcher(); }
   if (e.key === 'Enter' && ui.wiz && e.target.matches('.wiz input:not([type=checkbox])') && !ui.wiz.busy) { e.preventDefault(); wizNext(); }
   if (e.key === 'Enter' && e.target.id === 'code') act('go-code');
+  if (e.key === 'Enter' && e.target.id === 'chat-in') { e.preventDefault(); act('chat-send', e.target); }
+  if (e.key === 'Escape' && document.body.classList.contains('map-full')) act('map-full');
 });
 document.addEventListener('change', e => { const el = e.target;
   if (el.matches('select[data-a="adm-set"]')) act('adm-set', el);
@@ -1604,8 +1695,10 @@ const BASE = location.pathname.replace(/[^/]*$/, '').replace(/\/[A-Z2-9]{8}\/?$/
   render(true);
   const p = active();
   if (p && p.complete) { if (p.team) { ui.tab = 'team'; await loadTeam(); render(); } loadPeers(); loadInbox(); }
+  setInterval(liveTick, 10000);
+  setTimeout(() => { if (Math.random() < .6) dockFun(); }, 25000 + Math.random() * 35000);
   setInterval(() => { if (!document.hidden && S.token && active() && active().complete && !ui.wiz) { loadInbox(); if (ui.tab !== 'peers' && active().team) loadTeam().then(watchArrival); } }, 20000);
 })();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
-window.__rs = { PM, get S() { return S; }, get P() { return P; }, get ui() { return ui; }, api, planOf, balances };
+window.__rs = { PM, dockFun, liveTick, get S() { return S; }, get P() { return P; }, get ui() { return ui; }, api, planOf, balances };
 })();
