@@ -28,8 +28,8 @@ function C(string $k, $def = null) {
     return $c[$k] ?? $def;
 }
 const SECRET_FILE = __DIR__ . '/../storage/secrets.local.php';
-const SECRET_KEYS = ['kavenegar_api_key', 'kavenegar_template', 'kavenegar_tpl_invite', 'kavenegar_tpl_arrived', 'kavenegar_tpl_call', 'smsir_api_key', 'smsir_line', 'smsir_tpl_login', 'smsir_tpl_invite', 'smsir_tpl_arrived', 'payping_token_live', 'payping_token_test', 'neshan_service_key', 'neshan_web_key'];
-const SECRET_HIDDEN = ['kavenegar_api_key', 'smsir_api_key', 'payping_token_live', 'payping_token_test', 'neshan_service_key', 'neshan_web_key'];
+const SECRET_KEYS = ['bale_client_id', 'bale_client_secret', 'kavenegar_api_key', 'kavenegar_template', 'kavenegar_tpl_invite', 'kavenegar_tpl_arrived', 'kavenegar_tpl_call', 'smsir_api_key', 'smsir_line', 'smsir_tpl_login', 'smsir_tpl_invite', 'smsir_tpl_arrived', 'payping_token_live', 'payping_token_test', 'neshan_service_key', 'neshan_web_key'];
+const SECRET_HIDDEN = ['bale_client_secret', 'kavenegar_api_key', 'smsir_api_key', 'payping_token_live', 'payping_token_test', 'neshan_service_key', 'neshan_web_key'];
 /* Files are read as data (not include) so OPcache can never serve a stale copy; the first line stops PHP if requested directly. */
 function guarded_read(string $f): array { if (!is_file($f)) return []; $t = (string)@file_get_contents($f); if (str_starts_with($t, '<?php')) { $i = strpos($t, "\n"); $t = $i === false ? '' : substr($t, $i + 1); } $v = json_decode($t, true); if (!is_array($v) && str_contains($t, 'return ')) { $v = @include $f; } return is_array($v) ? $v : []; }
 function guarded_write(string $f, array $v): void { $tmp = $f . '.tmp'; file_put_contents($tmp, "<?php exit; ?>\n" . json_encode($v, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)); @chmod($tmp, 0600); rename($tmp, $f); if (function_exists('opcache_invalidate')) @opcache_invalidate($f, true); }
@@ -110,7 +110,7 @@ function schema(PDO $p): void {
     try { $p->exec('CREATE TABLE IF NOT EXISTS payments (id VARCHAR(40) PRIMARY KEY, ref VARCHAR(24) UNIQUE, purpose VARCHAR(16), amount INT, env VARCHAR(8), status VARCHAR(16), code VARCHAR(80), refid VARCHAR(40), card VARCHAR(40), name VARCHAR(80), mobile VARCHAR(20), user_id VARCHAR(40), note VARCHAR(255), created INT, updated INT)' . ($p->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' DEFAULT CHARSET=utf8mb4' : '')); } catch (Throwable $e) {}
     try { $p->exec('CREATE TABLE IF NOT EXISTS errors (id VARCHAR(40) PRIMARY KEY, src VARCHAR(8), msg VARCHAR(500), at_url VARCHAR(255), ua VARCHAR(160), n INT DEFAULT 1, sig VARCHAR(64), created INT, last INT)' . ($p->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' DEFAULT CHARSET=utf8mb4' : '')); } catch (Throwable $e) {}
     setv('schema', '8', $p);
-    foreach (['sms_invite' => '1', 'sms_arrive' => '0', 'auto_arrive' => '1', 'test_tools' => '1', 'signup_open' => '1', 'otp_dev' => '0', 'sms_direct' => '1', 'sms_provider' => 'kavenegar', 'pay_gateway' => '0', 'pay_env' => 'test', 'league_on' => '0', 'paid_mode' => '0', 'station_on' => '1', 'map_provider' => 'neshan', 'sub_price' => '297000', 'free_permanent' => '1', 'free_temp_month' => '2'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
+    foreach (['sms_invite' => '1', 'sms_arrive' => '0', 'auto_arrive' => '1', 'test_tools' => '1', 'signup_open' => '1', 'otp_dev' => '0', 'sms_direct' => '1', 'sms_provider' => 'kavenegar', 'otp_bale' => '0', 'pay_gateway' => '0', 'pay_env' => 'test', 'league_on' => '0', 'paid_mode' => '0', 'station_on' => '1', 'map_provider' => 'neshan', 'sub_price' => '297000', 'free_permanent' => '1', 'free_temp_month' => '2'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
 }
 function q(string $sql, array $a = []): PDOStatement { $s = db6()->prepare($sql); $s->execute($a); return $s; }
 function row(string $sql, array $a = []): ?array { $r = q($sql, $a)->fetch(); return $r ?: null; }
@@ -210,6 +210,28 @@ function kave(string $phone, string $tpl, array $tokens, ?string $by = null, str
     if ($type !== 'call' && flag('sms_direct')) return kave_send($phone, sms_text($tpl, $tokens), $tpl, $by);
     if ($type === 'call' && $tpl === C('kavenegar_template', 'residim-login')) $tpl = (string)C('kavenegar_tpl_call', 'residim-call');
     return kave_lookup($phone, $tpl, $tokens, $by, $type);
+}
+/** Bale «سفیر» OTP: client-credentials token (cached), then send_otp. The code arrives in the user's Bale app. */
+const BALE_API = 'https://safir.bale.ai/api/v2/';
+function bale_token(): string {
+    if ((int)getv('bale_tok_exp', '0') > time() + 60 && getv('bale_tok', '') !== '') return (string)getv('bale_tok');
+    $body = http_build_query(['grant_type' => 'client_credentials', 'client_id' => (string)C('bale_client_id'), 'client_secret' => (string)C('bale_client_secret'), 'scope' => 'read']);
+    $c = curl_init(BALE_API . 'auth/token'); curl_setopt_array($c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_POSTFIELDS => $body, CURLOPT_TIMEOUT => 15, CURLOPT_HTTPHEADER => ['Content-Type: application/x-www-form-urlencoded', 'Accept: application/json']]);
+    $raw = (string)curl_exec($c); $h = (int)curl_getinfo($c, CURLINFO_HTTP_CODE); $err = curl_error($c); curl_close($c); $j = json_decode($raw, true) ?: [];
+    if (empty($j['access_token'])) { setv('bale_last_err', mb_substr(($j['message'] ?? $j['error_description'] ?? $j['error'] ?? '') ?: ($err ?: 'HTTP ' . $h), 0, 200)); return ''; }
+    setv('bale_tok', (string)$j['access_token']); setv('bale_tok_exp', (string)(time() + (int)($j['expires_in'] ?? 3600))); return (string)$j['access_token'];
+}
+function bale_otp(string $phone, string $code): array {
+    $res = ['ok' => false, 'code' => 0, 'msg' => 'skipped']; $tok = bale_token();
+    if ($tok === '') $res['msg'] = 'توکن سفیر: ' . getv('bale_last_err', '');
+    else { $intl = '98' . substr($phone, 1);
+        [$h, $raw] = http_json('POST', BALE_API . 'send_otp', ['phone' => $intl, 'otp' => (int)$code], ['Authorization: Bearer ' . $tok]);
+        if ($h === 401) { setv('bale_tok_exp', '0'); $tok = bale_token(); if ($tok) [$h, $raw] = http_json('POST', BALE_API . 'send_otp', ['phone' => $intl, 'otp' => (int)$code], ['Authorization: Bearer ' . $tok]); }
+        $j = json_decode($raw, true) ?: []; $tp = (int)($j['type'] ?? 0); $cd = (int)($j['code'] ?? 0);
+        if ($h === 200 && !isset($j['message'])) $res = ['ok' => true, 'code' => 200, 'msg' => 'sent'];
+        else $res = ['ok' => false, 'code' => $cd ?: $h, 'msg' => $tp === 3 && $cd === 17 ? 'این شماره در بله حساب ندارد' : ($tp === 2 && $cd === 8 ? 'شماره نامعتبر است' : ($tp === 2 && $cd === 20 ? 'اعتبار سفیر کافی نیست' : ((string)($j['message'] ?? '') ?: 'HTTP ' . $h)))]; }
+    try { q('INSERT INTO sms(id,phone,tpl,status,by_user,created) VALUES(?,?,?,?,?,?)', [uid(), $phone, 'بله (سفیر)', $res['ok'] ? 'sent' : ('err ' . $res['code'] . ': ' . $res['msg']), null, time()]); } catch (Throwable $e) {}
+    return $res;
 }
 function sms_ready(): bool { return getv('sms_provider', 'kavenegar') === 'smsir' ? (bool)C('smsir_api_key') : (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'); }
 const SMSIR_ERR = [0 => 'خطای ارتباط', 10 => 'کلید API نامعتبر است', 11 => 'کلید API غیرفعال است', 12 => 'کلید به این IP دسترسی ندارد', 13 => 'حساب کاربری غیرفعال است', 14 => 'حساب در حالت تعلیق است', 20 => 'تعداد درخواست بیش از حد مجاز', 101 => 'شماره خط نامعتبر است', 102 => 'اعتبار کافی نیست', 103 => 'متن پیام خالی است', 104 => 'شماره موبایل نامعتبر است', 105 => 'تعداد گیرندگان بیش از حد مجاز', 106 => 'شماره خط به شما تعلق ندارد', 107 => 'شناسه الگو نامعتبر است', 108 => 'پارامترهای الگو کامل نیست', 111 => 'الگو تأیید نشده است'];
@@ -425,7 +447,7 @@ try {
 switch ($a) {
 
 case 'cfg': daily_backup(); YES(['web_key' => getv('map_provider', 'neshan') === 'neshan' ? (string)C('neshan_web_key') : '', 'map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '297000'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'service' => (bool)C('neshan_service_key'), 'sms' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'),
-    'flags' => ['sms_direct' => flag('sms_direct'), 'test_tools' => flag('test_tools'), 'auto_arrive' => flag('auto_arrive'), 'sms_arrive' => flag('sms_arrive'), 'signup_open' => flag('signup_open'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')], 'donate' => ['card' => (string)getv('donate_card', ''), 'name' => (string)getv('donate_name', ''), 'gateway' => flag('pay_gateway') && (bool)pp_token(), 'test' => getv('pay_env', 'test') !== 'live'], 'notice' => (string)getv('notice', ''), 'jyear' => jyear(), 'wk' => week_key(), 'radio_votes' => (int)getv('radio_votes', '0')]);
+    'flags' => ['sms_direct' => flag('sms_direct'), 'otp_bale' => flag('otp_bale') && (bool)C('bale_client_id'), 'test_tools' => flag('test_tools'), 'auto_arrive' => flag('auto_arrive'), 'sms_arrive' => flag('sms_arrive'), 'signup_open' => flag('signup_open'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')], 'donate' => ['card' => (string)getv('donate_card', ''), 'name' => (string)getv('donate_name', ''), 'gateway' => flag('pay_gateway') && (bool)pp_token(), 'test' => getv('pay_env', 'test') !== 'live'], 'notice' => (string)getv('notice', ''), 'jyear' => jyear(), 'wk' => week_key(), 'radio_votes' => (int)getv('radio_votes', '0')]);
 
 /* auth */
 case 'otp_send': {
@@ -439,6 +461,11 @@ case 'otp_send': {
     if ($hc > 6) NO('درخواست کد زیاد شد؛ کمی بعد دوباره تلاش کنید.', 429, 'wait');
     $code = (string)random_int(10000, 99999);
     q('DELETE FROM otps WHERE phone=?', [$ph]); q('INSERT INTO otps(phone,hash,exp,tries,sent,hour_count,hour_start) VALUES(?,?,?,?,?,?,?)', [$ph, password_hash($code, PASSWORD_DEFAULT), $now + 180, 0, $now, $hc, $hs]);
+    if (($in['channel'] ?? '') === 'bale') {
+        if (!flag('otp_bale') || !C('bale_client_id')) NO('ارسال کد با بله فعلاً فعال نیست.');
+        $r = bale_otp($ph, $code); if (!$r['ok']) { q('UPDATE otps SET sent=0 WHERE phone=?', [$ph]); J(['ok' => false, 'error' => 'bale', 'message' => $r['msg'] === 'این شماره در بله حساب ندارد' ? 'این شماره در بله حساب ندارد؛ پیامک یا راه دیگری را بزنید.' : 'کد از راه بله نرسید؛ پیامک یا راه دیگری را بزنید.', 'pcode' => $r['code']], 502); }
+        YES(['sent' => true, 'channel' => 'bale']);
+    }
     $smsReady = sms_ready();
     if ($smsReady && !flag('otp_dev')) {
         $r = kave($ph, (string)C('kavenegar_template', 'residim-login'), ['token' => $code], null, ($in['channel'] ?? '') === 'call' ? 'call' : 'sms');
@@ -817,12 +844,12 @@ case 'admin_overview': {
     need_admin(); $c = fn($s, $a = []) => (int)q($s, $a)->fetchColumn();
     YES(['counts' => ['users' => $c('SELECT COUNT(*) FROM users WHERE fake=0'), 'fake' => $c('SELECT COUNT(*) FROM users WHERE fake=1'), 'profiles' => $c('SELECT COUNT(*) FROM profiles WHERE fake=0'), 'complete' => $c('SELECT COUNT(*) FROM profiles WHERE complete=1 AND fake=0'),
         'places' => $c('SELECT COUNT(*) FROM places'), 'teams' => $c('SELECT COUNT(*) FROM teams'), 'invites' => $c("SELECT COUNT(*) FROM invites WHERE status='pending'"), 'tickets' => $c("SELECT COUNT(*) FROM tickets WHERE status='open'"), 'sms_day' => $c('SELECT COUNT(*) FROM sms WHERE created>?', [time() - 86400]), 'unseen' => $c('SELECT COUNT(*) FROM tickets WHERE seen=0 OR seen IS NULL'), 'errors_day' => $c('SELECT COUNT(*) FROM errors WHERE last>?', [time() - 86400]), 'paid' => $c("SELECT COUNT(*) FROM payments WHERE status='paid' AND env='live'")],
-        'flags' => ['sms_invite' => flag('sms_invite'), 'sms_arrive' => flag('sms_arrive'), 'auto_arrive' => flag('auto_arrive'), 'test_tools' => flag('test_tools'), 'signup_open' => flag('signup_open'), 'otp_dev' => flag('otp_dev'), 'sms_direct' => flag('sms_direct'), 'pay_gateway' => flag('pay_gateway'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')],
+        'flags' => ['sms_invite' => flag('sms_invite'), 'sms_arrive' => flag('sms_arrive'), 'auto_arrive' => flag('auto_arrive'), 'test_tools' => flag('test_tools'), 'signup_open' => flag('signup_open'), 'otp_dev' => flag('otp_dev'), 'sms_direct' => flag('sms_direct'), 'otp_bale' => flag('otp_bale'), 'pay_gateway' => flag('pay_gateway'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')],
         'settings' => ['map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '297000'), 'free_permanent' => (int)getv('free_permanent', '1'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'sub_interest' => (int)getv('sub_interest', '0'), 'kave_sender' => (string)getv('kave_sender', ''), 'kave_sender_auto' => (string)getv('kave_sender_auto', ''), 'donate_card' => (string)getv('donate_card', ''), 'donate_name' => (string)getv('donate_name', ''), 'engine' => db_engine(), 'sms_provider' => getv('sms_provider', 'kavenegar'), 'pay_env' => getv('pay_env', 'test'), 'notice' => (string)getv('notice', '')],
         'services' => ['db' => db_engine(), 'php' => PHP_VERSION, 'sms_provider' => getv('sms_provider', 'kavenegar'), 'smsir' => (bool)C('smsir_api_key'), 'payping' => (bool)(C('payping_token_live') || C('payping_token_test')), 'kavenegar' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'), 'neshan_service' => (bool)C('neshan_service_key'), 'neshan_web' => (bool)C('neshan_web_key'), 'curl' => function_exists('curl_init'), 'tpl_login' => C('kavenegar_template', 'residim-login'), 'tpl_invite' => C('kavenegar_tpl_invite'), 'tpl_arrived' => C('kavenegar_tpl_arrived')],
         'default_pass' => C('admin_pass') === 'mot']);
 }
-case 'admin_flag': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_array($k, ['sms_invite', 'sms_arrive', 'auto_arrive', 'test_tools', 'signup_open', 'otp_dev', 'sms_direct', 'pay_gateway', 'league_on', 'paid_mode', 'station_on'], true)) NO('کلید نامعتبر.'); setv($k, !empty($in['v']) ? '1' : '0'); YES(); }
+case 'admin_flag': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_array($k, ['sms_invite', 'sms_arrive', 'auto_arrive', 'test_tools', 'signup_open', 'otp_dev', 'sms_direct', 'otp_bale', 'pay_gateway', 'league_on', 'paid_mode', 'station_on'], true)) NO('کلید نامعتبر.'); setv($k, !empty($in['v']) ? '1' : '0'); YES(); }
 case 'sub_interest': { $u = auth(); $k = 'subi_' . $u['user_id']; if (getv($k) === null) { setv($k, (string)time()); setv('sub_interest', (string)((int)getv('sub_interest', '0') + 1)); } YES(); }
 case 'admin_seen': { need_admin(); q('UPDATE tickets SET seen=1 WHERE seen=0 OR seen IS NULL'); YES(); }
 case 'admin_ticket_close': { need_admin(); q("UPDATE tickets SET status=?, updated=? WHERE id=?", [!empty($in['open']) ? 'open' : 'closed', time(), (string)($in['id'] ?? '')]); YES(); }
@@ -879,13 +906,14 @@ case 'admin_secret_set': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_
 case 'admin_test': { need_admin(); $w = (string)($in['what'] ?? '');
     if ($w === 'payping') { $env = ($in['env'] ?? '') === 'live' ? 'live' : 'test'; if (!pp_token($env)) NO('توکن ' . ($env === 'live' ? 'اصلی' : 'تست') . ' ذخیره نشده است.');
         [$h, $j, $raw] = pp('POST', 'pay', ['amount' => 10000, 'returnUrl' => 'https://residim.ir/app/api/pay.php', 'clientRefId' => 'TEST' . time(), 'description' => 'آزمون اتصال پیشخوان رسیدیم'], $env);
-        if ($h === 200 && !empty($j['paymentCode'])) { pp('DELETE', 'pay', ['paymentCode' => $j['paymentCode']], $env); YES(['ok' => true, 'msg' => 'توکن معتبر است؛ یک دستور پرداخت آزمایشی ساخته و حذف شد.']); }
-        YES(['ok' => false, 'msg' => pp_err($j, $raw, $h)]); }
+        if ($h === 200 && !empty($j['paymentCode'])) { pp('DELETE', 'pay', ['paymentCode' => $j['paymentCode']], $env); YES(['pass' => true, 'msg' => 'توکن معتبر است؛ یک دستور پرداخت آزمایشی ساخته و حذف شد.']); }
+        YES(['pass' => false, 'msg' => pp_err($j, $raw, $h)]); }
     if ($w === 'smsir') { if (!C('smsir_api_key')) NO('کلید sms.ir ذخیره نشده است.'); [$h, $raw] = http_json('GET', 'https://api.sms.ir/v1/credit', null, ['X-API-KEY: ' . C('smsir_api_key')]); $j = json_decode($raw, true);
-        YES(['ok' => (int)($j['status'] ?? 0) === 1, 'msg' => (int)($j['status'] ?? 0) === 1 ? 'اتصال برقرار است؛ اعتبار: ' . ($j['data'] ?? '?') : ((string)($j['message'] ?? '') ?: 'HTTP ' . $h)]); }
+        YES(['pass' => (int)($j['status'] ?? 0) === 1, 'msg' => (int)($j['status'] ?? 0) === 1 ? 'اتصال برقرار است؛ اعتبار: ' . ($j['data'] ?? '?') : ((string)($j['message'] ?? '') ?: 'HTTP ' . $h)]); }
     if ($w === 'kavenegar') { if (!C('kavenegar_api_key')) NO('کلید کاوه‌نگار ذخیره نشده است.'); [$h, $raw] = http_raw('https://api.kavenegar.com/v1/' . rawurlencode((string)C('kavenegar_api_key')) . '/account/info.json'); $j = json_decode($raw, true); $st = (int)($j['return']['status'] ?? $h);
-        YES(['ok' => $st === 200, 'msg' => $st === 200 ? 'اتصال برقرار است؛ اعتبار: ' . number_format((int)($j['entries']['remaincredit'] ?? 0)) . ' ریال' : (KAVE_CODES[$st] ?? ('کد ' . $st))]); }
-    if ($w === 'neshan') { if (!C('neshan_service_key')) NO('کلید سرویس نشان ذخیره نشده است.'); $r = neshan('/v5/reverse', ['lat' => 35.6997, 'lng' => 51.3380]); YES(['ok' => (bool)$r, 'msg' => $r ? 'اتصال برقرار است: ' . ($r['formatted_address'] ?? 'نشانی دریافت شد') : 'نشان پاسخ نداد یا کلید نامعتبر است.']); }
+        YES(['pass' => $st === 200, 'msg' => $st === 200 ? 'اتصال برقرار است؛ اعتبار: ' . number_format((int)($j['entries']['remaincredit'] ?? 0)) . ' ریال' : (KAVE_CODES[$st] ?? ('کد ' . $st))]); }
+    if ($w === 'neshan') { if (!C('neshan_service_key')) NO('کلید سرویس نشان ذخیره نشده است.'); $r = neshan('/v5/reverse', ['lat' => 35.6997, 'lng' => 51.3380]); YES(['pass' => (bool)$r, 'msg' => $r ? 'اتصال برقرار است: ' . ($r['formatted_address'] ?? 'نشانی دریافت شد') : 'نشان پاسخ نداد یا کلید نامعتبر است.']); }
+    if ($w === 'bale') { if (!C('bale_client_id') || !C('bale_client_secret')) NO('شناسه و رمز سفیر بله ذخیره نشده است.'); setv('bale_tok_exp', '0'); $t = bale_token(); YES(['pass' => $t !== '', 'msg' => $t !== '' ? 'اتصال برقرار است؛ توکن سفیر بله گرفته شد.' : 'توکن گرفته نشد: ' . (string)getv('bale_last_err', '')]); }
     NO('آزمون نامعتبر.'); }
 case 'admin_backups': { need_admin(); $d = dirname(__DIR__) . '/storage/backups'; $L = []; foreach (glob($d . '/r6-*.sqlite') ?: [] as $f) $L[] = ['name' => basename($f), 'mb' => round(filesize($f) / 1048576, 2)]; rsort($L); YES(['list' => $L, 'engine' => db_engine()]); }
 case 'admin_backup_now': { need_admin(); setv('bk_day', ''); daily_backup(); YES(); }

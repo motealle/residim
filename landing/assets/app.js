@@ -664,16 +664,17 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=13" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=14" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)} <span class="pchip">${ic('down', '')}</span></b><small>${p.team ? esc(teamName(p.team)) + ' · ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</small></span>`; }
-  else t = `<img src="assets/icon.svg?v=13" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=14" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
 }
 function paintBell() { const n = ui.inbox ? ui.inbox.invites.length + ui.inbox.unread : 0; const p = active(); $('#bell').innerHTML = ic('bell') + (n ? `<span class="badge">${fa(n)}</span>` : ''); $('#bell').classList.toggle('hide', !(p && p.complete && S.token) || ui.admin); }
 function renderMain(anim) {
-  const main = $('#main'), p = active(), dock = $('#dock');
+  const main = $('#main'), p = active(), dock = $('#dock'), keepY = ui.admin && !anim ? scrollY : null;
+  if (keepY != null) requestAnimationFrame(() => { if (Math.abs(scrollY - keepY) > 4) scrollTo(0, keepY); });
   if (PM.node && PM.node.parentNode) PM.node.parentNode.removeChild(PM.node);
   let html;
   if (ui.admin) html = adminView();
@@ -736,7 +737,7 @@ function drawer(keep) {
   const mi = (a, i, txt, extra = '') => `<button class="mi" data-a="${a}" ${extra}>${ic(i)}<span class="grow">${txt}</span></button>`;
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=13" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم</b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان · شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="شب و روز">${ic('moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=14" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم</b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان · شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="شب و روز">${ic('moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     <div class="sec-h"><span>مسیرک‌ها (${fa(ps.length)})</span></div>
     <div class="pgroup">${ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${x.id === S.active ? profPanel(x) : ''}</div>`).join('')}
     <button class="mi" data-a="new-profile">${ic('plus')}<span class="grow">مسیرکِ تازه</span></button></div>
@@ -763,7 +764,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <p class="muted small" style="padding:8px">نسخه ۱۳ · ${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی (کلید سرویس نشان تنظیم نشده)'}</p>`;
+    <p class="muted small" style="padding:8px">نسخه ۱۴ · ${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی (کلید سرویس نشان تنظیم نشده)'}</p>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -984,8 +985,8 @@ function wizSteps(w) {
         <p class="note">${ic('check')}با ۰۹، ‎+98، ۰۰۹۸ یا بدون صفر؛ با رقم فارسی یا انگلیسی؛ هر طور راحتید.</p>
         ${contactHtml(w)}
         ${w.smsFail ? `<div class="hint warn" style="display:grid;gap:10px">${ic('warn')}<b>پیامک کد نرسید؛ مشکل از سمت ماست، نه شما.</b><span class="small">${w.smsFail.pcode ? 'کد خطای سرویس: ' + fa(w.smsFail.pcode) + ' · ' : ''}یکی از این راه‌ها را بزنید:</span>
-          <div class="choices"><button class="choice" data-a="w-resend">${ic('phone', 'emo')}دوباره با پیامک</button>${CFG.flags.sms_direct ? '' : `<button class="choice" data-a="w-call">${ic('bell', 'emo')}کد را با تماس صوتی بگیرم</button>`}<button class="choice" data-a="w-guest">${ic('back', 'emo')}<span>فعلاً بدون شماره ادامه می‌دهم<small>بعداً از منو تأیید می‌کنید؛ تا آن موقع شماره‌ی دیگران را نمی‌بینید و کنار نام‌تان «تأییدنشده» می‌آید.</small></span></button></div></div>` : ''}
-        ${w.otpSent ? `<div class="field"><label for="w-otp">کد تأیید</label><input id="w-otp" class="otp" data-w="otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" value="${esc(w.otp || '')}"></div>${w.devCode ? `<p class="note">${ic('flask')}سرویس پیامک هنوز فعال نیست؛ کد آزمایشی: <b dir="ltr">${fa(w.devCode)}</b></p>` : `<p class="note">کد را ${w.channel === 'call' ? 'با تماس صوتی' : 'پیامک'} کردیم.</p>`}<div class="row wrap"><button class="link" data-a="w-resend">ارسال دوباره</button>${CFG.flags.sms_direct ? '' : '<button class="link" data-a="w-call">تماس صوتی</button>'}<button class="link" data-a="w-guest">بدون شماره ادامه می‌دهم</button></div>` : (w.smsFail ? '' : '<button class="link" data-a="w-guest">فعلاً بدون شماره ادامه می‌دهم</button>')}`,
+          <div class="choices"><button class="choice" data-a="w-resend">${ic('phone', 'emo')}دوباره با پیامک</button>${CFG.flags.otp_bale ? `<button class="choice" data-a="w-bale">${ic('chat', 'emo')}<span>کد را در بله بگیرم<small>اگر بله دارید؛ سریع و بی‌دردسر</small></span></button>` : ''}${CFG.flags.sms_direct ? '' : `<button class="choice" data-a="w-call">${ic('bell', 'emo')}کد را با تماس صوتی بگیرم</button>`}<button class="choice" data-a="w-guest">${ic('back', 'emo')}<span>فعلاً بدون شماره ادامه می‌دهم<small>بعداً از منو تأیید می‌کنید؛ تا آن موقع شماره‌ی دیگران را نمی‌بینید و کنار نام‌تان «تأییدنشده» می‌آید.</small></span></button></div></div>` : ''}
+        ${w.otpSent ? `<div class="field"><label for="w-otp">کد تأیید</label><input id="w-otp" class="otp" data-w="otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" value="${esc(w.otp || '')}"></div>${w.devCode ? `<p class="note">${ic('flask')}سرویس پیامک هنوز فعال نیست؛ کد آزمایشی: <b dir="ltr">${fa(w.devCode)}</b></p>` : `<p class="note">کد را ${w.channel === 'call' ? 'با تماس صوتی گفتیم' : w.channel === 'bale' ? 'در اپ بله فرستادیم' : 'پیامک کردیم'}.</p>`}<div class="row wrap"><button class="link" data-a="w-resend">ارسال دوباره</button>${CFG.flags.sms_direct ? '' : '<button class="link" data-a="w-call">تماس صوتی</button>'}${CFG.flags.otp_bale ? '<button class="link" data-a="w-bale">در بله بفرست</button>' : ''}<button class="link" data-a="w-guest">بدون شماره ادامه می‌دهم</button></div>` : (w.smsFail ? '' : '<button class="link" data-a="w-guest">فعلاً بدون شماره ادامه می‌دهم</button>')}`,
       ok: w => !normPhone(w.phone) ? 'شماره را درست بنویسید؛ مثلاً ۰۹۱۲۱۲۳۴۵۶۷.' : !w.d.contact ? 'روش ارتباط را انتخاب کنید.' : !w.otpSent ? 'otp-send' : (en(w.otp || '').length < 4 ? 'کد را وارد کنید.' : 'otp-verify') }
   ];
   return all.filter(s => s.show(w));
@@ -1128,7 +1129,7 @@ async function finishWizard(w) {
 async function otpSend(w, channel) {
   w.busy = true; w.err = ''; wizRender();
   try { const r = await api('otp_send', { phone: normPhone(w.phone), channel: channel || 'sms' }); w.otpSent = true; w.smsFail = null; w.channel = channel || 'sms'; w.devCode = r.dev_code || null; }
-  catch (e) { if (e.code === 'sms') { w.smsFail = { pcode: e.pcode }; w.otpSent = false; } else w.err = e.message; }
+  catch (e) { if (e.code === 'sms') { w.smsFail = { pcode: e.pcode }; w.otpSent = false; } else if (e.code === 'bale') { w.smsFail = w.smsFail || { pcode: e.pcode }; w.otpSent = false; w.err = e.message; } else w.err = e.message; }
   w.busy = false; wizRender();
 }
 async function guestStart(w) {
@@ -1219,6 +1220,19 @@ async function chatPull() {
 }
 
 /* ═════════ admin ═════════ */
+const PP_HINT = [
+  [/درگاه پرداخت فعال|پذیرنده یافت نشد/, 'یعنی توکن درست است و پی‌پینگ جواب داد، اما <b>درگاه پرداخت این حساب هنوز فعال نشده</b>. در پنل پی‌پینگ: «راهکارها ← درگاه پرداخت» را باز کنید. وضعیت باید «فعال» باشد؛ اگر «در انتظار تأیید شاپرک» است، چند روز کاری صبر لازم است. اگر اصلاً درخواست نداده‌اید، همان‌جا «درخواست درگاه» بدهید (مدارک هویتی، شبای حساب، دامنه و اینماد). هنگام ساخت توکن هم دسترسی «پرداخت» را تیک بزنید.'],
+  [/401|Unauthorized|توکن/i, 'توکن نامعتبر یا منقضی است، یا دسترسی «پرداخت» ندارد. در پنل پی‌پینگ (اتصالات ← توکن‌ها) «تعویض توکن» بزنید و توکن تازه را اینجا ذخیره کنید.'],
+  [/timeout|curl|SSL/i, 'سرور هاست به api.payping.ir نرسید. از پشتیبانی هاست بپرسید که خروجی HTTPS به این دامنه باز است.'],
+  [/۴۲۶|426|پیشرفته/, 'الگو در کاوه‌نگار فقط با اشتراک پیشرفته کار می‌کند.'],
+  [/۴۲۴|424|الگو/, 'الگو تعریف یا تأیید نشده؛ نام الگو باید دقیقاً همان باشد که در پنل ساخته‌اید.']
+];
+async function admReload(k) { const A = ui.adm; if (!A) return; try {
+    if (k === 'sec') A.sec = await api('admin_secrets', {}, true);
+    if (k === 'my') A.my = await api('admin_mysql_get', {}, true);
+    if (k === 'health') { const [e, b, h] = await Promise.all([api('admin_errors', {}, true), api('admin_backups', {}, true), api('health', {}, true)]); A.errs = e.list; A.bk = b; A.hl = h; }
+    if (k === 'pays') A.pays = await api('admin_payments', {}, true);
+  } catch (e) { fail(e); } renderMain(); }
 function pager(key, list, row, wrap = x => x, size = 20) {
   ui.pg = ui.pg || {}; const all = ui.pg[key] === 'all', n = list.length, pages = Math.max(1, Math.ceil(n / size)), pg = all ? 0 : Math.min(ui.pg[key] || 0, pages - 1);
   const part = all ? list : list.slice(pg * size, pg * size + size);
@@ -1241,6 +1255,18 @@ function secRow(K, k, label, hint, opt) {
     <input id="sx-${k}" dir="ltr" ${hid ? 'type="password" autocomplete="new-password"' : ''} value="${hid ? '' : esc(x.show || '')}" placeholder="${esc(hint || '')}"></div>
     <div class="row"><button class="btn sm" data-a="sx-save" data-k="${k}">ذخیره</button>${x.src === 'admin' ? `<button class="link" data-a="sx-clear" data-k="${k}">پاک کردن</button>` : ''}</div></div>`;
 }
+const cp = (t, label) => `<button class="cpy" data-a="copy" data-v="${esc(t)}" title="کپی">${ic('copy')}${label ? `<span>${label}</span>` : ''}</button>`;
+const KAVE_TPL = [
+  ['residim-login', 'پیامک', 'رسیدیم\nکد ورود شما: %token\nاین کد را به کسی ندهید.\n\n@residim.ir #%token'],
+  ['residim-call', 'پیام صوتی', 'کد ورود شما به رسیدیم %token است. تکرار می‌کنم: %token'],
+  ['residim-invite', 'پیامک', 'رسیدیم: خانواده %token10 برای %token20 به شما پیشنهاد هم‌مسیری داده‌اند. دیدن و پاسخ: residim.ir/%token'],
+  ['residim-arrived', 'پیامک', 'رسیدیم: %token10 ساعت %token به %token20 رسید. راننده: خانواده %token2']];
+const SMSIR_TPL = [
+  ['کد ورود', 'smsir_tpl_login', 'رسیدیم\nکد ورود شما: #CODE#\nاین کد را به کسی ندهید.', 'CODE'],
+  ['دعوت', 'smsir_tpl_invite', 'رسیدیم: خانواده #FAMILY# برای #PLACE# به شما پیشنهاد هم‌مسیری داده‌اند. residim.ir/#CODE#', 'CODE، FAMILY، PLACE'],
+  ['رسیدن', 'smsir_tpl_arrived', 'رسیدیم: #KID# ساعت #TIME# به #PLACE# رسید. راننده: خانواده #DRIVER#', 'KID، TIME، PLACE، DRIVER']];
+const tplShow = x => esc(x).replace(/(%token\d*|#[A-Z]+#|@residim\.ir|residim\.ir\/\S+)/g, '<bdi dir="ltr">$1</bdi>');
+function tplGuide(rows) { return `<details class="tplg"><summary>${ic('copy')}متن‌های آماده برای پنل (بزنید و کپی کنید)</summary>${rows}</details>`; }
 function admConn(A) {
   const C2 = A.sec; if (!C2) { api('admin_secrets', {}, true).then(r => { A.sec = r; renderMain(); }).catch(fail); return '<p class="muted">در حال خواندن…</p>'; }
   const K = C2.secrets, ST = A.ov.settings || {}, F = A.ov.flags, out = id => `<div class="t-out" id="${id}"></div>`;
@@ -1253,15 +1279,28 @@ function admConn(A) {
       <p class="muted small">بعد از تأیید الگوها در پنل سرویس، کلید بالا را خاموش کنید و از زبانه‌ی «پیامک» یک پیام آزمایشی بفرستید.</p></section>
     <section class="card stack"><h2>کاوه‌نگار</h2>${secRow(K, 'kavenegar_api_key', 'کلید API', 'از پنل: تنظیمات حساب ← کلید API', { secret: 1 })}
       ${secRow(K, 'kavenegar_template', 'نام الگوی کد ورود', 'residim-login')}${secRow(K, 'kavenegar_tpl_call', 'نام الگوی صوتی کد ورود', 'residim-call')}${secRow(K, 'kavenegar_tpl_invite', 'نام الگوی دعوت', 'residim-invite')}${secRow(K, 'kavenegar_tpl_arrived', 'نام الگوی «رسید»', 'residim-arrived')}
-      <button class="btn line sm" data-a="adm-test" data-v="kavenegar">آزمون اتصال و اعتبار</button>${out('t-kavenegar')}</section>
+      <button class="btn line sm" data-a="adm-test" data-v="kavenegar">آزمون اتصال و اعتبار</button>${out('t-kavenegar')}
+      ${tplGuide(`<p class="muted small">پنل کاوه‌نگار ← اعتبارسنجی ← ایجاد الگوی جدید. «نوع استفاده»: وب سایت. متغیرها را با دکمه‌های «افزودن پارامتر» بگذارید (بدون درصد پایانی).</p>${KAVE_TPL.map(([n, t, x]) => `<div class="tpl"><div class="row between"><b dir="ltr">${n}</b>${cp(n, 'نام')}</div><span class="small muted">نوع ارسال: ${t}</span><pre dir="rtl">${tplShow(x)}</pre>${cp(x, 'کپی متن')}</div>`).join('')}`)}</section>
     <section class="card stack"><h2>sms.ir (جایگزین)</h2>${secRow(K, 'smsir_api_key', 'کلید API', 'از پنل sms.ir: برنامه‌نویسان ← لیست کلیدها', { secret: 1 })}
       ${secRow(K, 'smsir_line', 'شماره خط (برای ارسال مستقیم)', 'مثلاً 30007732000000')}${secRow(K, 'smsir_tpl_login', 'شناسه‌ی عددی قالب کد ورود', 'مثلاً 123456')}${secRow(K, 'smsir_tpl_invite', 'شناسه‌ی قالب دعوت', '')}${secRow(K, 'smsir_tpl_arrived', 'شناسه‌ی قالب «رسید»', '')}
-      <button class="btn line sm" data-a="adm-test" data-v="smsir">آزمون اتصال و اعتبار</button>${out('t-smsir')}</section>
+      <button class="btn line sm" data-a="adm-test" data-v="smsir">آزمون اتصال و اعتبار</button>${out('t-smsir')}
+      ${tplGuide(`<p class="muted small">پنل sms.ir ← ارسال سریع (وریفای) ← قالب جدید. بعد از تأیید، شناسه‌ی عددی قالب را در فیلد بالا بگذارید.</p>${SMSIR_TPL.map(([n, k, x, v]) => `<div class="tpl"><div class="row between"><b>${n}</b><span class="small muted">متغیرها: <span dir="ltr">${v}</span></span></div><pre dir="rtl">${tplShow(x)}</pre>${cp(x, 'کپی متن')}</div>`).join('')}`)}</section>
     <section class="card stack"><h2>درگاه پی‌پینگ</h2>${secRow(K, 'payping_token_test', 'توکن تست', 'توکن «رسیدیم» (تست)', { secret: 1 })}${secRow(K, 'payping_token_live', 'توکن اصلی', 'توکن «رسیدیم غیر تستی»', { secret: 1 })}
       <div class="chips">${[['test', 'حالت تست'], ['live', 'حالت واقعی']].map(([k, v]) => `<button class="chip" data-a="pay-env" data-v="${k}" aria-pressed="${(ST.pay_env || 'test') === k}">${v}</button>`).join('')}</div>
       <label class="switch"><span>پرداخت دنگ خیر از درگاه (خاموش = فقط کارت به کارت)</span><input type="checkbox" data-a="adm-flag" data-k="pay_gateway" ${F.pay_gateway ? 'checked' : ''}></label>
       <div class="row wrap"><button class="btn line sm" data-a="adm-test" data-v="payping" data-env="test">آزمون توکن تست</button><button class="btn line sm" data-a="adm-test" data-v="payping" data-env="live">آزمون توکن اصلی</button></div>${out('t-payping')}
-      <p class="muted small">نشانی بازگشت که در پی‌پینگ ثبت می‌شود: <b dir="ltr">https://residim.ir/app/api/pay.php</b></p></section>
+      ${tplGuide(`<p class="muted small">در پنل پی‌پینگ ← اتصالات ← توکن جدید یا ویرایش: </p>
+        <div class="tpl"><div class="row between"><span>آدرس وب‌سایت</span>${cp('https://residim.ir')}</div><pre dir="ltr">https://residim.ir</pre></div>
+        <div class="tpl"><div class="row between"><span>نشانی بازگشت (returnUrl)، اگر پرسید</span>${cp('https://residim.ir/app/api/pay.php')}</div><pre dir="ltr">https://residim.ir/app/api/pay.php</pre></div>
+        <p class="muted small">دسترسی توکن باید شامل «پرداخت» باشد. و در «راهکارها ← درگاه پرداخت» وضعیت درگاه باید «فعال» باشد.</p>`)}</section>
+    <section class="card stack"><h2>کد ورود با بله (سفیر)</h2><p class="muted small">کد ورود به‌جای پیامک در اپ بله می‌رسد (طبق اعلام بله برای کسب‌وکارها رایگان). اگر شماره در بله حساب نداشت، کاربر پیامک یا راه دیگر را انتخاب می‌کند.</p>
+      ${secRow(K, 'bale_client_id', 'شناسه‌ی کلاینت (client_id)', 'از پنل سفیر بله')}${secRow(K, 'bale_client_secret', 'رمز کلاینت (client_secret)', '', { secret: 1 })}
+      <label class="switch"><span>نمایش گزینه‌ی «کد را در بله بگیرم»</span><input type="checkbox" data-a="adm-flag" data-k="otp_bale" ${F.otp_bale ? 'checked' : ''}></label>
+      <button class="btn line sm" data-a="adm-test" data-v="bale">آزمون اتصال</button>${out('t-bale')}
+      ${tplGuide(`<p class="muted small">در پنل سفیر بله کسب‌وکار را ثبت کنید و سرویس «ارسال کد یکبارمصرف (OTP)» را بگیرید؛ client_id و client_secret را این بالا بگذارید. مشخصاتی که می‌خواهد:</p>
+        <div class="tpl"><div class="row between"><span>نام سرویس</span>${cp('رسیدیم')}</div><pre>رسیدیم</pre></div>
+        <div class="tpl"><div class="row between"><span>وب‌سایت</span>${cp('https://residim.ir')}</div><pre dir="ltr">https://residim.ir</pre></div>
+        <div class="tpl"><div class="row between"><span>توضیح کوتاه</span>${cp('ارسال کد ورود یکبارمصرف برای کاربران سرویس مشارکتی رفت‌وآمد رسیدیم')}</div><pre>ارسال کد ورود یکبارمصرف برای کاربران سرویس مشارکتی رفت‌وآمد رسیدیم</pre></div>`)}</section>
     <section class="card stack"><h2>نقشه‌ی نشان</h2>${secRow(K, 'neshan_service_key', 'کلید سرویس (service.…)', 'service.xxxxxxxx', { secret: 1 })}${secRow(K, 'neshan_web_key', 'کلید نقشه‌ی وب (web.…)', 'web.xxxxxxxx', { secret: 1 })}
       <button class="btn line sm" data-a="adm-test" data-v="neshan">آزمون کلید سرویس</button>${out('t-neshan')}</section>
     <section class="card stack"><h2>پیام همگانی بالای اپ</h2><p class="muted small">مثلاً «امشب ساعت ۲۳ تا ۲۴ به‌روزرسانی داریم.» خالی = پنهان.</p>
@@ -1475,7 +1514,7 @@ async function act(a, el) {
     case 'open-code': closeLayer(); return openCode(el.dataset.c);
     case 'go-code': { const v = ($('#code').value || '').trim().toUpperCase().replace(/^.*\//, '').replace(/[^A-Z0-9]/g, ''); if (v.length < 6) return toast('کد ۸ حرفی را وارد کنید.'); return openCode(v); }
     case 'login': closeLayer(); return loginSheet();
-    case 'lg-send': case 'lg-call': { const ph = normPhone($('#lg-ph').value); if (!ph) return toast('شماره را درست بنویسید؛ مثلاً ۰۹۱۲۱۲۳۴۵۶۷.'); try { const r = await api('otp_send', { phone: ph, channel: a === 'lg-call' ? 'call' : 'sms' }); ui.lg = { ph, dev: r.dev_code }; loginSheet(); } catch (e) { toast(e.code === 'sms' ? `پیامک نرسید (کد ${fa(e.pcode || 0)})؛ تماس صوتی را امتحان کنید.` : e.message); } return; }
+    case 'lg-send': case 'lg-call': case 'lg-bale': { const ph = normPhone($('#lg-ph').value); if (!ph) return toast('شماره را درست بنویسید؛ مثلاً ۰۹۱۲۱۲۳۴۵۶۷.'); try { const r = await api('otp_send', { phone: ph, channel: a === 'lg-call' ? 'call' : a === 'lg-bale' ? 'bale' : 'sms' }); ui.lg = { ph, dev: r.dev_code }; loginSheet(); } catch (e) { toast(e.code === 'sms' ? `پیامک نرسید (کد ${fa(e.pcode || 0)})؛ تماس صوتی را امتحان کنید.` : e.message); } return; }
     case 'lg-verify': { try { const wasGuest = S.token && !S.phone; const r = await api('otp_verify', { phone: ui.lg.ph, code: en($('#lg-otp').value) }); S.token = r.token; S.phone = r.phone; ui.lg = null; persist(); await refreshMe(); closeLayer(); if (wasGuest) { toast('شماره تأیید شد ✓'); return setActive(S.active && P.find(x => x.id === S.active) ? S.active : (P[0] || {}).id, { noWizard: true }); } if (P.length) setActive(P[0].id); else { render(true); toast('خوش آمدید! حالا اولین مسیرک را بسازید.'); } } catch (e) { fail(e); } return; }
     case 'logout': try { await api('logout'); } catch (e) {} S.token = null; S.phone = null; S.active = null; P = []; persist(); closeLayer(); applyAccent(); render(true); return toast('از حساب خارج شدید.');
     case 'theme': { const d = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = d; S.theme = d; persist(); return; }
@@ -1579,9 +1618,9 @@ async function act(a, el) {
     case 'adm-tab': ui.admTab = el.dataset.v; renderMain(); scrollTo(0, 0); if (el.dataset.v === 'msgs' && ui.adm && ui.adm.ov.counts.unseen) { api('admin_seen', {}, true).then(() => { ui.adm.ov.counts.unseen = 0; ui.admSeenN = 0; }).catch(() => {}); } return;
     case 'pg': ui.pg = ui.pg || {}; ui.pg[el.dataset.k] = el.dataset.v === 'all' ? 'all' : +el.dataset.v; return renderMain();
     case 'adm-tclose': try { await api('admin_ticket_close', { id: el.dataset.id, open: +el.dataset.v }, true); const t = ui.adm.tickets.find(x => x.id === el.dataset.id); if (t) t.status = +el.dataset.v ? 'open' : 'closed'; renderMain(); } catch (e) { fail(e); } return;
-    case 'my-save': try { await api('admin_mysql_save', { host: $('#my-host').value.trim(), port: +en($('#my-port').value) || 3306, name: $('#my-name').value.trim(), user: $('#my-user').value.trim(), pass: $('#my-pass').value }, true); ui.adm.my = null; renderMain(); toast('ذخیره شد؛ حالا «تست دود» را بزنید.'); } catch (e) { fail(e); } return;
-    case 'my-test': try { const r = await api('admin_mysql_test', {}, true); ui.adm.my = null; renderMain(); snd('ok'); toast('تست دود موفق بود؛ MySQL ' + r.version); } catch (e) { fail(e); } return;
-    case 'my-migrate': if (!confirm('همه‌ی داده‌های SQLite در MySQL کپی شود؟ جدول‌های MySQL اول خالی می‌شوند.')) return; el.disabled = true; try { const r = await api('admin_mysql_migrate', {}, true); ui.adm.my = null; renderMain(); setTimeout(() => { const o = $('#my-out'); if (o) o.innerHTML = `<div class="done">${ic('check')}<span>${Object.entries(r.counts).map(([k, v]) => k + ': ' + fa(v)).join(' · ')}</span></div>`; }, 300); toast('انتقال انجام شد و شمارش‌ها یکی بود.'); } catch (e) { el.disabled = false; fail(e); } return;
+    case 'my-save': try { await api('admin_mysql_save', { host: $('#my-host').value.trim(), port: +en($('#my-port').value) || 3306, name: $('#my-name').value.trim(), user: $('#my-user').value.trim(), pass: $('#my-pass').value }, true); admReload('my'); toast('ذخیره شد؛ حالا «تست دود» را بزنید.'); } catch (e) { fail(e); } return;
+    case 'my-test': try { const r = await api('admin_mysql_test', {}, true); admReload('my'); snd('ok'); toast('تست دود موفق بود؛ MySQL ' + r.version); } catch (e) { fail(e); } return;
+    case 'my-migrate': if (!confirm('همه‌ی داده‌های SQLite در MySQL کپی شود؟ جدول‌های MySQL اول خالی می‌شوند.')) return; el.disabled = true; try { const r = await api('admin_mysql_migrate', {}, true); admReload('my'); setTimeout(() => { const o = $('#my-out'); if (o) o.innerHTML = `<div class="done">${ic('check')}<span>${Object.entries(r.counts).map(([k, v]) => k + ': ' + fa(v)).join(' · ')}</span></div>`; }, 300); toast('انتقال انجام شد و شمارش‌ها یکی بود.'); } catch (e) { el.disabled = false; fail(e); } return;
     case 'my-switch': if (!confirm(+el.dataset.v ? 'از این لحظه همه‌چیز روی MySQL برود؟' : 'به SQLite برگردیم؟ داده‌هایی که از سوییچ به بعد در MySQL ثبت شده‌اند در SQLite نیستند.')) return; try { await api('admin_mysql_switch', { on: +el.dataset.v }, true); S.admin = null; persist(); ui.adm = null; renderMain(); toast('انجام شد؛ دوباره وارد پیشخوان شوید.'); } catch (e) { fail(e); } return;
     case 'po-center': { const P = ui.post; return pickOnMap('مرکز منطقه برای جستجوی مدرسه‌ها', P.lat ? [P.lat, P.lng] : null, c => { P.lat = c[0]; P.lng = c[1]; renderMain(); }); }
     case 'po-term': { const P = ui.post, t = el.dataset.v; P.terms = P.terms.includes(t) ? P.terms.filter(x => x !== t) : [...P.terms, t]; return renderMain(); }
@@ -1598,11 +1637,11 @@ async function act(a, el) {
     case 'adm-fake5': try { const r = await api('admin_fake', { target: el.dataset.v, n: 5, drivers: 40 }, true); snd('ok'); toast(`۵ همسایه‌ی آزمایشی کنار «${r.place}» ساخته شد.`); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
     case 'adm-nv': try { const r = await api('admin_place_nv', { id: el.dataset.id }, true); toast(r.result.ok ? `نشان تأیید کرد: «${r.result.title}» در ${fa(r.result.m)} متری.` : r.result.why === 'no-key-or-network' ? 'کلید سرویس نشان تنظیم نیست یا نشان پاسخ نداد.' : 'نشان مکانی با این نام همین‌جا پیدا نکرد.'); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
     case 'adm-pdel': if (!confirm(`«${el.dataset.n}» حذف شود؟${+el.dataset.f ? ' ' + fa(el.dataset.f) + ' خانواده این مکان را انتخاب کرده‌اند و مسیرک‌شان نیمه‌کاره می‌شود.' : ''}`)) return; try { await api('admin_place', { id: el.dataset.id, delete: 1 }, true); toast('حذف شد.'); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
-    case 'sx-save': case 'sx-clear': { const k = el.dataset.k, v = a === 'sx-clear' ? '' : $('#sx-' + k).value.trim(); if (a === 'sx-save' && !v) return toast('مقدار را بنویسید.'); try { await api('admin_secret_set', { k, v }, true); ui.adm.sec = null; renderMain(); snd('ok'); toast(a === 'sx-clear' ? 'پاک شد.' : 'ذخیره شد.'); } catch (e) { fail(e); } return; }
-    case 'adm-test': { const o = $('#t-' + el.dataset.v); if (o) o.innerHTML = '<span class="muted small">در حال آزمون…</span>'; el.disabled = true; try { const r = await api('admin_test', { what: el.dataset.v, env: el.dataset.env || '' }, true); if (o) o.innerHTML = `<div class="${r.ok ? 'done' : 'hint warn'}" style="margin-top:6px">${ic(r.ok ? 'check' : 'warn')}<span>${esc(r.msg)}</span></div>`; } catch (e) { if (o) o.innerHTML = `<div class="hint warn">${ic('warn')}<span>${esc(e.message)}</span></div>`; } el.disabled = false; return; }
+    case 'sx-save': case 'sx-clear': { const k = el.dataset.k, v = a === 'sx-clear' ? '' : $('#sx-' + k).value.trim(); if (a === 'sx-save' && !v) return toast('مقدار را بنویسید.'); try { await api('admin_secret_set', { k, v }, true); admReload('sec'); snd('ok'); toast(a === 'sx-clear' ? 'پاک شد.' : 'ذخیره شد.'); } catch (e) { fail(e); } return; }
+    case 'adm-test': { const o = $('#t-' + el.dataset.v); if (o) o.innerHTML = '<span class="muted small">در حال آزمون…</span>'; el.disabled = true; try { const r = await api('admin_test', { what: el.dataset.v, env: el.dataset.env || '' }, true); const hint = PP_HINT.find(([re]) => re.test(r.msg)); if (o) o.innerHTML = `<div class="${r.pass ? 'done' : 'hint warn'}" style="margin-top:6px;display:grid;gap:6px">${ic(r.pass ? 'check' : 'warn')}<span><b>${r.pass ? 'موفق' : 'ناموفق'}:</b> ${esc(r.msg)}</span>${!r.pass && hint ? `<span class="small">${hint[1]}</span>` : ''}</div>`; } catch (e) { if (o) o.innerHTML = `<div class="hint warn">${ic('warn')}<span>${esc(e.message)}</span></div>`; } el.disabled = false; return; }
     case 'sms-prov': case 'pay-env': { const k = a === 'sms-prov' ? 'sms_provider' : 'pay_env', v = el.dataset.v; if (k === 'pay_env' && v === 'live' && !confirm('درگاه روی حالت واقعی برود؟ از این لحظه پرداخت‌ها واقعی‌اند.')) return; try { await api('admin_setting', { k, v }, true); ui.adm.ov.settings[k] = v; renderMain(); toast('انجام شد.'); } catch (e) { fail(e); } return; }
-    case 'err-clear': try { await api('admin_errors_clear', {}, true); ui.adm.errs = null; renderMain(); } catch (e) { fail(e); } return;
-    case 'bk-now': try { await api('admin_backup_now', {}, true); ui.adm.bk = null; renderMain(); toast('پشتیبان ساخته شد.'); } catch (e) { fail(e); } return;
+    case 'err-clear': try { await api('admin_errors_clear', {}, true); admReload('health'); } catch (e) { fail(e); } return;
+    case 'bk-now': try { await api('admin_backup_now', {}, true); admReload('health'); toast('پشتیبان ساخته شد.'); } catch (e) { fail(e); } return;
     case 'fk-fill': $('#fk-t').value = el.dataset.v; return;
     case 'adm-fake': try { const r = await api('admin_fake', { target: en($('#fk-t').value.trim()), n: +en($('#fk-n').value) || 5, drivers: +en($('#fk-d').value) || 0 }, true); snd('ok'); toast(`${fa(r.made)} کاربر آزمایشی کنار «${r.place}» ساخته شد.`); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
     case 'adm-purge': try { const r = await api('admin_purge_fake', {}, true); toast(`${fa(r.removed)} مسیرکِ آزمایشی حذف شد.`); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
@@ -1641,6 +1680,7 @@ async function act(a, el) {
     case 'w-morerel': w.moreRel = true; return wizRender();
     case 'w-contact': w.d.contact = el.dataset.v; w.d.phone_show = el.dataset.v === 'phone'; w.err = ''; return wizRender();
     case 'w-call': return otpSend(w, 'call');
+    case 'w-bale': w.otpSent = false; return otpSend(w, 'bale');
     case 'w-guest': return guestStart(w);
     case 'undo': { const f = ui.undoFn; ui.undoFn = null; $('#undo').classList.remove('show'); if (f) f(); return; }
     case 'w-paste': { const ll = parseLoc($('#w-paste').value); if (!ll) return toast('مختصاتی در این لینک پیدا نشد. لینک‌های کوتاه را اول در مرورگر باز کنید و آدرس کامل را بچسبانید.'); w.d.lat = ll[0]; w.d.lng = ll[1]; if (PK.map) PK.map.jumpTo({ center: [ll[1], ll[0]], zoom: 16.5 }); reverseFill(w); return toast('موقعیت ثبت شد.'); }
@@ -1667,7 +1707,7 @@ function parseLoc(s) {
 function loginSheet(verify) {
   const L = ui.lg;
   sheet(verify || (S.token && !S.phone) ? 'تأیید شماره' : 'ورود', L ? `<p>کد تأیید به <b dir="ltr">${esc(fa(L.ph))}</b> رفت.</p><div class="field"><label for="lg-otp">کد</label><input id="lg-otp" class="otp" inputmode="numeric" autocomplete="one-time-code"></div>${L.dev ? `<p class="note">${ic('flask')}کد آزمایشی: <b dir="ltr">${fa(L.dev)}</b></p>` : ''}<button class="btn" data-a="lg-verify">ورود</button>`
-    : `<div class="field"><label for="lg-ph">شماره همراه</label><input id="lg-ph" type="tel" inputmode="tel" dir="ltr" placeholder="0912 123 4567" autocomplete="tel"></div><div class="row wrap"><button class="btn" data-a="lg-send">ارسال کد با پیامک</button><button class="btn line" data-a="lg-call">تماس صوتی</button></div>`, S.token && !S.phone ? 'با تأیید شماره، «تأییدنشده» از کنار نام‌تان برمی‌دارد و شماره‌ی هم‌مسیرها را می‌بینید.' : 'همه‌ی مسیرک‌های شما با همین شماره');
+    : `<div class="field"><label for="lg-ph">شماره همراه</label><input id="lg-ph" type="tel" inputmode="tel" dir="ltr" placeholder="0912 123 4567" autocomplete="tel"></div><div class="row wrap"><button class="btn" data-a="lg-send">ارسال کد با پیامک</button>${CFG.flags.sms_direct ? '' : '<button class="btn line" data-a="lg-call">تماس صوتی</button>'}${CFG.flags.otp_bale ? '<button class="btn line" data-a="lg-bale">در بله بفرست</button>' : ''}</div>`, S.token && !S.phone ? 'با تأیید شماره، «تأییدنشده» از کنار نام‌تان برمی‌دارد و شماره‌ی هم‌مسیرها را می‌بینید.' : 'همه‌ی مسیرک‌های شما با همین شماره');
 }
 async function ticketSheet() {
   ui.tk = ui.tk || { cat: 'فنی', text: '' }; let list = [];

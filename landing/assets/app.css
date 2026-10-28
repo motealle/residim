@@ -849,3 +849,12 @@ main.enter{animation:fade .25s ease both}/* no transform: fixed map layers must 
 .sec-row .field{gap:4px}
 .t-out:empty{display:none}
 tr.dimrow{opacity:.6}
+
+/* ═════════ v14 ═════════ */
+.tplg{border:1.5px dashed var(--line);border-radius:14px;padding:4px 12px}
+.tplg summary{cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:800;font-size:.86rem;padding:8px 0}
+.tplg summary svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}
+.tpl{display:grid;gap:4px;padding:10px 0;border-top:1px solid var(--line)}
+.tpl pre{margin:0;white-space:pre-wrap;font:inherit;font-size:.86rem;line-height:1.9;background:var(--surface-2,#F2F5F1);padding:8px 10px;border-radius:10px}
+.cpy{display:inline-flex;align-items:center;gap:4px;justify-self:start;border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:4px 10px;font:inherit;font-size:.78rem;font-weight:800;cursor:pointer}
+.cpy svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2}
