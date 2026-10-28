@@ -4,3 +4,5 @@ app/storage/*.sqlite-*
 .DS_Store
 app/storage/mysql.local.php
 app/storage/*.tmp
+app/storage/secrets.local.php
+app/storage/backups/

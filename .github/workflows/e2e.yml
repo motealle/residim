@@ -1,0 +1,29 @@
+name: End-to-end smoke test
+on:
+  push:
+    branches: [main]
+    paths: ["landing/**", "app/api/**", "tests/e2e/**"]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: PHP syntax
+        run: for f in app/api/*.php; do php -l "$f"; done
+      - name: Install Playwright Chromium
+        run: npm i --no-save playwright@1 && npx playwright install --with-deps chromium
+      - name: Run the smoke test against a local server
+        run: |
+          php -S 127.0.0.1:8899 tests/e2e/router.php > /tmp/php.log 2>&1 &
+          sleep 1
+          node tests/e2e/smoke.cjs
+      - name: Server log on failure
+        if: failure()
+        run: tail -100 /tmp/php.log

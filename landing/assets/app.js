@@ -664,9 +664,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=12" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=13" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)} <span class="pchip">${ic('down', '')}</span></b><small>${p.team ? esc(teamName(p.team)) + ' · ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</small></span>`; }
-  else t = `<img src="assets/icon.svg?v=12" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=13" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -689,7 +689,8 @@ function renderMain(anim) {
   if (anim) { main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter'); }
   if ($('#peermap-slot')) mountPeerMap();
 }
-function render(anim) { renderTop(); renderMain(anim); renderSide(); }
+function render(anim) { renderTop(); renderMain(anim); renderSide(); paintNotice(); }
+function paintNotice() { const n = CFG.notice || '', el = $('#notice'); if (!el) return; const show = n && S.noticeHid !== n && !ui.admin; el.classList.toggle('hide', !show); if (show) el.innerHTML = `${ic('bell')}<span class="grow">${esc(n)}</span><button class="icon-btn" data-a="notice-x" aria-label="بستن">${ic('close')}</button>`; }
 function renderSide() {
   const el = $('#side'); if (!el) return; if (!isDesk() || ui.admin) { el.innerHTML = ''; return; }
   const p = active(), st = el.scrollTop, tabs = p && p.complete ? `<nav class="side-tabs" aria-label="صفحه‌ها">${[['peers', 'map', isTrip(p) ? 'هم‌سفرها' : 'هم‌مسیرها'], ['team', 'team', 'تیم ما'], ...(isTrip(p) ? [] : [['money', 'money', 'حساب']])].map(([k, i, t]) => `<button data-tab="${k}" ${ui.tab === k ? 'aria-current="page"' : ''}>${ic(i)}<span>${t}</span></button>`).join('')}</nav>` : '';
@@ -735,7 +736,7 @@ function drawer(keep) {
   const mi = (a, i, txt, extra = '') => `<button class="mi" data-a="${a}" ${extra}>${ic(i)}<span class="grow">${txt}</span></button>`;
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=12" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم</b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان · شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="شب و روز">${ic('moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=13" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم</b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان · شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="شب و روز">${ic('moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     <div class="sec-h"><span>مسیرک‌ها (${fa(ps.length)})</span></div>
     <div class="pgroup">${ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${x.id === S.active ? profPanel(x) : ''}</div>`).join('')}
     <button class="mi" data-a="new-profile">${ic('plus')}<span class="grow">مسیرکِ تازه</span></button></div>
@@ -743,7 +744,7 @@ function drawer(keep) {
     ${S.token && !S.phone ? `<div class="hint warn" style="margin:6px 0">${ic('phone')}<span class="grow small">شماره‌تان هنوز تأیید نشده؛ تا تأیید، شماره‌ی دیگران را نمی‌بینید.</span><button class="btn sm" data-a="verify">تأیید</button></div>` : ''}
     ${p && p.team && CFG.flags.league_on ? `<div class="tiles"><button class="tile" data-a="quiz">${ic('trophy')}<span>لیگ راه ${esc(destWord(p))}</span></button></div>` : ''}
     <div class="sep"></div>
-    ${CFG.donate && CFG.donate.card ? `<button class="mi dong" data-a="donate"><span class="dong-ic">${ic('heart')}</span><span class="grow"><b>دنگ خیر</b><small>کمک کنید رسیدیم رایگان بماند</small></span></button>` : ''}
+    ${CFG.donate && (CFG.donate.card || CFG.donate.gateway) ? `<button class="mi dong" data-a="donate"><span class="dong-ic">${ic('heart')}</span><span class="grow"><b>دنگ خیر</b><small>کمک کنید رسیدیم رایگان بماند</small></span></button>` : ''}
     ${mi('guide', 'guide', 'راهنمای رسیدیم')}
     ${standalone() ? '' : mi('install', 'install', 'نصب روی گوشی')}
     <label class="mi"><span style="display:contents">${ic('sound')}</span><span class="grow">صداهای اپ</span><input type="checkbox" class="tgl" data-a="sound" ${S.sound !== false ? 'checked' : ''}></label>
@@ -762,7 +763,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <p class="muted small" style="padding:8px">نسخه ۱۲ · ${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی (کلید سرویس نشان تنظیم نشده)'}</p>`;
+    <p class="muted small" style="padding:8px">نسخه ۱۳ · ${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی (کلید سرویس نشان تنظیم نشده)'}</p>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -772,11 +773,21 @@ function drawer(keep) {
 /* Enamad: the official snippet lives untouched in index.html (#trust); other places get an exact clone */
 function putTrust(slot) { const t = document.querySelector('#trust .enamad'); if (slot && t) { slot.innerHTML = ''; slot.appendChild(t.cloneNode(true)); } }
 function donateSheet() {
-  const D = CFG.donate || {}, card = String(D.card || '');
+  const D = CFG.donate || {}, card = String(D.card || ''), gw = !!D.gateway; ui.dn = ui.dn || { amt: 150000 };
+  const cardBox = card ? `<button class="cardno big" data-a="donate-copy"><span class="grow"><span class="muted small">${gw ? 'یا کارت به کارت' : 'شماره کارت'}${D.name ? ' به نام ' + esc(D.name) : ''} · بزنید تا کپی شود</span><b dir="ltr">${fa(card.replace(/(\d{4})(?=\d)/g, '$1 '))}</b></span>${ic('copy')}</button>` : '';
   sheet('دنگ خیرِ شما', `<div class="dong-hero"><span class="shine"></span>${ic('heart')}<b>رسیدیم برای همه رایگان بماند</b><span>رسیدیم در این دوره برای همه‌ی خانواده‌ها رایگان است و هزینه‌ی سرور، نقشه و پیامکش را خودمان می‌دهیم. اگر به کارتان آمده، دنگ خیرتان را بگذارید.</span></div>
-    <button class="cardno big" data-a="donate-copy"><span class="grow"><span class="muted small">شماره کارت${D.name ? ' به نام ' + esc(D.name) : ''} · بزنید تا کپی شود</span><b dir="ltr">${fa(card.replace(/(\d{4})(?=\d)/g, '$1 '))}</b></span>${ic('copy')}</button>
+    ${gw ? `<div class="chips dn-amts">${[50000, 150000, 500000, 1000000].map(v => `<button class="chip" data-a="dn-amt" data-v="${v}" aria-pressed="${ui.dn.amt === v}">${fa(v / 1000)} هزار${v === 150000 ? ' ✨' : ''}</button>`).join('')}</div>
+      <div class="field"><label for="dn-v">مبلغ دلخواه (تومان)</label><input id="dn-v" inputmode="numeric" dir="ltr" value="${fa(ui.dn.amt)}"></div>
+      <div class="field"><label for="dn-n">نام (اختیاری؛ برای تشکر)</label><input id="dn-n" autocomplete="name"></div>
+      <button class="btn ac block" data-a="dn-pay">${ic('shield')}پرداخت امن با درگاه پی‌پینگ</button>${D.test ? '<p class="note">درگاه فعلاً در حالت آزمایشی است.</p>' : ''}` : ''}
+    ${cardBox}
     <p style="line-height:2">پیشنهاد ما <b>۱۵۰ هزار تومان</b> است؛ اما هر مبلغی، کم یا زیاد، دلگرمی است. حمایت شما خرج رایگان ماندن رسیدیم و ساختن اپ‌های کاربردی دیگری مثل آن می‌شود.</p>
     <p class="muted small">${ic('shield')} این کمک داوطلبانه است و هیچ امکانی را برای کسی باز یا بسته نمی‌کند.</p>`);
+}
+function payResult(st, ref) {
+  history.replaceState(null, '', BASE);
+  if (st === 'ok') { snd('done'); sheet('دمتان گرم! 🌸', `<div class="dong-hero"><span class="shine"></span>${ic('heart')}<b>حمایت شما رسید</b><span>با این دنگ خیر، رسیدیم برای خانواده‌های بیشتری رایگان می‌ماند.${quip('done', 1)}</span></div><p class="muted small" style="text-align:center">کد پیگیری: <b dir="ltr">${esc(ref)}</b></p><button class="btn block" data-a="close">خواهش می‌کنم</button>`); }
+  else sheet('پرداخت انجام نشد', `<p style="line-height:2">پرداخت کامل نشد یا لغو شد. اگر پولی از حساب‌تان کم شده، بانک معمولاً تا ۷۲ ساعت خودکار برمی‌گرداند؛ با کد <b dir="ltr">${esc(ref)}</b> هم می‌توانید از «تماس با ما» پیگیری کنید.</p><div class="row"><button class="btn ac grow" data-a="donate">دوباره امتحان می‌کنم</button><button class="btn line grow" data-a="close">بعداً</button></div>`);
 }
 function contactSheet() {
   ui.ct = ui.ct || { cat: 'پیشنهاد' }; ui.ct.t0 = Date.now();
@@ -1214,7 +1225,7 @@ function pager(key, list, row, wrap = x => x, size = 20) {
   const nav = n > size ? `<div class="pager">${all ? `<button class="link" data-a="pg" data-k="${key}" data-v="0">صفحه‌بندی</button>` : `<button class="btn line sm" data-a="pg" data-k="${key}" data-v="${pg - 1}" ${pg ? '' : 'disabled'}>قبلی</button><span class="small">صفحه‌ی ${fa(pg + 1)} از ${fa(pages)} · ${fa(n)} مورد</span><button class="btn line sm" data-a="pg" data-k="${key}" data-v="${pg + 1}" ${pg < pages - 1 ? '' : 'disabled'}>بعدی</button><button class="link" data-a="pg" data-k="${key}" data-v="all">نمایش همه</button>`}</div>` : '';
   return wrap(part.map(row).join('')) + nav;
 }
-const ADM_TABS = [['home', 'نمای کلی', 'gear'], ['msgs', 'پیام‌ها', 'ticket'], ['places', 'مکان‌ها و تیم‌ها', 'pin'], ['users', 'کاربران', 'user'], ['sms', 'پیامک', 'phone'], ['posters', 'پوستر مدارس', 'print'], ['db', 'پایگاه داده', 'shield']];
+const ADM_TABS = [['home', 'نمای کلی', 'gear'], ['conn', 'اتصال‌ها', 'spark'], ['pays', 'پرداخت‌ها', 'money'], ['health', 'سلامت', 'shield'], ['msgs', 'پیام‌ها', 'ticket'], ['places', 'مکان‌ها و تیم‌ها', 'pin'], ['users', 'کاربران', 'user'], ['sms', 'پیامک', 'phone'], ['posters', 'پوستر مدارس', 'print'], ['db', 'پایگاه داده', 'shield']];
 function adminView() {
   if (!S.admin) return `<section class="card stack" style="max-width:420px;margin:30px auto"><h1 style="font-size:1.5rem">ورود مدیر</h1><div class="field"><label for="au">نام کاربری</label><input id="au" dir="ltr" autocomplete="username"></div><div class="field"><label for="ap">رمز</label><input id="ap" type="password" dir="ltr" autocomplete="current-password"></div><button class="btn" data-a="adm-login">ورود</button><button class="link" data-a="adm-exit">بازگشت به اپ</button></section>`;
   const A = ui.adm; if (!A) { loadAdmin(); return '<p class="muted" style="text-align:center;padding:40px">در حال بارگذاری…</p>'; }
@@ -1222,11 +1233,59 @@ function adminView() {
   return `<div class="adm">${o.default_pass ? `<div class="hint warn">${ic('warn')}<span>رمز مدیر پیش‌فرض (mot) است؛ در config.local.php مقدار admin_pass را عوض کنید.</span></div>` : ''}
     <div class="row between"><h1 style="font-size:1.4rem">پیشخوان مدیریت</h1><div class="row"><button class="btn line sm" data-a="adm-refresh">تازه‌سازی</button><button class="btn line sm" data-a="adm-exit">بازگشت</button></div></div>
     <nav class="adm-tabs" aria-label="بخش‌های پیشخوان">${ADM_TABS.map(([k, t, i]) => `<button data-a="adm-tab" data-v="${k}" aria-pressed="${tab === k}">${ic(i)}<span>${t}</span>${k === 'msgs' && cnt.unseen ? `<i class="badge">${fa(cnt.unseen)}</i>` : ''}</button>`).join('')}</nav>
-    ${({ home: admHome, msgs: admMsgs, places: admPlaces, users: admUsers, sms: admSms, posters: admPosters, db: admDb }[tab] || admHome)(A)}</div>`;
+    ${({ home: admHome, conn: admConn, pays: admPays, health: admHealth, msgs: admMsgs, places: admPlaces, users: admUsers, sms: admSms, posters: admPosters, db: admDb }[tab] || admHome)(A)}</div>`;
+}
+function secRow(K, k, label, hint, opt) {
+  const x = K[k] || {}, hid = opt && opt.secret;
+  return `<div class="sec-row"><div class="field"><label for="sx-${k}">${label} ${x.set ? `<span class="tag ok">${x.src === 'config' ? 'در config.local.php' : 'ذخیره‌شده'}${hid && x.show ? ' · <b dir="ltr">' + esc(x.show) + '</b>' : ''}</span>` : '<span class="tag">خالی</span>'}</label>
+    <input id="sx-${k}" dir="ltr" ${hid ? 'type="password" autocomplete="new-password"' : ''} value="${hid ? '' : esc(x.show || '')}" placeholder="${esc(hint || '')}"></div>
+    <div class="row"><button class="btn sm" data-a="sx-save" data-k="${k}">ذخیره</button>${x.src === 'admin' ? `<button class="link" data-a="sx-clear" data-k="${k}">پاک کردن</button>` : ''}</div></div>`;
+}
+function admConn(A) {
+  const C2 = A.sec; if (!C2) { api('admin_secrets', {}, true).then(r => { A.sec = r; renderMain(); }).catch(fail); return '<p class="muted">در حال خواندن…</p>'; }
+  const K = C2.secrets, ST = A.ov.settings || {}, F = A.ov.flags, out = id => `<div class="t-out" id="${id}"></div>`;
+  return `${C2.writable ? '' : `<div class="hint warn">${ic('warn')}<span>پوشه‌ی <span dir="ltr">app/storage</span> روی سرور قابل نوشتن نیست؛ از cPanel دسترسی ۷۵۵ بدهید.</span></div>`}
+    <p class="muted small">کلیدها روی خود سرور در پوشه‌ی بسته‌ی <span dir="ltr">app/storage</span> ذخیره می‌شوند (نه در گیت و نه قابل دیدن از وب). کلیدهای محرمانه هرگز کامل به مرورگر برنمی‌گردند؛ فقط چهار حرف آخر. اگر قبلاً در config.local.php گذاشته‌اید، مقدار اینجا بر آن مقدم است.</p>
+    <div class="adm-cols">
+    <section class="card stack"><h2>پیامک: کدام سرویس؟</h2>
+      <div class="chips">${[['kavenegar', 'کاوه‌نگار'], ['smsir', 'sms.ir']].map(([k, v]) => `<button class="chip" data-a="sms-prov" data-v="${k}" aria-pressed="${(ST.sms_provider || 'kavenegar') === k}">${v}</button>`).join('')}</div>
+      <label class="switch"><span>ارسال مستقیم بدون الگو (خاموش = الگوی تأییدشده؛ پیشنهاد برای لانچ)</span><input type="checkbox" data-a="adm-flag" data-k="sms_direct" ${F.sms_direct ? 'checked' : ''}></label>
+      <p class="muted small">بعد از تأیید الگوها در پنل سرویس، کلید بالا را خاموش کنید و از زبانه‌ی «پیامک» یک پیام آزمایشی بفرستید.</p></section>
+    <section class="card stack"><h2>کاوه‌نگار</h2>${secRow(K, 'kavenegar_api_key', 'کلید API', 'از پنل: تنظیمات حساب ← کلید API', { secret: 1 })}
+      ${secRow(K, 'kavenegar_template', 'نام الگوی کد ورود', 'residim-login')}${secRow(K, 'kavenegar_tpl_call', 'نام الگوی صوتی کد ورود', 'residim-call')}${secRow(K, 'kavenegar_tpl_invite', 'نام الگوی دعوت', 'residim-invite')}${secRow(K, 'kavenegar_tpl_arrived', 'نام الگوی «رسید»', 'residim-arrived')}
+      <button class="btn line sm" data-a="adm-test" data-v="kavenegar">آزمون اتصال و اعتبار</button>${out('t-kavenegar')}</section>
+    <section class="card stack"><h2>sms.ir (جایگزین)</h2>${secRow(K, 'smsir_api_key', 'کلید API', 'از پنل sms.ir: برنامه‌نویسان ← لیست کلیدها', { secret: 1 })}
+      ${secRow(K, 'smsir_line', 'شماره خط (برای ارسال مستقیم)', 'مثلاً 30007732000000')}${secRow(K, 'smsir_tpl_login', 'شناسه‌ی عددی قالب کد ورود', 'مثلاً 123456')}${secRow(K, 'smsir_tpl_invite', 'شناسه‌ی قالب دعوت', '')}${secRow(K, 'smsir_tpl_arrived', 'شناسه‌ی قالب «رسید»', '')}
+      <button class="btn line sm" data-a="adm-test" data-v="smsir">آزمون اتصال و اعتبار</button>${out('t-smsir')}</section>
+    <section class="card stack"><h2>درگاه پی‌پینگ</h2>${secRow(K, 'payping_token_test', 'توکن تست', 'توکن «رسیدیم» (تست)', { secret: 1 })}${secRow(K, 'payping_token_live', 'توکن اصلی', 'توکن «رسیدیم غیر تستی»', { secret: 1 })}
+      <div class="chips">${[['test', 'حالت تست'], ['live', 'حالت واقعی']].map(([k, v]) => `<button class="chip" data-a="pay-env" data-v="${k}" aria-pressed="${(ST.pay_env || 'test') === k}">${v}</button>`).join('')}</div>
+      <label class="switch"><span>پرداخت دنگ خیر از درگاه (خاموش = فقط کارت به کارت)</span><input type="checkbox" data-a="adm-flag" data-k="pay_gateway" ${F.pay_gateway ? 'checked' : ''}></label>
+      <div class="row wrap"><button class="btn line sm" data-a="adm-test" data-v="payping" data-env="test">آزمون توکن تست</button><button class="btn line sm" data-a="adm-test" data-v="payping" data-env="live">آزمون توکن اصلی</button></div>${out('t-payping')}
+      <p class="muted small">نشانی بازگشت که در پی‌پینگ ثبت می‌شود: <b dir="ltr">https://residim.ir/app/api/pay.php</b></p></section>
+    <section class="card stack"><h2>نقشه‌ی نشان</h2>${secRow(K, 'neshan_service_key', 'کلید سرویس (service.…)', 'service.xxxxxxxx', { secret: 1 })}${secRow(K, 'neshan_web_key', 'کلید نقشه‌ی وب (web.…)', 'web.xxxxxxxx', { secret: 1 })}
+      <button class="btn line sm" data-a="adm-test" data-v="neshan">آزمون کلید سرویس</button>${out('t-neshan')}</section>
+    <section class="card stack"><h2>پیام همگانی بالای اپ</h2><p class="muted small">مثلاً «امشب ساعت ۲۳ تا ۲۴ به‌روزرسانی داریم.» خالی = پنهان.</p>
+      <div class="field"><input id="st-notice" value="${esc(ST.notice || '')}" maxlength="300"></div><div class="row"><button class="btn sm" data-a="adm-set" data-k="notice">ذخیره</button>${ST.notice ? '<button class="link" data-a="adm-clear" data-k="notice">برداشتن</button>' : ''}</div></section></div>`;
+}
+function admPays(A) {
+  const P = A.pays; if (!P) { api('admin_payments', {}, true).then(r => { A.pays = r; renderMain(); }).catch(fail); return '<p class="muted">در حال خواندن…</p>'; }
+  const lbl = { init: 'شروع', sent: 'در درگاه', paid: 'موفق ✓', canceled: 'لغو', failed: 'خطای درگاه', verify_failed: 'تأیید نشد' };
+  return `<div class="grid"><div class="stat"><b>${money(P.sum_live)}</b><span>جمع حمایت‌های واقعی</span></div><div class="stat"><b>${fa(P.list.filter(x => x.status === 'paid' && x.env === 'live').length)}</b><span>پرداخت موفق</span></div><div class="stat"><b>${fa(P.list.filter(x => x.env === 'test').length)}</b><span>پرداخت آزمایشی</span></div></div>
+    <section class="card"><h2>پرداخت‌ها</h2>${P.list.length ? pager('pays', P.list, x => `<tr class="${x.status === 'paid' ? '' : 'dimrow'}"><td dir="ltr" class="small">${esc(x.ref)}${x.env === 'test' ? ' <span class="tag">تست</span>' : ''}</td><td>${money(x.amount)}</td><td>${lbl[x.status] || esc(x.status)}${x.note ? `<br><span class="muted small">${esc(x.note)}</span>` : ''}</td><td class="small">${esc(x.name || '')}<br><span dir="ltr">${esc(x.mobile || '')}</span></td><td class="small muted">${esc(new Date(x.created * 1000).toLocaleString('fa-IR'))}${x.refid ? '<br>پیگیری: <span dir="ltr">' + esc(x.refid) + '</span>' : ''}</td></tr>`, x => `<table><tr><th>کد</th><th>مبلغ</th><th>وضعیت</th><th>پرداخت‌کننده</th><th>زمان</th></tr>${x}</table>`) : '<p class="muted">هنوز پرداختی نیست.</p>'}</section>`;
+}
+function admHealth(A) {
+  const E = A.errs, B = A.bk; if (!E || !B) { Promise.all([api('admin_errors', {}, true), api('admin_backups', {}, true), api('health', {}, true)]).then(([e, b, h]) => { A.errs = e.list; A.bk = b; A.hl = h; renderMain(); }).catch(fail); return '<p class="muted">در حال خواندن…</p>'; }
+  const H = A.hl || {};
+  return `<div class="grid">${[['db', 'پایگاه داده', H.db], ['storage_writable', 'پوشه‌ی داده قابل نوشتن', H.storage_writable], ['sms', 'پیامک آماده', H.sms], ['pay', 'درگاه آماده', H.pay]].map(([k, t, ok]) => `<div class="stat"><b>${ok ? '✓' : '✗'}</b><span>${t}</span></div>`).join('')}<div class="stat"><b>${fa(H.disk_free_mb || 0)}</b><span>مگابایت فضای خالی</span></div></div>
+    <section class="card stack"><div class="row between"><h2>خطاها (${fa(E.length)})</h2>${E.length ? '<button class="link" data-a="err-clear">پاک کردن همه</button>' : ''}</div><p class="muted small">خطاهای مرورگر کاربران و سرور، یکجا و بدون تکرار. اگر چیزی اینجا زیاد شد، همان را اول درست کنیم.</p>
+      ${E.length ? pager('errs', E, x => `<div class="msg-card"><b class="small">${x.src === 'client' ? 'مرورگر' : x.src === 'pay' ? 'پرداخت' : 'سرور'} · ${fa(x.n)} بار · ${esc(new Date(x.last * 1000).toLocaleString('fa-IR'))}</b><span dir="ltr" class="small" style="text-align:left;word-break:break-word">${esc(x.msg)}</span>${x.at_url ? `<span class="muted small" dir="ltr">${esc(x.at_url)}</span>` : ''}</div>`) : '<p class="hint">' + ic('check') + '<span>خطایی ثبت نشده.</span></p>'}</section>
+    <section class="card stack"><h2>نسخه‌ی پشتیبان روزانه</h2><p class="muted small">${B.engine === 'sqlite' ? 'هر روز با اولین بازدید یک نسخه‌ی کامل از پایگاه داده در پوشه‌ی بسته‌ی app/storage/backups ساخته می‌شود؛ ۱۴ روز آخر نگه داشته می‌شود. برای دانلود از cPanel (File Manager) بردارید.' : 'روی MySQL هستید؛ پشتیبان را از cPanel (Backup یا phpMyAdmin) بگیرید.'}</p>
+      ${B.list.length ? `<table><tr><th>فایل</th><th>حجم</th></tr>${B.list.slice(0, 14).map(x => `<tr><td dir="ltr">${esc(x.name)}</td><td>${fa(x.mb)} MB</td></tr>`).join('')}</table>` : '<p class="muted small">هنوز نسخه‌ای ساخته نشده.</p>'}
+      ${B.engine === 'sqlite' ? '<button class="btn line sm" data-a="bk-now">همین حالا پشتیبان بگیر</button>' : ''}</section>`;
 }
 function admHome(A) {
   const o = A.ov, cnt = o.counts, F = o.flags, SV = o.services, ST = o.settings || {};
-  const flagLbl = { signup_open: 'ثبت‌نام باز است', sms_invite: 'پیامک دعوت هم‌مسیری', sms_direct: 'پیامک مستقیم بدون الگو (روشن = sms/send؛ خاموش = اعتبارسنجی و الگو)', sms_arrive: 'پیامک «فرزندتان رسید» (فقط تیم‌های ویژه)', auto_arrive: 'تشخیص رسیدن با GPS', station_on: 'مسیرک سفر (ایستگاه، فرودگاه، ترمینال)', league_on: 'لیگ راه مدرسه (معما)', paid_mode: 'حالت پولی؛ اشتراک لازم است (خاموش = همه‌چیز رایگان)', test_tools: 'گزینه‌های آزمایشی در منو', otp_dev: 'کد ورود آزمایشی بدون پیامک (فقط تست!)' };
+  const flagLbl = { pay_gateway: 'پرداخت دنگ خیر از درگاه پی‌پینگ', signup_open: 'ثبت‌نام باز است', sms_invite: 'پیامک دعوت هم‌مسیری', sms_direct: 'پیامک مستقیم بدون الگو (روشن = sms/send؛ خاموش = اعتبارسنجی و الگو)', sms_arrive: 'پیامک «فرزندتان رسید» (فقط تیم‌های ویژه)', auto_arrive: 'تشخیص رسیدن با GPS', station_on: 'مسیرک سفر (ایستگاه، فرودگاه، ترمینال)', league_on: 'لیگ راه مدرسه (معما)', paid_mode: 'حالت پولی؛ اشتراک لازم است (خاموش = همه‌چیز رایگان)', test_tools: 'گزینه‌های آزمایشی در منو', otp_dev: 'کد ورود آزمایشی بدون پیامک (فقط تست!)' };
   return `<div class="grid">${[['users', 'کاربر واقعی'], ['complete', 'مسیرکِ کامل'], ['places', 'مکان'], ['teams', 'تیم'], ['invites', 'دعوت منتظر'], ['tickets', 'پیام باز'], ['sms_day', 'پیامک ۲۴ ساعت'], ['fake', 'کاربر آزمایشی']].map(([k, v]) => `<div class="stat"><b>${fa(cnt[k] || 0)}</b><span>${v}</span></div>`).join('')}</div>
     <div class="adm-cols"><section class="card"><h2>سرویس‌ها</h2>${[['db', 'پایگاه داده: ' + (ST.engine || SV.db), true], ['kavenegar', 'کاوه‌نگار', SV.kavenegar], ['neshan_service', 'کلید سرویس نشان (فاصله، نام محله، تأیید مکان)', SV.neshan_service], ['neshan_web', 'کلید نقشه‌ی وب نشان', SV.neshan_web], ['curl', 'cURL روی سرور', SV.curl]].map(([k, t, ok]) => `<div class="switch"><span><i class="${ok ? 'ok-dot' : 'no-dot'}"></i>${t}</span><span class="muted small">${ok ? 'فعال' : 'تنظیم نشده'}</span></div>`).join('')}
       <p class="muted small">PHP ${esc(SV.php)}</p></section>
@@ -1388,6 +1447,7 @@ async function act(a, el) {
   const tact = async (body, msg) => { try { await api('team_act', { profile_id: p.id, ...body }); await loadTeam(); renderMain(); watchArrival(); if (msg) toast(msg); } catch (e) { fail(e); } };
   switch (a) {
     case 'close': return closeLayer();
+    case 'notice-x': S.noticeHid = CFG.notice; persist(); return paintNotice();
     case 'copy': return copyText(el.dataset.v).then(ok => toast(ok ? 'کپی شد.' : 'کپی نشد؛ دستی بردارید.'));
     case 'menu': return drawer();
     case 'switcher': return switcher();
@@ -1399,6 +1459,9 @@ async function act(a, el) {
       if (inD && q && q.complete) { setActive(el.dataset.id); snd('tap'); return drawer(true); } closeLayer(); return setActive(el.dataset.id); }
     case 'about': closeLayer(); return aboutSheet();
     case 'donate': closeLayer(); return donateSheet();
+    case 'dn-amt': ui.dn.amt = +el.dataset.v; $('#dn-v').value = fa(ui.dn.amt); $$('[data-a="dn-amt"]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === ui.dn.amt)); snd('tap'); return;
+    case 'dn-pay': { const amt = +en($('#dn-v').value).replace(/\D/g, ''); if (amt < 10000) return toast('کمترین مبلغ ۱۰ هزار تومان است.'); el.disabled = true; el.textContent = 'در حال رفتن به درگاه…';
+      try { const r = await api('pay_start', { amount: amt, name: $('#dn-n').value, mobile: S.phone || '' }); location.href = r.url; } catch (e) { el.disabled = false; el.textContent = 'پرداخت امن با درگاه پی‌پینگ'; fail(e); } return; }
     case 'donate-copy': return copyText(CFG.donate.card).then(ok => { snd('ok'); toast(ok ? 'شماره کارت کپی شد؛ دمتان گرم!' : 'کپی نشد؛ از روی صفحه بردارید.'); });
     case 'contact': closeLayer(); return contactSheet();
     case 'ct-cat': ui.ct.cat = el.dataset.v; $$('[data-a="ct-cat"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.ct.cat)); return;
@@ -1511,7 +1574,7 @@ async function act(a, el) {
     case 'adm-refresh': ui.adm = null; return renderMain();
     case 'adm-flag': try { await api('admin_flag', { k: el.dataset.k, v: el.checked ? 1 : 0 }, true); CFG.flags[el.dataset.k] = el.checked; toast('ذخیره شد.'); } catch (e) { fail(e); } return;
     case 'adm-verify': try { await api('admin_place', { id: el.dataset.id, verified: el.checked ? 1 : 0 }, true); toast('ذخیره شد.'); } catch (e) { fail(e); } return;
-    case 'adm-set': case 'adm-clear': { const k = el.dataset.k, raw = a === 'adm-clear' ? '' : el.tagName === 'SELECT' ? el.value : en($('#st-' + k).value.trim()), v = k === 'donate_name' || k === 'map_provider' ? raw : raw.replace(/\D/g, '');
+    case 'adm-set': case 'adm-clear': { const k = el.dataset.k, raw = a === 'adm-clear' ? '' : el.tagName === 'SELECT' ? el.value : en($('#st-' + k).value.trim()), v = ['donate_name', 'map_provider', 'notice'].includes(k) ? raw : raw.replace(/\D/g, '');
       try { await api('admin_setting', { k, v }, true); if (ui.adm && ui.adm.ov.settings) ui.adm.ov.settings[k] = v; if (k === 'kave_sender' && ui.adm) ui.adm.ov.settings.kave_sender_auto = ''; renderMain(); toast(a === 'adm-clear' ? 'پاک شد.' : k === 'map_provider' ? 'ذخیره شد؛ کاربران از بارگذاری بعدی نقشه‌ی تازه را می‌بینند.' : 'ذخیره شد.'); } catch (e) { fail(e); } return; }
     case 'adm-tab': ui.admTab = el.dataset.v; renderMain(); scrollTo(0, 0); if (el.dataset.v === 'msgs' && ui.adm && ui.adm.ov.counts.unseen) { api('admin_seen', {}, true).then(() => { ui.adm.ov.counts.unseen = 0; ui.admSeenN = 0; }).catch(() => {}); } return;
     case 'pg': ui.pg = ui.pg || {}; ui.pg[el.dataset.k] = el.dataset.v === 'all' ? 'all' : +el.dataset.v; return renderMain();
@@ -1535,6 +1598,11 @@ async function act(a, el) {
     case 'adm-fake5': try { const r = await api('admin_fake', { target: el.dataset.v, n: 5, drivers: 40 }, true); snd('ok'); toast(`۵ همسایه‌ی آزمایشی کنار «${r.place}» ساخته شد.`); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
     case 'adm-nv': try { const r = await api('admin_place_nv', { id: el.dataset.id }, true); toast(r.result.ok ? `نشان تأیید کرد: «${r.result.title}» در ${fa(r.result.m)} متری.` : r.result.why === 'no-key-or-network' ? 'کلید سرویس نشان تنظیم نیست یا نشان پاسخ نداد.' : 'نشان مکانی با این نام همین‌جا پیدا نکرد.'); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
     case 'adm-pdel': if (!confirm(`«${el.dataset.n}» حذف شود؟${+el.dataset.f ? ' ' + fa(el.dataset.f) + ' خانواده این مکان را انتخاب کرده‌اند و مسیرک‌شان نیمه‌کاره می‌شود.' : ''}`)) return; try { await api('admin_place', { id: el.dataset.id, delete: 1 }, true); toast('حذف شد.'); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
+    case 'sx-save': case 'sx-clear': { const k = el.dataset.k, v = a === 'sx-clear' ? '' : $('#sx-' + k).value.trim(); if (a === 'sx-save' && !v) return toast('مقدار را بنویسید.'); try { await api('admin_secret_set', { k, v }, true); ui.adm.sec = null; renderMain(); snd('ok'); toast(a === 'sx-clear' ? 'پاک شد.' : 'ذخیره شد.'); } catch (e) { fail(e); } return; }
+    case 'adm-test': { const o = $('#t-' + el.dataset.v); if (o) o.innerHTML = '<span class="muted small">در حال آزمون…</span>'; el.disabled = true; try { const r = await api('admin_test', { what: el.dataset.v, env: el.dataset.env || '' }, true); if (o) o.innerHTML = `<div class="${r.ok ? 'done' : 'hint warn'}" style="margin-top:6px">${ic(r.ok ? 'check' : 'warn')}<span>${esc(r.msg)}</span></div>`; } catch (e) { if (o) o.innerHTML = `<div class="hint warn">${ic('warn')}<span>${esc(e.message)}</span></div>`; } el.disabled = false; return; }
+    case 'sms-prov': case 'pay-env': { const k = a === 'sms-prov' ? 'sms_provider' : 'pay_env', v = el.dataset.v; if (k === 'pay_env' && v === 'live' && !confirm('درگاه روی حالت واقعی برود؟ از این لحظه پرداخت‌ها واقعی‌اند.')) return; try { await api('admin_setting', { k, v }, true); ui.adm.ov.settings[k] = v; renderMain(); toast('انجام شد.'); } catch (e) { fail(e); } return; }
+    case 'err-clear': try { await api('admin_errors_clear', {}, true); ui.adm.errs = null; renderMain(); } catch (e) { fail(e); } return;
+    case 'bk-now': try { await api('admin_backup_now', {}, true); ui.adm.bk = null; renderMain(); toast('پشتیبان ساخته شد.'); } catch (e) { fail(e); } return;
     case 'fk-fill': $('#fk-t').value = el.dataset.v; return;
     case 'adm-fake': try { const r = await api('admin_fake', { target: en($('#fk-t').value.trim()), n: +en($('#fk-n').value) || 5, drivers: +en($('#fk-d').value) || 0 }, true); snd('ok'); toast(`${fa(r.made)} کاربر آزمایشی کنار «${r.place}» ساخته شد.`); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
     case 'adm-purge': try { const r = await api('admin_purge_fake', {}, true); toast(`${fa(r.removed)} مسیرکِ آزمایشی حذف شد.`); ui.adm = null; renderMain(); } catch (e) { fail(e); } return;
@@ -1681,6 +1749,9 @@ addEventListener('popstate', () => { ui.admin = location.hash === '#admin'; rend
 
 /* ═════════ boot ═════════ */
 const BASE = location.pathname.replace(/[^/]*$/, '').replace(/\/[A-Z2-9]{8}\/?$/, '/');
+{ let sent = 0; const rep = (m, u) => { if (sent++ > 5) return; try { fetch(API + 'client_error', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ msg: String(m).slice(0, 380), url: location.pathname + location.hash.slice(0, 40) + ' ' + (u || '') }), keepalive: true }); } catch (e) {} };
+  addEventListener('error', e => { if (e.message && !/ResizeObserver|Script error/.test(e.message)) rep(e.message + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno); });
+  addEventListener('unhandledrejection', e => { const r = e.reason; if (r && r.code !== 'net' && !(r.message || '').startsWith('اتصال')) rep('promise: ' + (r && (r.stack || r.message) || r)); }); }
 (async function boot() {
   splash();
   try { const r = await fetch(API + 'cfg', { cache: 'no-store' }); const j = await r.json(); if (j.ok) { CFG = j; if (j.jyear) JY = j.jyear; } } catch (e) {}
@@ -1689,6 +1760,7 @@ const BASE = location.pathname.replace(/[^/]*$/, '').replace(/\/[A-Z2-9]{8}\/?$/
   if (location.hash === '#admin') ui.admin = true;
   if (!active()) S.active = (allProfiles()[0] || {}).id || null;
   applyAccent();
+  { const pm = location.hash.match(/^#pay\/(ok|fail)\/([A-Za-z0-9]+)/); if (pm) { render(true); return payResult(pm[1], pm[2]); } }
   if (code) return openCode(code);
   const rd = location.hash.match(/^#\/([^/]+)\/(.+)$/);
   if (rd && rd[1] !== 'c') { try { const city = decodeURIComponent(rd[1]), name = decodeURIComponent(rd[2]).replace(/-/g, ' '); const r = await api('place_near', { q: name.split(' ').slice(0, 3).join(' ') }); const m = r.places.filter(x => !city || x.city === city || /^[a-z]+$/i.test(city)); if (m.length === 1) return openCode(m[0].code); if (m.length) { render(true); return sheet('کدام یکی؟', m.map(x => `<button class="place-opt" data-a="open-code" data-c="${x.code}">${kindIc(x.kind, false, false)}<span class="grow">${esc(x.name)}<small>${esc(x.city)}${x.shift ? ' · ' + esc(x.shift) : ''} · کد ${x.code}</small></span></button>`).join(''), 'چند مکان با این نام هست؛ برای همین لینک‌های رسیدیم کد کوتاه دارند.'); } } catch (e) {} }

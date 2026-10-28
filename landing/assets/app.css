@@ -838,3 +838,14 @@ main.enter{animation:fade .25s ease both}/* no transform: fixed map layers must 
 .dock-fun .fc svg{transform:scaleX(-1)}
 .split.peers > aside > *,.cand2{flex-shrink:0}
 .split.peers > aside{grid-auto-rows:max-content;align-content:start}
+
+/* ═════════ v13 ═════════ */
+.notice{display:flex;align-items:center;gap:10px;margin:6px 0 10px;padding:10px 12px;border-radius:16px;background:#FEF3C7;color:#78350F;border:1.5px solid #FDE68A;font-weight:700;font-size:.88rem}
+.notice.hide{display:none}
+.notice svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;flex:none}
+.notice .icon-btn{width:34px;height:34px;min-height:0;background:transparent;border:0}
+.dn-amts .chip{font-weight:900}
+.sec-row{display:grid;gap:4px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.sec-row .field{gap:4px}
+.t-out:empty{display:none}
+tr.dimrow{opacity:.6}

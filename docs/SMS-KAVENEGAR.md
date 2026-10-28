@@ -1,12 +1,14 @@
+> **به‌روزرسانی نسخه‌ی ۱۳:** راهنمای کامل و درست (متغیرها `%token` بدون درصد پایانی، الگوی صوتی، و sms.ir) در **docs/INTEGRATIONS.md** است.
+
 # پیامک کاوه‌نگار — الگوها
 
 خطای **۴۲۴** یعنی الگو تعریف نشده است. در پنل کاوه‌نگار، بخش **اعتبارسنجی (Verify / Lookup)**، این سه الگو را دقیقاً با همین نام‌ها بسازید و منتظر تأیید بمانید:
 
 | نام الگو | متن پیشنهادی | توکن‌ها |
 |---|---|---|
-| `residim-login` | `کد ورود شما به رسیدیم: %token%` و در خط آخر `@residim.ir #%token%` | token = کد |
-| `residim-invite` | `خانواده %token10% پیشنهاد هم‌مسیری برای %token20% داده‌اند. کد: %token% — residim.ir` | token = کد کوتاه، token10 = فامیل، token20 = مکان |
-| `residim-arrived` | `%token10% ساعت %token% به %token20% رسید. راننده: خانواده %token2% — رسیدیم` | token = ساعت، token2 = فامیل راننده، token10 = نام فرزند، token20 = مکان |
+| `residim-login` | `کد ورود شما به رسیدیم: %token` و در خط آخر `@residim.ir #%token` | token = کد |
+| `residim-invite` | `خانواده %token10% پیشنهاد هم‌مسیری برای %token20% داده‌اند. کد: %token — residim.ir` | token = کد کوتاه، token10 = فامیل، token20 = مکان |
+| `residim-arrived` | `%token10% ساعت %token به %token20% رسید. راننده: خانواده %token2% — رسیدیم` | token = ساعت، token2 = فامیل راننده، token10 = نام فرزند، token20 = مکان |
 
 - خط آخر `@residim.ir #کد` برای پرکردن خودکار کد در گوشی‌هاست.
 - اگر نام دیگری گذاشتید، در `config.local.php` مقدار `kavenegar_template`، `kavenegar_tpl_invite` و `kavenegar_tpl_arrived` را عوض کنید.

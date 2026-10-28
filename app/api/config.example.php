@@ -29,6 +29,17 @@ return [
     'kavenegar_tpl_invite'  => 'residim-invite',
     'kavenegar_tpl_arrived' => 'residim-arrived',
 
+    // Since v13 every key below can be entered in the admin panel (tab «اتصال‌ها»); values saved there
+    // live in app/storage/secrets.local.php (web-denied, not in git) and override this file.
+    // 'kavenegar_tpl_call'  => 'residim-call',      // voice OTP template (type «پیام صوتی»)
+    // 'smsir_api_key'       => '',                  // sms.ir: برنامه‌نویسان ← لیست کلیدها
+    // 'smsir_line'          => '',                  // sms.ir line number (direct sending only)
+    // 'smsir_tpl_login'     => '',                  // sms.ir numeric template id (#CODE#)
+    // 'smsir_tpl_invite'    => '',                  // #CODE# #FAMILY# #PLACE#
+    // 'smsir_tpl_arrived'   => '',                  // #KID# #TIME# #PLACE# #DRIVER#
+    // 'payping_token_test'  => '',                  // PayPing test token
+    // 'payping_token_live'  => '',                  // PayPing live token
+
     // Admin panel at residim.ir/#admin — CHANGE THE PASSWORD
     'admin_user' => 'mot',
     'admin_pass' => 'mot',
