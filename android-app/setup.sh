@@ -17,7 +17,7 @@ for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do n=${d%%:*}; s=${d##
 done
 printf '<?xml version="1.0" encoding="utf-8"?>\n<resources><color name="ic_launcher_background">#FFFFFF</color></resources>\n' > android/app/src/main/res/values/ic_launcher_background.xml
 # splash: green with the app icon
-find android/app/src/main/res -name 'splash.png' | while read -r f; do read -r w h < <(identify -format '%w %h' "$f"); m=$(( (w<h?w:h)*30/100 ))
+find android/app/src/main/res -name 'splash.png' | while read -r f; do read -r w h < <(identify -format '%w %h\n' "$f"); m=$(( (w<h?w:h)*30/100 ))
   convert -size ${w}x${h} xc:'#16A34A' \( "$SRC" -resize ${m}x${m} \) -gravity center -composite "$f"; done
 G=android/app/build.gradle
 sed -i -E "s/versionCode [0-9]+/versionCode $CODE/; s/versionName \"[^\"]*\"/versionName \"$VER\"/" "$G"
