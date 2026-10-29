@@ -1,0 +1,104 @@
+name: Android app (build, sign, publish to residim.ir/app)
+# Builds the Capacitor shell in android-app/, signs it with a release key that lives only on the
+# host's private storage (app/storage is "Require all denied"), and uploads residim.apk + android.json.
+# The repository is public: the key and its password never enter git or the logs.
+# FTPS certificate verification stays ON here. If the host's certificate does not validate,
+# the job stops at "Find the web root" and the APK is still available as a workflow artifact.
+on:
+  push:
+    branches: [main]
+    paths: ["android-app/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: residim-android
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FTP_SERVER: ${{ secrets.FTP_SERVER_RESIDIM }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME_RESIDIM }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD_RESIDIM_IR }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick >/dev/null
+      - name: Capacitor project
+        working-directory: android-app
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund --legacy-peer-deps
+          npx cap add android
+          CODE=$((100 + GITHUB_RUN_NUMBER)) ./setup.sh
+          npx cap sync android
+      - name: Build unsigned release
+        working-directory: android-app/android
+        run: ./gradlew --no-daemon -q assembleRelease
+      - name: Key workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/k"
+      - name: Find the web root on the host
+        id: ftp
+        shell: bash
+        run: |
+          set -euo pipefail
+          s="${FTP_SERVER#ftp://}"; s="${s#ftps://}"; s="${s%/}"; echo "::add-mask::$s"
+          P=(--fail --silent --connect-timeout 15 --max-time 60 --ftp-pasv --ssl-reqd --ftp-method singlecwd --user "$FTP_USERNAME:$FTP_PASSWORD")
+          for b in "" "public_html/" "public_html/residim.ir/" "public_html/residim/" "www/" "htdocs/" "httpdocs/" "residim.ir/" "domains/residim.ir/public_html/"; do
+            if curl "${P[@]}" "ftp://$s/${b}app/health.txt" 2>/dev/null | grep -q 'residim=ok'; then echo "base=$b" >> "$GITHUB_OUTPUT"; echo "host=$s" >> "$GITHUB_OUTPUT"; echo "web root found"; exit 0; fi
+          done
+          echo "web root not reachable over verified FTPS"; exit 1
+      - name: Release key (create once, keep on the host)
+        shell: bash
+        env: { B: "${{ steps.ftp.outputs.base }}", H: "${{ steps.ftp.outputs.host }}" }
+        run: |
+          set -euo pipefail
+          P=(--fail --silent --show-error --connect-timeout 15 --max-time 120 --ftp-pasv --ssl-reqd --ftp-method singlecwd --user "$FTP_USERNAME:$FTP_PASSWORD")
+          K="ftp://$H/${B}app/storage/android"
+          cd "$RUNNER_TEMP/k"
+          if curl "${P[@]}" -o key.jks "$K/residim-release.jks" 2>/dev/null && curl "${P[@]}" -o key.pass "$K/residim-release.pass" 2>/dev/null; then
+            echo "existing release key downloaded"
+          else
+            echo "creating the release key (first build)"
+            head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' > key.pass
+            keytool -genkeypair -keystore key.jks -alias residim -keyalg RSA -keysize 3072 -validity 20000 -storepass "$(cat key.pass)" -keypass "$(cat key.pass)" -dname "CN=Residim, O=Residim, L=Tehran, C=IR" >/dev/null 2>&1
+            curl "${P[@]}" --ftp-create-dirs -T key.jks "$K/residim-release.jks"
+            curl "${P[@]}" --ftp-create-dirs -T key.pass "$K/residim-release.pass"
+          fi
+          echo "::add-mask::$(cat key.pass)"
+      - name: Sign and describe
+        shell: bash
+        run: |
+          set -euo pipefail
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          U=android-app/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          "$BT/zipalign" -f -p 4 "$U" /tmp/aligned.apk
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/k/key.jks" --ks-key-alias residim --ks-pass "file:$RUNNER_TEMP/k/key.pass" --key-pass "file:$RUNNER_TEMP/k/key.pass" --out /tmp/residim.apk /tmp/aligned.apk
+          "$BT/apksigner" verify /tmp/residim.apk
+          VER="$(cat android-app/version.txt)"; CODE=$((100 + GITHUB_RUN_NUMBER)); SIZE=$(stat -c %s /tmp/residim.apk); SHA=$(sha256sum /tmp/residim.apk | cut -d' ' -f1)
+          printf '{"ver":"%s","code":%s,"url":"https://residim.ir/app/residim.apk","size":%s,"sha256":"%s","built":"%s","commit":"%s"}\n' "$VER" "$CODE" "$SIZE" "$SHA" "$(date -u +%FT%TZ)" "$GITHUB_SHA" > /tmp/android.json
+          cat /tmp/android.json
+          rm -rf "$RUNNER_TEMP/k"
+      - uses: actions/upload-artifact@v4
+        with: { name: residim-apk, path: /tmp/residim.apk, retention-days: 14 }
+      - name: Publish to residim.ir/app
+        shell: bash
+        env: { B: "${{ steps.ftp.outputs.base }}", H: "${{ steps.ftp.outputs.host }}" }
+        run: |
+          set -euo pipefail
+          P=(--fail --silent --show-error --connect-timeout 15 --max-time 300 --ftp-pasv --ssl-reqd --ftp-method singlecwd --user "$FTP_USERNAME:$FTP_PASSWORD")
+          VER="$(cat android-app/version.txt)"
+          put() { local rc=0; curl "${P[@]}" --ftp-create-dirs -T "$1" "ftp://$H/${B}app/$2" || rc=$?; if [[ $rc -ne 0 ]]; then curl "${P[@]}" -o /tmp/chk "ftp://$H/${B}app/$2" && cmp -s "$1" /tmp/chk || return $rc; fi; }
+          put /tmp/residim.apk "residim-$VER.apk"
+          put /tmp/residim.apk residim.apk
+          put /tmp/android.json android.json
+          curl -fsS https://residim.ir/app/android.json || echo "(public check skipped)"

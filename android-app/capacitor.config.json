@@ -1,0 +1,20 @@
+{
+  "appId": "ir.residim.app",
+  "appName": "رسیدیم",
+  "webDir": "www",
+  "server": {
+    "url": "https://residim.ir/",
+    "androidScheme": "https",
+    "cleartext": false,
+    "errorPath": "index.html",
+    "allowNavigation": ["residim.ir", "*.residim.ir", "*.neshan.org", "tiles.openfreemap.org", "trustseal.enamad.ir", "payping.ir", "*.payping.ir", "*.shaparak.ir"]
+  },
+  "android": {
+    "appendUserAgent": "ResidimApp/1.0.0",
+    "allowMixedContent": false,
+    "backgroundColor": "#16A34A"
+  },
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_residim", "iconColor": "#16A34A" }
+  }
+}

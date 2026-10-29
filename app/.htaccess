@@ -8,4 +8,18 @@ DirectoryIndex index.html
 </IfModule>
 <IfModule mod_mime.c>
   AddType application/manifest+json .webmanifest
+  AddType application/vnd.android.package-archive .apk
 </IfModule>
+
+<FilesMatch "\.apk$">
+  <IfModule mod_headers.c>
+    Header set Content-Disposition "attachment; filename=residim.apk"
+    Header set Cache-Control "no-cache"
+  </IfModule>
+</FilesMatch>
+<FilesMatch "^android\.json$">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-cache"
+    Header set Access-Control-Allow-Origin "*"
+  </IfModule>
+</FilesMatch>
