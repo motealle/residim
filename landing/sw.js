@@ -1,5 +1,5 @@
-const CACHE='residim-16-v1';
-const SHELL=['./','index.html','manifest.webmanifest','radio.json','assets/app.css?v=16','assets/app.js?v=16','assets/qrcode.js?v=16','assets/maplibre-gl.css','assets/icon.svg?v=16','assets/icon-192.png','assets/icon-512.png','assets/vazirmatn.woff2'];
+const CACHE='residim-17-v1';
+const SHELL=['./','index.html','manifest.webmanifest','radio.json','assets/app.css?v=17','assets/app.js?v=17','assets/map-style.json?v=17','assets/qrcode.js?v=17','assets/maplibre-gl.css','assets/icon.svg?v=17','assets/icon-192.png','assets/icon-512.png','assets/vazirmatn.woff2'];
 const SCOPE=new URL('./',self.registration.scope).pathname;
 const TILES='residim-tiles-v1',MAX=900,AGE=14*864e5;
 const MAPS=/(^|\.)(openfreemap\.org|neshan\.org)$/;

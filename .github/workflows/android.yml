@@ -29,17 +29,6 @@ jobs:
         with: { node-version: 22 }
       - name: Tools
         run: sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick >/dev/null
-      - name: Capacitor project
-        working-directory: android-app
-        run: |
-          set -euo pipefail
-          npm install --no-audit --no-fund --legacy-peer-deps
-          npx cap add android
-          CODE=$((100 + GITHUB_RUN_NUMBER)) ./setup.sh
-          npx cap sync android
-      - name: Build unsigned release
-        working-directory: android-app/android
-        run: ./gradlew --no-daemon -q assembleRelease
       - name: Key workspace
         shell: bash
         run: |
@@ -56,6 +45,24 @@ jobs:
             if curl "${P[@]}" "ftp://$s/${b}app/health.txt" 2>/dev/null | grep -q 'residim=ok'; then echo "base=$b" >> "$GITHUB_OUTPUT"; echo "host=$s" >> "$GITHUB_OUTPUT"; echo "web root found"; exit 0; fi
           done
           echo "web root not reachable over verified FTPS"; exit 1
+      - name: Firebase config (optional, enables notifications while the app is closed)
+        shell: bash
+        env: { B: "${{ steps.ftp.outputs.base }}", H: "${{ steps.ftp.outputs.host }}" }
+        run: |
+          P=(--fail --silent --connect-timeout 15 --max-time 60 --ftp-pasv --ssl-reqd --insecure --ftp-method singlecwd --user "$FTP_USERNAME:$FTP_PASSWORD")
+          if curl "${P[@]}" -o android-app/google-services.json "ftp://$H/${B}app/storage/android/google-services.json" 2>/dev/null && grep -q project_info android-app/google-services.json; then echo "google-services.json found: push enabled"; else rm -f android-app/google-services.json; echo "no google-services.json: building without server push"; fi
+      - name: Capacitor project
+        working-directory: android-app
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund --legacy-peer-deps
+          if [ -f google-services.json ]; then npm install --no-audit --no-fund --legacy-peer-deps @capacitor/push-notifications@^7; fi
+          npx cap add android
+          CODE=$((100 + GITHUB_RUN_NUMBER)) ./setup.sh
+          npx cap sync android
+      - name: Build unsigned release
+        working-directory: android-app/android
+        run: ./gradlew --no-daemon -q assembleRelease
       - name: Release key (create once, keep on the host)
         shell: bash
         env: { B: "${{ steps.ftp.outputs.base }}", H: "${{ steps.ftp.outputs.host }}" }

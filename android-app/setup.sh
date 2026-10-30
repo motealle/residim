@@ -23,3 +23,5 @@ G=android/app/build.gradle
 sed -i -E "s/versionCode [0-9]+/versionCode $CODE/; s/versionName \"[^\"]*\"/versionName \"$VER\"/" "$G"
 sed -i "s#ResidimApp/[0-9.]*#ResidimApp/$VER#" capacitor.config.json
 echo "android project ready: $VER ($CODE)"
+# server push (Firebase) only when the owner provided google-services.json
+if [ -f google-services.json ]; then cp google-services.json android/app/google-services.json; sed -i "s#ResidimApp/$VER\"#ResidimApp/$VER push\"#" capacitor.config.json; echo "push: on"; fi
