@@ -439,7 +439,7 @@ function public_member(array $p, bool $mate, ?array $me = null, bool $viewerVeri
     $u = row('SELECT phone,fake FROM users WHERE id=?', [$p['user_id']]); $verified = $u && ($u['phone'] || (int)$u['fake']);
     $phone = null; if ($viewerVerified && ($mate || !empty($d['phone_show']))) $phone = $u ? ($u['fake'] ? null : $u['phone']) : null;
     return ['id' => $p['id'], 'family' => $d['family'] ?? '', 'title' => $d['title'] ?? '', 'pg' => $d['pg'] ?? 'f', 'role' => $d['role'] ?? 'pay', 'seats' => (int)($d['seats'] ?? 0), 'days' => $d['days'] ?? [],
-        'needs' => $d['needs'] ?? ['out' => true, 'back' => true], 'values' => $d['values'] ?? [], 'hood' => $d['hood'] ?? '', 'lat' => $lat, 'lng' => $lng, 'exact' => $exact, 'snapp' => (int)($d['snapp'] ?? 0),
+        'job' => mb_substr((string)($d['job'] ?? ''), 0, 20), 'relig' => !empty($d['relig']), 'needs' => $d['needs'] ?? ['out' => true, 'back' => true], 'values' => $d['values'] ?? [], 'hood' => $d['hood'] ?? '', 'lat' => $lat, 'lng' => $lng, 'exact' => $exact, 'snapp' => (int)($d['snapp'] ?? 0),
         'kids' => array_map(fn($r) => ['g' => $r['g'], 'age' => $r['age']] + ($mate ? ['first' => $r['first'], 'id' => $r['id']] : []), riders_of($p)),
         'phone' => $phone, 'phone_hidden' => !$phone, 'verified' => (bool)$verified, 'contact' => $d['contact'] ?? (!empty($d['phone_show']) ? 'phone' : 'app'), 'pickup' => $d['pickup'] ?? '', 'rel' => $d['rel'] ?? '', 'arrive' => $d['arrive'] ?? '', 'free_ride' => !empty($d['free_ride']), 'card' => $mate ? (string)($d['card'] ?? '') : '', 'dest_name' => $mate ? (string)($d['hood'] ?? '') : '', 'fake' => (int)$p['fake'], 'team' => team_out($t)];
 }
@@ -504,7 +504,7 @@ function make_fake(array $me, array $place, bool $driver): string {
     $r = 300 + random_int(0, 2200); $a = random_int(0, 359) * M_PI / 180;
     $lat = $lat0 + ($r * cos($a)) / 110570; $lng = $lng0 + ($r * sin($a)) / (111320 * cos($lat0 * M_PI / 180));
     $uidv = uid(); q('INSERT INTO users(id,phone,fake,created) VALUES(?,?,1,?)', [$uidv, '0900' . str_pad((string)random_int(0, 9999999), 7, '0', STR_PAD_LEFT), time()]);
-    $child = in_array($place['kind'], ['school', 'kinder', 'institute', 'club'], true);
+    $child = in_array($place['kind'], ['school', 'kinder', 'institute', 'club'], true) && (int)($d0['forKids'] ?? 1) !== 0; // school staff get adult neighbours
     $temp = in_array($place['kind'], TEMP_KINDS, true);
     $pg = $temp ? ($d0['pg'] ?? 'f') : (random_int(0, 1) ? 'f' : 'm'); $kids = [];
     if ($child) { $n = random_int(1, 10) > 8 ? 2 : 1; $g0 = $place['gender'] === 'm' ? 'm' : ($place['gender'] === 'f' ? 'f' : (random_int(0, 1) ? 'f' : 'm'));
@@ -607,6 +607,12 @@ case 'place_near': {
     foreach ($all as $p) { if ($kind && $p['kind'] !== $kind) continue; if ($qq !== '' && mb_strpos($p['name'] . ' ' . $p['city'], $qq) === false) continue; $d = $lat ? hav($lat, $lng, (float)$p['lat'], (float)$p['lng']) : 0; if ($lat && $qq === '' && $d > 12000) continue; $o = place_out($p); $o['d'] = (int)$d; $out[] = $o; }
     usort($out, fn($x, $y) => $x['d'] <=> $y['d']); YES(['places' => array_slice($out, 0, 30)]);
 }
+case 'places_map': { // every known place around a point, light fields (schools layer, map picker)
+    $lat = (float)($in['lat'] ?? 0); $lng = (float)($in['lng'] ?? 0); $r = max(1000, min(20000, (int)($in['r'] ?? 9000))); if (!$lat) YES(['places' => []]);
+    $dl = $r / 110570; $dg = $r / (111320 * max(.2, cos(deg2rad($lat)))); $out = [];
+    foreach (rows('SELECT id,code,kind,name,city,gender,lat,lng,nv,verified FROM places WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ? AND (fake=0 OR created_by IS NOT NULL) LIMIT 1500', [$lat - $dl, $lat + $dl, $lng - $dg, $lng + $dg]) as $p)
+        $out[] = ['id' => $p['id'], 'code' => $p['code'], 'kind' => $p['kind'], 'name' => $p['name'], 'city' => $p['city'], 'gender' => $p['gender'], 'lat' => (float)$p['lat'], 'lng' => (float)$p['lng'], 'nv' => (int)($p['nv'] ?? 0)];
+    YES(['places' => $out]); }
 case 'place_report': { // two different users agree a place is fake or wrong -> removed (only while nobody real uses it)
     $u = auth(); $pl = row('SELECT * FROM places WHERE id=?', [(string)($in['id'] ?? '')]); if (!$pl) NO('این مکان پیدا نشد.', 404);
     if ((int)$pl['verified'] || (int)($pl['nv'] ?? 0)) NO('این مکان تأییدشده است (مدیر یا نقشه‌ی نشان)؛ برای اصلاحش تیکت بزنید.');
