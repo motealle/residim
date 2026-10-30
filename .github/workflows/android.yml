@@ -81,7 +81,7 @@ jobs:
           BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
           U=android-app/android/app/build/outputs/apk/release/app-release-unsigned.apk
           "$BT/zipalign" -f -p 4 "$U" /tmp/aligned.apk
-          "$BT/apksigner" sign --ks "$RUNNER_TEMP/k/key.jks" --ks-key-alias residim --ks-pass "file:$RUNNER_TEMP/k/key.pass" --key-pass "file:$RUNNER_TEMP/k/key.pass" --out /tmp/residim.apk /tmp/aligned.apk
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/k/key.jks" --ks-key-alias residim --ks-pass "file:$RUNNER_TEMP/k/key.pass" --out /tmp/residim.apk /tmp/aligned.apk
           "$BT/apksigner" verify /tmp/residim.apk
           VER="$(cat android-app/version.txt)"; CODE=$((100 + GITHUB_RUN_NUMBER)); SIZE=$(stat -c %s /tmp/residim.apk); SHA=$(sha256sum /tmp/residim.apk | cut -d' ' -f1)
           printf '{"ver":"%s","code":%s,"url":"https://residim.ir/app/residim.apk","size":%s,"sha256":"%s","built":"%s","commit":"%s"}\n' "$VER" "$CODE" "$SIZE" "$SHA" "$(date -u +%FT%TZ)" "$GITHUB_SHA" > /tmp/android.json
