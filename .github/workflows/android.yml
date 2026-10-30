@@ -2,8 +2,7 @@ name: Android app (build, sign, publish to residim.ir/app)
 # Builds the Capacitor shell in android-app/, signs it with a release key that lives only on the
 # host's private storage (app/storage is "Require all denied"), and uploads residim.apk + android.json.
 # The repository is public: the key and its password never enter git or the logs.
-# FTPS certificate verification stays ON here. If the host's certificate does not validate,
-# the job stops at "Find the web root" and the APK is still available as a workflow artifact.
+# FTPS: like deploy-production.yml, the host certificate is not verified (owner decision, 2026-10-30).
 on:
   push:
     branches: [main]
@@ -52,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           s="${FTP_SERVER#ftp://}"; s="${s#ftps://}"; s="${s%/}"; echo "::add-mask::$s"
-          P=(--fail --silent --connect-timeout 15 --max-time 60 --ftp-pasv --ssl-reqd --ftp-method singlecwd --user "$FTP_USERNAME:$FTP_PASSWORD")
+          P=(--fail --silent --connect-timeout 15 --max-time 60 --ftp-pasv --ssl-reqd --insecure --ftp-method singlecwd --user "$FTP_USERNAME:$FTP_PASSWORD")
           for b in "" "public_html/" "public_html/residim.ir/" "public_html/residim/" "www/" "htdocs/" "httpdocs/" "residim.ir/" "domains/residim.ir/public_html/"; do
             if curl "${P[@]}" "ftp://$s/${b}app/health.txt" 2>/dev/null | grep -q 'residim=ok'; then echo "base=$b" >> "$GITHUB_OUTPUT"; echo "host=$s" >> "$GITHUB_OUTPUT"; echo "web root found"; exit 0; fi
           done
@@ -62,7 +61,7 @@ jobs:
         env: { B: "${{ steps.ftp.outputs.base }}", H: "${{ steps.ftp.outputs.host }}" }
         run: |
           set -euo pipefail
-          P=(--fail --silent --show-error --connect-timeout 15 --max-time 120 --ftp-pasv --ssl-reqd --ftp-method singlecwd --user "$FTP_USERNAME:$FTP_PASSWORD")
+          P=(--fail --silent --show-error --connect-timeout 15 --max-time 120 --ftp-pasv --ssl-reqd --insecure --ftp-method singlecwd --user "$FTP_USERNAME:$FTP_PASSWORD")
           K="ftp://$H/${B}app/storage/android"
           cd "$RUNNER_TEMP/k"
           if curl "${P[@]}" -o key.jks "$K/residim-release.jks" 2>/dev/null && curl "${P[@]}" -o key.pass "$K/residim-release.pass" 2>/dev/null; then
@@ -95,7 +94,7 @@ jobs:
         env: { B: "${{ steps.ftp.outputs.base }}", H: "${{ steps.ftp.outputs.host }}" }
         run: |
           set -euo pipefail
-          P=(--fail --silent --show-error --connect-timeout 15 --max-time 300 --ftp-pasv --ssl-reqd --ftp-method singlecwd --user "$FTP_USERNAME:$FTP_PASSWORD")
+          P=(--fail --silent --show-error --connect-timeout 15 --max-time 300 --ftp-pasv --ssl-reqd --insecure --ftp-method singlecwd --user "$FTP_USERNAME:$FTP_PASSWORD")
           VER="$(cat android-app/version.txt)"
           put() { local rc=0; curl "${P[@]}" --ftp-create-dirs -T "$1" "ftp://$H/${B}app/$2" || rc=$?; if [[ $rc -ne 0 ]]; then curl "${P[@]}" -o /tmp/chk "ftp://$H/${B}app/$2" && cmp -s "$1" /tmp/chk || return $rc; fi; }
           put /tmp/residim.apk "residim-$VER.apk"
