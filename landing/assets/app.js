@@ -291,7 +291,7 @@ function markerEl(m, mine) {
 
 /* peer map: one persistent node moved between renders (no tile reloads) */
 const PM = { node: null, map: null, L: null, markers: [], key: '', state: 'idle' };
-if (/[?&]qa=1/.test(location.search)) window.PM = PM;
+if (/[?&]qa=1/.test(location.search)) { window.PM = PM; window.QA = { ui, wizRender, wizSteps }; }
 async function mountPeerMap() {
   const slot = $('#peermap-slot'); if (!slot) return;
   const p = active(); if (!p || !p.data || !p.data.lat) return;
@@ -473,7 +473,8 @@ function slotsOf(place, off = 0) {
   days.forEach(d => ['out', 'back'].forEach(dir => out.push({ id: d + '-' + dir, d, dir, time: dir === 'out' ? tin : tout }))); return out;
 }
 /* real capacity: 4, or 5 when every child riding is under 10 (car models change, so we never trust the car) */
-const seatCap = (seats, kids) => Math.min(seats || 0, (seats || 0) >= 5 && kids.length && kids.every(k => k.age != null && k.age < 10) ? 5 : 4);
+const seatCap = (seats, kids) => Math.min(seats || 0, (seats || 0) >= 5 && kids.length && kids.every(k => k.age != null && k.age < 9) ? 5 : 4);
+const teamCap = kids => kids.length && kids.every(k => k.age != null && k.age >= 18) ? 5 : kids.length && kids.every(k => k.age != null && k.age < 9) ? 5 : 4;
 const ridersOf = (T, dir) => T.members.filter(m => (m.needs || {})[dir] !== false).flatMap(m => m.kids.map(k => ({ ...k, pid: m.id })));
 const driverOk = (T, m, dir) => (m.role === 'drive' || m.role === 'both') && ridersOf(T, dir).every(k => { const o = T.members.find(x => x.id === k.pid); return !(o.values || []).includes('samegender') || o.id === m.id || m.pg === k.g; });
 function planOf(T) {
@@ -500,20 +501,26 @@ function settle(T) {
 
 /* ═════════ screens ═════════ */
 const SLIDES = [
-  { art: '<span class="fam f1">👩</span><span class="plus">+</span><span class="fam f2">👨</span><span class="eq">=</span><span class="half">½</span>', t: 'هنوز خودت هر روز فرزند گلت را می‌بری و می‌آوری؟ فقط <b>یکی مثل خودت</b> پیدا کنی که بشود به او اعتماد کرد، زحمتت <b>نصف</b> می‌شود! دو تا پیدا کنی، <b>یک سوم</b>! واقعاً خوب نیست؟!', b: 'پیدا کردن هم‌مسیر', a: 'new-profile' },
-  { art: '<span class="fam f1">🤝</span><span class="heart">💚</span><span class="fam f2">🏫</span>', t: '<b>رسیدیم اپ حمل‌ونقل نیست.</b> فقط والدین دلسوز و هم‌نیاز را با هم آشنا می‌کند تا مشکل‌شان را با هم بهتر حل کنند و به هم کمک کنند.', b: '', a: '' },
-  { art: '<span class="fam f1">📣</span><span class="fam f2">🖼️</span>', t: '<b>پویش پوستر مدرسه:</b> لینک رسیدیم مدرسه یا محل کارتان را در گروه‌ها و کانال‌ها بگذارید و از دیگران هم بخواهید. هر خانواده‌ای که بیاید، نوبت همه سبک‌تر می‌شود.', b: 'ساختن پوستر مدرسه‌ی ما', a: 'new-profile' }
+  { html: () => `<div class="sh-scene" id="sh-scene" data-step="2"><div class="sh-people">${[1, 2, 3, 4].map(i => `<span class="sh-p p${i}">${shapeAv('slide' + i, 54)}</span>`).join('')}</div><div class="sh-frac"><b id="sh-n">½</b><small>زحمت هر نفر</small></div></div><p class="sl-msg big" id="sh-say">یکی مثل خودت پیدا کن؛<br><b>زحمتت نصف!</b></p>`, b: 'پیدا کردن هم‌مسیر', a: 'new-profile' },
+  { html: `<div class="hm-scene" aria-hidden="true"><span class="hm h1">🏠</span><svg class="hm-line" viewBox="0 0 120 20"><path d="M4 14 Q60 -6 116 14"/></svg><span class="hm-heart">💚</span><span class="hm h2">🏠</span></div><p class="sl-msg big"><b>ما راننده نداریم 🙂</b><br>والدینِ هم‌مسیر را به هم می‌رسانیم.</p>`, b: '', a: '' },
+  { html: `<div class="ps-scene" aria-hidden="true"><span class="ps-phone">📱</span><span class="ps-fly f1">🖼️</span><span class="ps-fly f2">💬</span><span class="ps-fly f3">🏫</span></div><p class="sl-msg big"><b>پوستر مدرسه را در گروه کلاس بگذار.</b><br>هر خانواده‌ی تازه، نوبت همه را سبک‌تر می‌کند.</p>`, b: 'ساختن پوستر مدرسه', a: 'new-profile' }
 ];
+const SH_SAY = { 2: ['½', 'یکی مثل خودت پیدا کن؛<br><b>زحمتت نصف!</b>'], 3: ['⅓', 'دو نفر شدید؟<br><b>یک‌سوم!</b>'], 4: ['¼', 'سه نفر؟<br><b>فقط یک‌چهارم!</b>'] };
+function shareStep() { const sc = $('#sh-scene'); if (!sc) return; const n = +sc.dataset.step === 4 ? 2 : +sc.dataset.step + 1; sc.dataset.step = n; const [f, t] = SH_SAY[n]; const b = $('#sh-n'); b.textContent = f; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); $('#sh-say').innerHTML = t; }
+function peekWatch() { const b = $('.peek'); if (!b || b.dataset.w) return; b.dataset.w = 1; const L = $('#peer-list');
+  const upd = () => { if (!document.body.contains(b)) return removeEventListener('scroll', upd); const top = L ? L.getBoundingClientRect().top : 0; b.classList.toggle('gone', top < innerHeight * .55); };
+  addEventListener('scroll', upd, { passive: true }); setTimeout(upd, 400); }
 function slideWatch() { const tr = $('#sl-track'); if (!tr || tr.dataset.w) return; tr.dataset.w = 1; let i = 0, hold = 0;
   const dots = () => $$('.sl-dots button').forEach((b, k) => b.toggleAttribute('aria-current', k === i));
   tr.addEventListener('scroll', () => { clearTimeout(tr._t); tr._t = setTimeout(() => { const w = tr.clientWidth || 1; i = Math.round(Math.abs(tr.scrollLeft) / w); dots(); }, 80); }, { passive: true });
   ['pointerdown', 'touchstart', 'focusin'].forEach(ev => tr.addEventListener(ev, () => { hold = Date.now(); }, { passive: true }));
-  clearInterval(ui.slT); ui.slT = setInterval(() => { if (!document.body.contains(tr)) return clearInterval(ui.slT); if (document.hidden || Date.now() - hold < 12000 || matchMedia('(prefers-reduced-motion:reduce)').matches) return; i = (i + 1) % tr.children.length; tr.children[i].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' }); dots(); }, 6500); }
+  clearInterval(ui.shT); ui.shT = setInterval(() => { if (!document.body.contains(tr)) return clearInterval(ui.shT); if (i === 1 && !document.hidden) shareStep(); }, 1900);
+  clearInterval(ui.slT); ui.slT = setInterval(() => { if (!document.body.contains(tr)) return clearInterval(ui.slT); if (document.hidden || Date.now() - hold < 12000 || matchMedia('(prefers-reduced-motion:reduce)').matches) return; if (i === 1 && $('#sh-scene') && $('#sh-scene').dataset.step !== '4') return; i = (i + 1) % tr.children.length; tr.children[i].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' }); dots(); }, 6500); }
 function home() {
   const dr = S.drafts[0];
   return `<div class="home-grid"><section class="hero-g hero-sl" aria-roledescription="اسلاید"><div class="sl-track" id="sl-track"><div class="sl"><span class="small" style="font-weight:800">سرویس مشارکتی!</span><h1>مامان، بابا،<br>رسیدیم!</h1>
     <p>هم‌مسیرهای نزدیک‌تان را پیدا کنید، تیم شوید و نوبتی ببرید و بیاورید؛ برای مدرسه، مهد، آموزشگاه، باشگاه، محل کار و دانشگاه.</p>
-    <div class="row wrap">${dr ? `<button class="btn" data-a="resume-draft">ادامه‌ی ثبت‌نام «${esc(dr.label || 'مسیرک')}»</button>` : `<button class="btn" data-a="new-profile">شروع کنیم؛ ۲ دقیقه</button>`}<button class="btn line" data-a="login">قبلاً ثبت‌نام کرده‌ام</button></div>${artCar('deco')}</div>${SLIDES.map((x, i) => `<div class="sl sl-${i + 1}"><div class="sl-art" aria-hidden="true">${x.art}</div><p class="sl-msg">${x.t}</p>${x.b ? `<button class="btn" data-a="${x.a}">${x.b}</button>` : ''}</div>`).join('')}</div>
+    <div class="row wrap">${dr ? `<button class="btn" data-a="resume-draft">ادامه‌ی ثبت‌نام «${esc(dr.label || 'مسیرک')}»</button>` : `<button class="btn" data-a="new-profile">شروع کنیم؛ ۲ دقیقه</button>`}<button class="btn line" data-a="login">قبلاً ثبت‌نام کرده‌ام</button></div>${artCar('deco')}</div>${SLIDES.map((x, i) => `<div class="sl sl-${i + 1}">${typeof x.html === 'function' ? x.html() : x.html}${x.b ? `<button class="btn" data-a="${x.a}">${x.b}</button>` : ''}</div>`).join('')}</div>
     <div class="sl-dots" role="tablist">${[0, ...SLIDES.keys()].map((_, i) => `<button data-a="sl-go" data-v="${i}" aria-label="اسلاید ${fa(i + 1)}" ${i ? '' : 'aria-current="true"'}></button>`).join('')}</div></section>
   <section class="card stack" style="">${cityAnim('نوبتی می‌بریم، نوبتی می‌آوریم')}</section>
   <button class="school-main" data-a="new-profile" data-kind="school">
@@ -557,7 +564,8 @@ function peersTab(p) {
   else if (!t && isTrip(p)) hint = `${fa(avail.length)} هم‌سفر ${p.data.pg === 'f' ? 'خانم' : 'آقا'} حدود همان ساعت می‌رسند و مقصدشان نزدیک شماست.`;
   else if (!t) hint = `${fa(avail.filter(m => !m.team && m.dist && m.dist.m < 3000).length)} خانواده‌ی بی‌تیم در فاصله‌ی ۳ کیلومتری شما هستند. نزدیک‌ترین‌ها بالای فهرست‌اند.`;
   else hint = `شما در ${teamName(t)} هستید. برای اضافه کردن هم‌تیمی، از همین فهرست دعوت کنید.`;
-  return `${fix}<div class="split peers"><div class="stack">
+  const peek = sorted.length && !isDesk() ? `<button class="peek" data-a="to-list" aria-label="رفتن به فهرست پیشنهادها">${HAND}<span>${fa(sorted.length)} پیشنهاد هم‌مسیر پایین‌تر است</span></button>` : '';
+  return `${fix}${peek}<div class="split peers"><div class="stack">
       <div class="hint">${ic(t ? 'team' : 'spark')}<span>${hint}</span></div>
       <div class="mapbox"><div id="peermap-slot" style="position:absolute;inset:0"></div>
         <div class="seg" role="group" aria-label="نمای نقشه"><button data-a="mview" data-v="peers" aria-pressed="${ui.mview !== 'dest'}">${isTrip(p) ? 'هم‌سفرها' : 'هم‌مسیرها'}</button><button data-a="mview" data-v="dest" aria-pressed="${ui.mview === 'dest'}">${ic('flag')}تا ${esc(isTrip(p) ? 'مقصد' : destWord(p))}</button></div>
@@ -566,7 +574,7 @@ function peersTab(p) {
       <div class="legend" style="border:0;padding:0 4px">${ic('wheel')} رانندگی ${ic('coin')} هزینه ${ic('woman')} مادر ${ic('man')} پدر <span><i class="team-dot" style="background:#8E9892;box-shadow:none"></i>بی‌تیم</span></div>
       ${!list.length ? `<div class="card empty">${cityAnim('هر خانواده‌ای که بیاید، مسیر کوتاه‌تر می‌شود')}<b>اینجا به‌زودی شلوغ می‌شود!</b><p class="muted small">پوستر و لینک ${esc(placeName(p))} را بفرستید؛ هر ثبت‌نام نزدیک شما را خبر می‌دهیم.</p><button class="btn ac" data-a="poster">${ic('share')}لینک و پوستر</button></div>` : ''}
     </div>
-    <aside class="stack">
+    <aside class="stack" id="peer-list">
       ${sm ? `<div class="card stack"><div class="row between"><h2>${ic('spark')} چینش پیشنهادی برای شما</h2></div>
         <p class="small">شما + ${sm.list.map(m => esc('خانواده ' + m.family)).join(' + ')}</p><p class="muted small">${fa(sm.drivers)} راننده · ${fa(sm.kids)} مسافر · ${fa(sm.seats)} صندلی</p>
         ${sm.drivers ? '' : `<p class="note" style="color:var(--warn)">${ic('warn')}راننده ندارد؛ یک خانواده‌ی راننده هم دعوت کنید.</p>`}
@@ -578,7 +586,7 @@ function peersTab(p) {
 const SHAPES = ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z', 'M5 5h14v14H5Z', 'M12 3.5 21 19.5H3Z', 'M12 2.5 21.5 12 12 21.5 2.5 12Z', 'M12 2.8 20 7.4v9.2l-8 4.6-8-4.6V7.4Z', 'M12 2.8l2.6 6 6.4.6-4.9 4.2 1.5 6.3L12 16.6l-5.6 3.3 1.5-6.3L3 9.4l6.4-.6Z', 'M12 2.8 21 9.3l-3.4 10.4H6.4L3 9.3Z', 'M12 3c5 0 9 4 9 9h-9Zm0 18c-5 0-9-4-9-9h9Z'];
 const SHAPE_C = ['#22C55E', '#2563EB', '#F97316', '#DB2777', '#7C3AED', '#0D9488', '#F59E0B', '#DC2626'];
 function shapeOf(id) { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return { d: SHAPES[h % SHAPES.length], c: SHAPE_C[(h >>> 4) % SHAPE_C.length] }; }
-const shapeAv = (id, size = 46) => { const g = shapeOf(id); return `<span class="shp" style="--sc:${g.c};width:${size}px;height:${size}px" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="${g.d}"/></svg></span>`; };
+const shapeAv = (id, size = 46) => { const g = shapeOf(id); return `<span class="shp sil" style="--sc:${g.c};width:${size}px;height:${size}px" aria-hidden="true"><svg viewBox="0 0 40 40"><circle cx="20" cy="15.5" r="7.2"/><path d="M5.5 40c.6-8.6 6.6-14.2 14.5-14.2S33.9 31.4 34.5 40Z"/></svg></span>`; };
 function candCard(p, m) {
   const sc = score(p, m), t = m.team, c = t ? col(t.color) : null;
   let act;
@@ -647,8 +655,9 @@ function todayCard(T, x, plan, p) {
   } else if (r.status === 'started' && !ui.perKid) {
     const ev = r.ev || {}, brd = ev.board || {}, drv = ex && ex.id === p.id, fams = [...new Set(ks.map(k => k.pid))];
     body = `<div class="kids">${fams.map(pid => { const m = mem(T, pid), kk = ks.filter(k => k.pid === pid), on = x.dir === 'back' || kk.every(k => brd[k.id]) || (ev.bp || {})[pid];
-      return `<button class="kid ${on ? 'ok' : ''}" style="--kc:var(--ac)" ${drv && !on ? `data-a="t-board" data-pid="${pid}"` : 'disabled'}>${on ? ic('check') : '<i></i>'}${esc(kk.length === 1 && m ? kidName(kk[0], m) : kk.map(k => k.first).filter(Boolean).join(' و ') + (m ? ' ' + m.family : ''))}<small>${on ? (x.dir === 'back' ? 'در ماشین' : (kk.length > 1 ? 'سوار شدند' : 'سوار شد') + ((ev.bp || {})[pid] ? ' ' + fa(new Date(ev.bp[pid] * 1000).toTimeString().slice(0, 5)) : '')) : 'منتظر'}</small></button>`; }).join('')}</div>
-      ${drv ? `<p class="muted small">${S.liveOK || CFG.flags.auto_arrive ? 'سوار شدن‌ها با موقعیت ماشین خودکار ثبت می‌شود؛ ' : ''}اگر لازم شد، روی اسم بزنید.</p>` : `<p class="muted small">هر کس سوار شود همین‌جا تیک می‌خورد.</p>`}`;
+      return `<button class="kid ${on ? 'ok' : ''}" style="--kc:var(--ac)" ${drv && x.dir === 'out' && pid !== r.exec ? `data-a="${on ? 't-unboard' : 't-board'}" data-pid="${pid}"` : 'disabled'}>${on ? ic('check') : '<i></i>'}${esc(kk.length === 1 && m ? kidName(kk[0], m) : kk.map(k => k.first).filter(Boolean).join(' و ') + (m ? ' ' + m.family : ''))}<small>${on ? (x.dir === 'back' ? 'در ماشین' : (kk.length > 1 ? 'سوار شدند' : 'سوار شد') + ((ev.bp || {})[pid] ? ' ' + fa(new Date(ev.bp[pid] * 1000).toTimeString().slice(0, 5)) : '')) : 'منتظر'}</small></button>`; }).join('')}</div>
+      ${drv ? `<p class="muted small">${S.liveOK || CFG.flags.auto_arrive ? 'سوار شدن‌ها خودکار ثبت می‌شود؛ ' : ''}روی اسم بزنید تا ثبت یا برگردانده شود.</p>` : ''}`;
+    if (CFG.flags.trip_scene !== false) body = tripScene(T, x, r, p) + (drv ? body : '');
     act = drv ? `<button class="btn ac block big" data-a="t-allin">${ic('check')}رسیدیم؛ همه را تحویل دادم</button><button class="link" data-a="t-perkid">یکی را جداگانه تحویل دادم</button>` : '';
   } else if (r.status === 'started') {
     const all = ks.every(k => r.arr[k.id]);
@@ -680,6 +689,39 @@ function turnsAhead(T, plan, p, days = 7) { // my planned trips for the next day
 }
 function turnText(T, xs) { const L = T.learn || {};
   return xs.map(x => `${x.dir === 'out' ? 'رفت' : 'برگشت'} ساعت ${fa((L[x.dir] && L[x.dir].depart) || x.time)}${x.dir === 'out' ? ' راه بیفتید' : ' دم ' + T.place.name}`).join(' و ') + '؛ ' + fa(ridersOf(T, xs[0].dir).length) + ' بچه: ' + [...new Set(ridersOf(T, xs[0].dir).map(k => k.first).filter(Boolean))].slice(0, 5).join('، '); }
+/* ═════════ trip scene: home stations behind, school ahead (left), the car fills up ═════════ */
+function stopOrder(T, x, r) { // greedy nearest-next from the driver's home (out) or the school (back)
+  const ex = mem(T, r.exec), pids = [...new Set(ridersOf(T, x.dir).map(k => k.pid))].filter(id => !(x.dir === 'out' && id === r.exec));
+  let cur = x.dir === 'out' ? (ex && ex.lat ? [ex.lat, ex.lng] : [T.place.lat, T.place.lng]) : [T.place.lat, T.place.lng]; const left = pids.map(id => mem(T, id)).filter(Boolean), out = [];
+  while (left.length) { left.sort((a, b) => hav(cur[0], cur[1], a.lat || 0, a.lng || 0) - hav(cur[0], cur[1], b.lat || 0, b.lng || 0)); const n = left.shift(); out.push(n); cur = [n.lat || cur[0], n.lng || cur[1]]; }
+  return out;
+}
+const SCAR = `<svg class="sc-car-svg" viewBox="0 0 120 64" aria-hidden="true"><g class="sc-body"><path d="M8 44V32c0-3 2-5 5-5.5l12-2 12-13c2-2 4-3 7-3h28c3 0 5 1 7 3l10 13 9 1.5c3 .5 5 2.6 5 5.5V44Z" fill="#22C55E" stroke="#0C1410" stroke-width="2.6" stroke-linejoin="round"/><path d="M31 25l11-12h14v12Zm29 0V13h13l9 12Z" fill="#DFF7E8" stroke="#0C1410" stroke-width="2.2" stroke-linejoin="round"/><circle cx="12" cy="36" r="2.6" fill="#FDE68A" stroke="#0C1410" stroke-width="1.6"/><path d="M104 38h6" stroke="#0C1410" stroke-width="2.4" stroke-linecap="round"/></g><g class="sc-wheel" style="transform-origin:30px 46px"><circle cx="30" cy="46" r="8.5" fill="#1F2937" stroke="#0C1410" stroke-width="2.2"/><path d="M30 39v14M23 46h14" stroke="#9CA3AF" stroke-width="2"/></g><g class="sc-wheel" style="transform-origin:90px 46px"><circle cx="90" cy="46" r="8.5" fill="#1F2937" stroke="#0C1410" stroke-width="2.2"/><path d="M90 39v14M83 46h14" stroke="#9CA3AF" stroke-width="2"/></g></svg>`;
+function tripScene(T, x, r, p) {
+  const out = x.dir === 'out', ev = r.ev || {}, bp = ev.bp || {}, order = stopOrder(T, x, r), ex = mem(T, r.exec), L = T.learn && T.learn[x.dir];
+  const kidsOf = id => ridersOf(T, x.dir).filter(k => k.pid === id), first = id => { const m = mem(T, id), f = kidsOf(id).map(k => k.first).filter(Boolean); return f.length ? f.join(' و ') : (m ? m.family : ''); };
+  const done = m => out ? !!bp[m.id] : kidsOf(m.id).every(k => r.arr[k.id]);
+  const st = [{ id: out ? r.exec : 'school', name: out ? 'خانه‌ی ' + (ex ? ex.family : '') : T.place.name, kind: out ? 'home' : 'school', done: true, at: out ? ev.depart || ev.start : ev.start },
+    ...order.map(m => ({ id: m.id, name: first(m.id), kind: 'home', done: done(m), at: out ? bp[m.id] : null })),
+    ...(out ? [{ id: 'school', name: T.place.name, kind: 'school', done: !!ev.arrive, at: ev.arrive }] : [])];
+  const N = st.length, pos = i => 6 + i * (88 / Math.max(1, N - 1)); let k = 0; while (k + 1 < N && st[k + 1].done) k++;
+  const fin = k === N - 1, nx = fin ? null : st[k + 1], carAt = fin ? pos(k) : pos(k) + (pos(k + 1) - pos(k)) * .42;
+  const inCar = out ? ridersOf(T, x.dir).filter(kd => kd.pid === r.exec || bp[kd.pid]).length : ridersOf(T, x.dir).filter(kd => !r.arr[kd.id]).length;
+  const live = ui.live, eta = nx && live && nx.kind === 'home' && mem(T, nx.id) ? Math.max(1, Math.round(hav(live.lat, live.lng, mem(T, nx.id).lat, mem(T, nx.id).lng) / 420)) : null;
+  const plan = nx && L && L.board && L.board[nx.id], hhmm = t => fa(new Date(t * 1000).toTimeString().slice(0, 5));
+  const recent = st.slice(1).filter(z => z.done && z.at && Date.now() / 1000 - z.at < 150 && z.kind === 'home').pop(), bx = v => Math.min(80, Math.max(20, v));
+  const key = x.id + '|' + k; const from = ui.sceneFrom && ui.sceneFrom.slot === x.id ? ui.sceneFrom.at : carAt; ui.sceneFrom = { slot: x.id, at: carAt, key };
+  return `<div class="scene ${fin ? 'fin' : 'moving'}" role="img" aria-label="${esc(`ماشین ${fa(inCar)} مسافر دارد؛ ${nx ? 'مقصد بعدی ' + nx.name : 'همه رسیدند'}`)}">
+    <span class="sc-cloud c1"></span><span class="sc-cloud c2"></span><div class="sc-road"><i></i></div>
+    <span class="sc-light" style="right:${(pos(Math.floor((N - 1) / 2)) + pos(Math.ceil((N - 1) / 2))) / 2 + 3}%"><i></i><i></i><i></i></span>
+    ${st.map((z, i) => `<div class="sc-st ${z.kind} ${z.done ? 'ok' : ''} ${nx && z.id === nx.id ? 'next' : ''}" style="right:${pos(i)}%">${z.kind === 'school' ? `<span class="sc-ic">🏫</span>` : `<span class="sc-ic">🏠</span>`}<b>${esc(z.name)}</b>${z.at && z.kind === 'home' && i ? `<small>${hhmm(z.at)} ✓</small>` : z.kind === 'school' && out && T.place.in ? `<small>زنگ ${fa(T.place.in)}</small>` : ''}</div>`).join('')}
+    ${nx ? `<div class="sc-bub next" style="right:${bx(pos(k + 1))}%">${nx.kind === 'school' ? `داریم به ${esc(destWord(p))} می‌رسیم!` : `${esc(nx.name)}، منتظر باش؛ داریم می‌رسیم!`}${eta ? `<small>~${fa(eta)} دقیقه</small>` : plan ? `<small>معمولاً ${fa(plan)}</small>` : ''}</div>` : `<div class="sc-bub next" style="right:${bx(pos(k))}%">همه به سلامت رسیدند 🎉</div>`}
+    ${recent ? `<div class="sc-bub got" style="right:${bx(pos(st.indexOf(recent)))}%">${esc(recent.name)} سوار شد! ✓</div>` : ''}
+    <div class="sc-car" data-from="${from}" data-to="${carAt}" style="right:${from}%"><span class="sc-lines"><i></i><i></i><i></i></span>${SCAR}<span class="sc-heads">${Array.from({ length: Math.min(5, inCar) }, (_, j) => `<i style="--j:${j}"></i>`).join('')}</span></div>
+  </div>`;
+}
+function sceneAnimate() { const c = $('.sc-car'); if (!c) return; const a = +c.dataset.from, b = +c.dataset.to; if (Math.abs(a - b) < .1) return;
+  c.classList.add('go'); requestAnimationFrame(() => requestAnimationFrame(() => { c.style.right = b + '%'; })); setTimeout(() => { c.classList.remove('go'); c.classList.add('stop'); setTimeout(() => c.classList.remove('stop'), 900); }, 1500); }
 function campaignCard(p) { const pl = p && p.place; if (!pl) return '';
   return `<section class="card camp"><span class="camp-ic">📣</span><div class="grow"><b>پویش «پوستر ${esc(destWord(p))} ما»</b><span>پوستر و لینک «${esc(pl.name)}» را در گروه کلاس و کانال ${esc(destWord(p))} بگذارید. هر خانواده‌ای که بیاید، نوبت همه سبک‌تر می‌شود.</span></div><button class="btn sm" data-a="poster">${ic('share')}بفرستم</button></section>`; }
 function tomorrowCard(T, plan, p) {
@@ -765,9 +807,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=15" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=16" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)} <span class="pchip">${ic('down', '')}</span></b><small>${p.team ? esc(teamName(p.team)) + ' · ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</small></span>`; }
-  else t = `<img src="assets/icon.svg?v=15" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=16" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -791,7 +833,7 @@ function renderMain(anim) {
   dock.querySelectorAll('[data-tab]').forEach(b => b.dataset.tab === ui.tab ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
   if (anim) { main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter'); }
   if ($('#peermap-slot')) mountPeerMap();
-  slideWatch();
+  slideWatch(); peekWatch(); sceneAnimate();
   { const cb = dock.querySelector('[data-a="chat"]'); if (cb) cb.classList.toggle('dim', !(p && p.team)); }
 }
 function render(anim) { renderTop(); renderMain(anim); renderSide(); paintNotice(); }
@@ -820,7 +862,9 @@ function switcher() {
 }
 function profRow(p) {
   const c = profColor(p), mk = p.complete ? missingStep(p) : null;
-  if (ui.inDrawer) { const st = !p.complete ? 'نیمه‌کاره' : p.team ? 'تیم ' + fa(p.team.no) : mk ? 'یک سؤال مانده' : 'بی‌تیم';
+  if (ui.inDrawer) { const st = !p.complete ? 'نیمه‌کاره' : p.team ? 'تیم ' + fa(p.team.no) : mk ? 'یک سؤال مانده' : 'دنبال هم‌مسیر';
+    const cls = !p.complete || mk ? 'warn' : p.team ? 'team' : 'seek';
+    return `<button class="pcard2 ${p.id === S.active ? 'active' : ''}" style="--kc:${c.c};--ki:${c.i}" data-a="use" data-id="${p.id}"><span class="pc-ic">${ic((KINDS[p.kind] || KINDS.other).ic, '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)}</b><small>${esc(placeName(p) || (KINDS[p.kind] || KINDS.other).n)}</small></span><span class="pc-st ${cls}">${cls === 'team' ? '<i class="dot"></i>' : ''}${st}</span></button>`;
     return `<button class="pcard ${p.id === S.active ? 'active' : ''}" style="--kc:${c.c}" data-a="use" data-id="${p.id}"><span class="pc-ic">${ic((KINDS[p.kind] || KINDS.other).ic, '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)}</b><small>${esc(placeName(p) || (KINDS[p.kind] || KINDS.other).n)}</small></span><span class="pc-st">${st}</span>${p.id === S.active ? ic('check', 'i') : ''}</button>`; }
   const st = !p.complete ? '<span class="st warn">نیمه‌کاره</span>' : p.team ? `<span class="st team">تیم ${fa(p.team.no)}</span>` : mk ? '<span class="st warn">یک سؤال مانده</span>' : '<span class="st">بی‌تیم</span>';
   return `<button class="prof ${p.id === S.active ? 'active' : ''}" style="--kc:${c.c};--ki:${c.i}" data-a="use" data-id="${p.id}">${kindIc(p.kind, false, false)}<span class="grow" style="min-width:0"><b>${esc(p.label)}</b><small>${esc(placeName(p) || (KINDS[p.kind] || KINDS.other).n)}</small></span>${st}</button>`;
@@ -840,27 +884,20 @@ function drawer(keep) {
   if (!keep) lastFocus = document.activeElement;
   const mi = (a, i, txt, extra = '') => `<button class="mi" data-a="${a}" ${extra}>${ic(i)}<span class="grow">${txt}</span></button>`;
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
+  const grp = (k, i, t, body) => `<div class="grp"><button class="sec-h" data-a="toggle" data-v="${k}" aria-expanded="${!!ui.open[k]}"><span>${ic(i, 'i')} ${t}</span>${ic('down', 'i chev' + (ui.open[k] ? ' open' : ''))}</button><div class="plist ${ui.open[k] ? '' : 'closed'}" style="max-height:${ui.open[k] ? 700 : 0}px">${body}</div></div>`;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=15" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان · شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="شب و روز">${ic('moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
-    <div class="sec-h"><span>مسیرک‌ها (${fa(ps.length)})</span></div>
-    <div class="pgroup">${ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${x.id === S.active ? profPanel(x) : ''}</div>`).join('')}
-    <button class="mi" data-a="new-profile">${ic('plus')}<span class="grow">مسیرکِ تازه</span></button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=16" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان · شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="شب و روز">${ic('moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="sec-h"><span>مسیرک‌های من</span><button class="link small" data-a="new-profile">${ic('plus')}تازه</button></div>
+    <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیرک را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
     ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیرک دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
     ${S.token && !S.phone ? `<div class="hint warn" style="margin:6px 0">${ic('phone')}<span class="grow small">شماره‌تان هنوز تأیید نشده؛ تا تأیید، شماره‌ی دیگران را نمی‌بینید.</span><button class="btn sm" data-a="verify">تأیید</button></div>` : ''}
     ${p && p.team && CFG.flags.league_on ? `<div class="tiles"><button class="tile" data-a="quiz">${ic('trophy')}<span>لیگ راه ${esc(destWord(p))}</span></button></div>` : ''}
     <div class="sep"></div>
     ${CFG.donate && (CFG.donate.card || CFG.donate.gateway) ? `<button class="mi dong" data-a="donate"><span class="dong-ic">${ic('heart')}</span><span class="grow"><b>دنگ خیر</b><small>کمک کنید رسیدیم رایگان بماند</small></span></button>` : ''}
-    ${mi('guide', 'guide', 'راهنمای رسیدیم')}
-    ${standalone() || NATIVE ? '' : ui.apk && ui.apk.url ? mi('install', 'install', 'نصب اپ یا میانبر روی گوشی') : mi('install', 'install', 'نصب روی گوشی')}
-    <label class="mi"><span style="display:contents">${ic('sound')}</span><span class="grow">صداهای اپ</span><input type="checkbox" class="tgl" data-a="sound" ${S.sound !== false ? 'checked' : ''}></label>
-    ${mi('sub', 'spark', CFG.flags.paid_mode ? (ME.premium_until * 1000 > Date.now() ? 'اشتراک همراه: فعال' : 'اشتراک رسیدیم همراه') : 'اشتراک: فعلاً همه‌چیز رایگان است')}
-    ${mi('radio', 'radio', 'رادیو رسیدیم · ' + fa(CFG.radio_votes || 0) + ' نفر منتظرند')}
-    ${mi('support', 'ticket', 'پشتیبانی: مشکلی دارم')}
-    ${mi('feedback', 'spark', 'نظرات و پیشنهادها ⭐')}
-    ${mi('about', 'heart', 'درباره‌ی رسیدیم')}
-    ${mi('rules', 'shield', 'قوانین و حریم خصوصی')}
-    ${mi('notify', 'bell', 'روشن کردن نوتیف')}
-    ${S.token ? mi('logout', 'logout', 'خروج از حساب') : mi('login', 'user', 'ورود')}
+    ${standalone() || NATIVE ? '' : `<button class="mi app-cta" data-a="install">${ic('install')}<span class="grow"><b>${ui.apk && ui.apk.url ? 'اپ اندروید رسیدیم' : 'نصب روی گوشی'}</b><small>یادآوری نوبت، حتی وقتی بسته است</small></span></button>`}
+    ${grp('help', 'guide', 'راهنما و ارتباط', mi('guide', 'guide', 'راهنمای رسیدیم') + mi('support', 'ticket', 'پشتیبانی (مشکلی دارم)') + mi('feedback', 'spark', 'نظر و پیشنهاد ⭐') + mi('about', 'heart', 'درباره‌ی ما'))}
+    ${grp('set', 'gear', 'تنظیمات', `<label class="mi"><span style="display:contents">${ic('sound')}</span><span class="grow">صداهای اپ</span><input type="checkbox" class="tgl" data-a="sound" ${S.sound !== false ? 'checked' : ''}></label>` + mi('notify', 'bell', 'اعلان‌ها') + mi('sub', 'spark', CFG.flags.paid_mode ? (ME.premium_until * 1000 > Date.now() ? 'اشتراک همراه: فعال' : 'اشتراک همراه') : 'اشتراک (فعلاً رایگان)') + mi('radio', 'radio', 'رادیو رسیدیم') + mi('rules', 'shield', 'قوانین و حریم خصوصی') + (S.token ? mi('logout', 'logout', 'خروج از حساب') : ''))}
+    ${S.token ? '' : mi('login', 'user', 'ورود به حساب')}
     ${CFG.flags.test_tools ? `<div class="sep"></div><div class="test-zone"><button class="sec-h" data-a="toggle" data-v="test" aria-expanded="${ui.open.test}"><span>${ic('flask', 'i')} گزینه‌های آزمایشی</span>${ic('down', 'i chev' + (ui.open.test ? ' open' : ''))}</button>
       <div class="plist ${ui.open.test ? '' : 'closed'}" style="max-height:${ui.open.test ? 600 : 0}px">
       ${p && p.complete ? mi('t-fake5', 'plus', 'افزودن ۵ همسایه‌ی آزمایشی') + mi('t-fake1', 'car', 'افزودن ۱ راننده‌ی آزمایشی') + mi('t-invme', 'bell', 'یک همسایه به من پیشنهاد بدهد') + mi('t-clear', 'close', 'پاک کردن همسایه‌های آزمایشی') : ''}
@@ -869,7 +906,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' · نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۱۵</small></span>` : `<span>نسخه‌ی وب ۱۵${ui.apk && ui.apk.ver ? ' · اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
+    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' · نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۱۶</small></span>` : `<span>نسخه‌ی وب ۱۶${ui.apk && ui.apk.ver ? ' · اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -936,14 +973,14 @@ async function ambView() {
       <div class="row"><input id="amb-pl" dir="ltr" placeholder="WPXJUG5A" maxlength="8" style="flex:1"><button class="btn ac" data-a="amb-make">ساختن</button></div><div id="amb-out"></div></section>
     <section class="card stack"><h2>ایده‌های سریع</h2><ol class="steps3"><li>پوستر A5 را روی تابلوی اعلانات مدرسه (با اجازه‌ی مدرسه) بچسبانید.</li><li>متن آماده و لینک را در گروه کلاس و کانال مدرسه بگذارید؛ صبح‌های شنبه بهترین زمان است.</li><li>از ۲ خانواده‌ی هم‌محله بخواهید با هم ثبت‌نام کنند؛ تیم زودتر شکل می‌گیرد.</li></ol></section>
     ${A.list.length ? `<section class="card"><h2>ثبت‌شده‌ها</h2><table><tr><th>تاریخ</th><th>مکان</th><th>نوع</th><th>مبلغ</th></tr>${A.list.slice(0, 60).map(x => `<tr><td>${jLabel(new Date(x.created * 1000))}</td><td>${esc(x.place || '—')}</td><td>${x.kind === 'team' ? 'تیم شد' : 'ثبت‌نام'}</td><td>${money(x.amount)}${+x.paid ? ' ✓' : ''}</td></tr>`).join('')}</table></section>` : ''}</div>`;
-  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=15" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
+  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=16" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
 }
 function reportHtml(p, T) {
   const H = (ui.hist && ui.hist.trips) || [], done = H.filter(x => x.status === 'done').sort((a, b) => a.date < b.date ? -1 : 1), b = balances(T), now = new Date();
   const by = {}; T.members.forEach(m => by[m.id] = { n: 0, kids: 0, th: 0 }); done.forEach(x => { if (by[x.exec]) { by[x.exec].n++; by[x.exec].kids += x.kids || 0; by[x.exec].th += x.thanks ? 1 : 0; } });
   const kidRides = done.reduce((a, x) => a + (x.kids || 0), 0), first = done[0] ? ymdD(done[0].date) : now, top = Object.entries(by).sort((a, c) => c[1].n - a[1].n)[0];
   const medal = n => n >= 40 ? '🏅 قهرمان راه' : n >= 15 ? '⭐ همسفر ثابت‌قدم' : n >= 5 ? '🌱 شروع خوب' : '🙂 تازه‌وارد';
-  return `<div class="rp"><header class="rp-h"><img src="assets/icon.svg?v=15" alt=""><div class="grow"><small>کارنامه‌ی تیم · رسیدیم</small><h1>${esc(teamName(T.team))}</h1><span>${esc(T.place.name)} · از ${jLabel(first)} تا ${jLabel(now)} ${fa(jp(now).y)}</span></div><div class="rp-seal">${fa(done.length)}<small>سفر به سلامت</small></div></header>
+  return `<div class="rp"><header class="rp-h"><img src="assets/icon.svg?v=16" alt=""><div class="grow"><small>کارنامه‌ی تیم · رسیدیم</small><h1>${esc(teamName(T.team))}</h1><span>${esc(T.place.name)} · از ${jLabel(first)} تا ${jLabel(now)} ${fa(jp(now).y)}</span></div><div class="rp-seal">${fa(done.length)}<small>سفر به سلامت</small></div></header>
     <section class="rp-k">${[[fa(done.length), 'سفر انجام‌شده'], [fa(kidRides), 'بار رساندن بچه‌ها'], [fa(done.filter(x => x.thanks).length), 'تشکر ثبت‌شده'], [fa(T.members.length), 'خانواده']].map(([v, t]) => `<div><b>${v}</b><span>${t}</span></div>`).join('')}</section>
     <h2>بیلان خانواده‌ها</h2><table class="rp-t"><tr><th>خانواده</th><th>سفرِ رانده‌شده</th><th>رساندن بچه</th><th>تشکر</th><th>تراز حساب</th><th>نشان</th></tr>${T.members.map(m => `<tr><td><b>${esc(fam(m))}</b></td><td>${fa(by[m.id].n)}</td><td>${fa(by[m.id].kids)}</td><td>${fa(by[m.id].th)}</td><td class="${b[m.id] > 0 ? 'plus' : b[m.id] < 0 ? 'minus' : ''}">${b[m.id] > 0 ? '+' : b[m.id] < 0 ? '−' : ''}${money(b[m.id])}</td><td>${medal(by[m.id].n)}</td></tr>`).join('')}</table>
     ${top && top[1].n ? `<p class="rp-note">🌟 بیشترین زحمت این دوره: <b>${esc(fam(mem(T, top[0])))}</b> با ${fa(top[1].n)} سفر. دست‌شان درد نکند!</p>` : ''}
@@ -1173,19 +1210,23 @@ function placeStep(w) {
     ${w.kind === 'station' ? '' : wChild(w) ? `<span class="lbl">پذیرش</span><div class="chips">${[['f', 'دخترانه'], ['m', 'پسرانه'], ['fm', 'دختر و پسر']].map(([k, v]) => `<button class="chip" data-a="w-np" data-k="gender" data-v="${k}" aria-pressed="${n.gender === k}">${v}</button>`).join('')}</div>
       ${n.gender === 'fm' ? `<div class="chips">${['هم‌زمان', 'در شیفت‌های جدا'].map(v => `<button class="chip" data-a="w-np" data-k="mix" data-v="${v}" aria-pressed="${n.mix === v}">${v}</button>`).join('')}</div>` : ''}` : ''}
     ${w.kind === 'station' ? '' : `<span class="lbl">شیفت یا واحد</span><div class="chips">${['صبح', 'عصر', 'چرخشی', 'شیفتی نیست'].map(v => `<button class="chip" data-a="w-np" data-k="shift" data-v="${v}" aria-pressed="${n.shift === v}">${v === 'چرخشی' ? 'چرخشی (هفته‌ای صبح، هفته‌ای عصر)' : v}</button>`).join('')}</div>
-    ${n.shift === 'چرخشی' ? '<span class="lbl">ساعت هفته‌های صبح</span>' : ''}<div class="row"><div class="field grow"><label for="w-pin">شروع</label><input id="w-pin" type="time" data-wp="in" value="${n.in || '07:30'}"></div><div class="field grow"><label for="w-pout">پایان</label><input id="w-pout" type="time" data-wp="out" value="${n.out || '13:30'}"></div></div>
-    ${n.shift === 'چرخشی' ? `<span class="lbl">ساعت هفته‌های عصر</span><div class="row"><div class="field grow"><label for="w-pin2">شروع</label><input id="w-pin2" type="time" data-wp="in2" value="${n.in2 || '13:30'}"></div><div class="field grow"><label for="w-pout2">پایان</label><input id="w-pout2" type="time" data-wp="out2" value="${n.out2 || '18:00'}"></div></div>` : ''}`}
+    ${n.shift === 'چرخشی' ? '<span class="lbl">ساعت هفته‌های صبح</span>' : ''}<div class="row"><div class="field grow"><label for="w-pin">${wChild(w) ? 'زنگ ورود (باید آنجا باشند)' : 'ساعت شروع (باید آنجا باشید)'}</label><input id="w-pin" type="time" data-wp="in" value="${n.in || '07:30'}"></div><div class="field grow"><label for="w-pout">${wChild(w) ? 'زنگ تعطیلی (دنبالشان می‌رویم)' : 'ساعت پایان (برگشت)'}</label><input id="w-pout" type="time" data-wp="out" value="${n.out || '13:30'}"></div></div>
+    <p class="note small">${ic('clock2')}<span>رفت را طوری می‌چینیم که پیش از ساعت اول برسید؛ برگشت از ساعت دوم شروع می‌شود.</span></p>
+    ${n.shift === 'چرخشی' ? `<span class="lbl">ساعت هفته‌های عصر</span><div class="row"><div class="field grow"><label for="w-pin2">ورود</label><input id="w-pin2" type="time" data-wp="in2" value="${n.in2 || '13:30'}"></div><div class="field grow"><label for="w-pout2">تعطیلی</label><input id="w-pout2" type="time" data-wp="out2" value="${n.out2 || '18:00'}"></div></div>` : ''}`}
     <span class="lbl">موقعیت در ورودی</span><div class="loc-card ${n.lat ? 'set' : ''}" id="pick-place">${ic(n.lat ? 'check' : 'pin')}<span>${n.lat ? 'موقعیت ثبت شد' : 'هنوز موقعیتی ثبت نشده'}</span></div>
     <div class="choices two"><button class="choice col" data-a="w-np-here">${ic('locate', 'emo')}کنار در ورودی هستم<small>موقعیت فعلی</small></button><button class="choice col" data-a="w-mapick" data-t="place">${ic('map', 'emo')}انتخاب روی نقشه<small>پین روی در ورودی</small></button></div>
     <details><summary class="small" style="cursor:pointer;font-weight:700">راه دیگر: چسباندن لینک موقعیت</summary><div class="row" style="margin-top:8px"><div class="field grow"><input id="w-np-paste" dir="ltr" placeholder="لینک یا مختصات"></div><button class="btn sm" data-a="w-np-paste">ثبت</button></div></details>
     ${(n.dups || []).map(d => `<div class="hint warn">${ic('warn')}<span>احتمالاً «${esc(d.name)}${d.shift ? ' · ' + esc(d.shift) : ''}» همین‌جا ثبت شده.<br><span class="row wrap" style="margin-top:8px"><button class="btn sm" data-a="w-pick" data-id="${d.id}">همین است</button><button class="btn line sm" data-a="w-dupok">نه، واحد یا شیفت دیگری است</button></span></span></div>`).join('')}
     <button class="link" data-a="w-np-cancel">بازگشت به فهرست</button>`;
-  return `<div class="field"><label for="w-q">جستجو</label><input id="w-q" data-w="pq" value="${esc(w.pq || '')}" placeholder="نام ${esc(K.pn || K.n)}"></div>
-    ${!near ? '<p class="muted">در حال پیدا کردن نزدیک‌ترین‌ها…</p>' : near.slice(0, w.nearAll || w.pq ? 30 : 6).map(pl => `<div class="popt-row ${pl.flags ? 'flagged' : ''}"><button class="place-opt" data-a="w-pick" data-id="${pl.id}" aria-pressed="${w.place && w.place.id === pl.id}">${kindIc(pl.kind, false, false)}<span class="grow">${esc(pl.name)}${pl.nv ? ` <span class="nv" title="${esc(pl.nv_title)}">${ic('check')}نشان</span>` : ''}<small>${esc(pl.city)}${pl.shift ? ' · ' + esc(pl.shift) : ''} · ${km1(pl.d / 1000)} کیلومتر · ${fa(pl.families)} خانواده${pl.flags ? ' · یک نفر گفته اشتباه است' : ''}</small></span></button>${pl.verified || pl.nv || pl.families ? '' : `<button class="icon-btn rep" data-a="w-report" data-id="${pl.id}" aria-label="گزارش مکان اشتباه یا آزمایشی">${ic('flag')}</button>`}</div>`).join('') || '<p class="muted">نزدیک شما چیزی ثبت نشده؛ اولین نفر باشید!</p>'}
+  return `<div class="field"><label for="w-q">جستجو</label><input id="w-q" data-w="pq" value="${esc(w.pq || '')}" placeholder="نام ${esc(K.pn || K.n)}" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search"></div>
+    <div id="w-near">${nearList(w, K)}</div>`;
+}
+function nearList(w, K) { const near = w.near;
+  return `${!near ? '<p class="muted">در حال پیدا کردن نزدیک‌ترین‌ها…</p>' : near.slice(0, w.nearAll || w.pq ? 30 : 6).map(pl => `<div class="popt-row ${pl.flags ? 'flagged' : ''}"><button class="place-opt" data-a="w-pick" data-id="${pl.id}" aria-pressed="${w.place && w.place.id === pl.id}">${kindIc(pl.kind, false, false)}<span class="grow">${esc(pl.name)}${pl.nv ? ` <span class="nv" title="${esc(pl.nv_title)}">${ic('check')}نشان</span>` : ''}<small>${esc(pl.city)}${pl.shift ? ' · ' + esc(pl.shift) : ''} · ${km1(pl.d / 1000)} کیلومتر · ${fa(pl.families)} خانواده${pl.flags ? ' · یک نفر گفته اشتباه است' : ''}</small></span></button>${pl.verified || pl.nv || pl.families ? '' : `<button class="icon-btn rep" data-a="w-report" data-id="${pl.id}" aria-label="گزارش مکان اشتباه یا آزمایشی">${ic('flag')}</button>`}</div>`).join('') || '<p class="muted">نزدیک شما چیزی ثبت نشده؛ اولین نفر باشید!</p>'}
     ${near && near.length > 6 && !w.nearAll && !w.pq ? `<button class="link" data-a="w-nearall">${fa(near.length - 6)} مورد دیگر هم نزدیک شماست؛ نمایش همه</button>` : ''}
     <div class="row wrap"><button class="btn line sm grow" data-a="w-np-new">${ic('plus')}ثبت ${esc(K.pn || K.n)} تازه</button>${near && near.length > 6 ? `<button class="btn line sm grow" data-a="w-nearmap">${ic('map')}${w.nearAt ? 'جای دیگری روی نقشه' : 'پیدا کردن با نقشه'}</button>` : ''}</div>`;
 }
-async function loadNear(w) { try { const at = w.nearAt || [w.d.lat, w.d.lng]; const r = await api('place_near', { lat: at[0], lng: at[1], kind: w.kind === 'other' ? '' : w.kind, q: w.pq || '' }); w.near = r.places; } catch (e) { w.near = []; } if (ui.wiz === w) wizRender(); }
+async function loadNear(w) { try { const at = w.nearAt || [w.d.lat, w.d.lng]; const r = await api('place_near', { lat: at[0], lng: at[1], kind: w.kind === 'other' ? '' : w.kind, q: w.pq || '' }); w.near = r.places; } catch (e) { w.near = []; } if (ui.wiz !== w) return; const box = $('#w-near'); if (box) box.innerHTML = nearList(w, KINDS[w.kind] || KINDS.other); else wizRender(); }
 async function checkDup(w) { try { const r = await api('place_near', { lat: w.newPlace.lat, lng: w.newPlace.lng }); const d = r.places.filter(x => x.d < 250); const had = (w.newPlace.dups || []).length; w.newPlace.dups = d; if (d.length !== had && ui.wiz === w) wizRender(); } catch (e) {} }
 async function routeFor(w) { const t = w.link || w.place || w.newPlace; if (!t || !t.lat || !w.d.lat || (w.route && w.route.key === t.lat + ',' + w.d.lat)) return; try { const r = await api('route', { a: [w.d.lat, w.d.lng], b: [t.lat, t.lng], city: t.city || '' }); w.route = { ...r, key: t.lat + ',' + w.d.lat }; } catch (e) { const m = hav(w.d.lat, w.d.lng, t.lat, t.lng) * 1.3; w.route = { m, s: m / 6.5, src: 'est', key: t.lat + ',' + w.d.lat }; } if (ui.wiz === w) wizRender(); }
 let revT; function reverseFill(w) { clearTimeout(revT); revT = setTimeout(async () => { try { const r = await api('reverse', { lat: w.d.lat, lng: w.d.lng }); if (r.address) { w.addr = r.address; const a = $('#w-addr'); if (a) a.textContent = r.address; } if (r.hood && (!w.d.hood || w.autoHood)) { w.d.hood = r.hood; w.autoHood = true; const h = $('#w-hood'); if (h) h.value = r.hood; } else { const a = $('#w-addr'); if (a && !r.address) a.textContent = 'موقعیت انتخاب شد'; } } catch (e) { const a = $('#w-addr'); if (a) a.textContent = 'موقعیت انتخاب شد'; } }, 650); }
@@ -1227,7 +1268,7 @@ function wizRender() {
   watchScrollHint();
   if (same) { $('.wiz-body').scrollTop = sc; const n = sel && root.querySelector(sel); if (n) n.focus({ preventScroll: true }); }
   else { const q = $('#wq'); if (q) { q.tabIndex = -1; q.focus({ preventScroll: true }); } clearTimeout(ui.wfT); const key = st.key;
-    ui.wfT = setTimeout(() => { const cur = ui.wiz; if (!cur || cur._shown !== key) return; const a = document.activeElement; if (a && a !== q && a !== document.body && root.contains(a)) return; const inp = [...root.querySelectorAll('.wiz-body input:not([type=checkbox]):not([type=radio]):not([type=time]):not([type=hidden]):not(.hp), .wiz-body textarea')].find(x => !x.value && x.offsetParent); if (inp) inp.focus({ preventScroll: true }); }, 2000); }
+    if (matchMedia('(hover:hover) and (pointer:fine)').matches) ui.wfT = setTimeout(() => { const cur = ui.wiz; if (!cur || cur._shown !== key) return; const a = document.activeElement; if (a && a !== q && a !== document.body && root.contains(a)) return; const inp = [...root.querySelectorAll('.wiz-body input:not([type=checkbox]):not([type=radio]):not([type=time]):not([type=hidden]):not(.hp), .wiz-body textarea')].find(x => !x.value && x.offsetParent); if (inp) inp.focus({ preventScroll: true }); }, 120); }
   if (st.mount) st.mount(w);
 }
 function nextLabel(w, st, steps) {
@@ -1507,7 +1548,7 @@ function admHealth(A) {
 }
 function admHome(A) {
   const o = A.ov, cnt = o.counts, F = o.flags, SV = o.services, ST = o.settings || {};
-  const flagLbl = { pay_gateway: 'پرداخت دنگ خیر از درگاه پی‌پینگ', signup_open: 'ثبت‌نام باز است', sms_invite: 'پیامک دعوت هم‌مسیری', sms_direct: 'پیامک مستقیم بدون الگو (روشن = sms/send؛ خاموش = اعتبارسنجی و الگو)', sms_arrive: 'پیامک «فرزندتان رسید» (فقط تیم‌های ویژه)', auto_arrive: 'تشخیص رسیدن با GPS', station_on: 'مسیرک سفر (ایستگاه، فرودگاه، ترمینال)', league_on: 'لیگ راه مدرسه (معما)', paid_mode: 'حالت پولی؛ اشتراک لازم است (خاموش = همه‌چیز رایگان)', test_tools: 'گزینه‌های آزمایشی در منو', otp_dev: 'کد ورود آزمایشی بدون پیامک (فقط تست!)' };
+  const flagLbl = { trip_scene: 'صحنه‌ی کارتونی سفر (ماشین، ایستگاه خانه‌ها، ابرهای پیام)', pay_gateway: 'پرداخت دنگ خیر از درگاه پی‌پینگ', signup_open: 'ثبت‌نام باز است', sms_invite: 'پیامک دعوت هم‌مسیری', sms_direct: 'پیامک مستقیم بدون الگو (روشن = sms/send؛ خاموش = اعتبارسنجی و الگو)', sms_arrive: 'پیامک «فرزندتان رسید» (فقط تیم‌های ویژه)', auto_arrive: 'تشخیص رسیدن با GPS', station_on: 'مسیرک سفر (ایستگاه، فرودگاه، ترمینال)', league_on: 'لیگ راه مدرسه (معما)', paid_mode: 'حالت پولی؛ اشتراک لازم است (خاموش = همه‌چیز رایگان)', test_tools: 'گزینه‌های آزمایشی در منو', otp_dev: 'کد ورود آزمایشی بدون پیامک (فقط تست!)' };
   return `<div class="grid">${[['users', 'کاربر واقعی'], ['complete', 'مسیرکِ کامل'], ['places', 'مکان'], ['teams', 'تیم'], ['invites', 'دعوت منتظر'], ['tickets', 'پیام باز'], ['sms_day', 'پیامک ۲۴ ساعت'], ['app_users', 'نصب اپ اندروید'], ['fb', 'نظر و پیشنهاد'], ['fake', 'کاربر آزمایشی']].map(([k, v]) => `<div class="stat"><b>${fa(cnt[k] || 0)}</b><span>${v}</span></div>`).join('')}</div>
     <details class="card adm-more" data-dk="adm-app" ${(ui.dOpen || {})['adm-app'] ? 'open' : ''}><summary><b>${ic('install')}اپ اندروید و توصیه‌های تربیتی</b></summary>
       <p class="muted small">نسخه و لینک اپ را ساخت خودکار (GitHub Actions) در residim.ir/app/android.json می‌نویسد؛ این دو فیلد فقط برای جایگزینی دستی‌اند.</p>
@@ -1665,7 +1706,7 @@ function watchArrival() {
     { const ev = (T.trips[x.id] || {}).ev || {}, me2 = mem(T, p.id);
       if (!ev.depart && !GEO.dep && me2 && me2.lat && hav(la, ln, x.dir === 'out' ? me2.lat : T.place.lat, x.dir === 'out' ? me2.lng : T.place.lng) > 150) { GEO.dep = 1; api('team_act', { profile_id: p.id, act: 'depart', slot: x.id }).catch(() => {}); }
       if (x.dir === 'out') for (const m of T.members) { if (m.id === p.id || !m.lat || (ev.bp || {})[m.id] || (GEO.bd || {})[m.id]) continue; if (!ridersOf(T, x.dir).some(k => k.pid === m.id)) continue;
-        if (hav(la, ln, m.lat, m.lng) < 70) { GEO.bd = GEO.bd || {}; GEO.bd[m.id] = 1; api('team_act', { profile_id: p.id, act: 'board', slot: x.id, pid: m.id }).then(() => { snd('tap'); toast(`${fam(m)} سوار شدند ✓`); loadTeam(); }).catch(() => {}); } } }
+        if (hav(la, ln, m.lat, m.lng) < 70) { GEO.bd = GEO.bd || {}; GEO.bd[m.id] = 1; api('team_act', { profile_id: p.id, act: 'board', slot: x.id, pid: m.id }).then(() => { snd('tap'); offerUndo(`${fam(m)} سوار شدند ✓ (خودکار)`, () => api('team_act', { profile_id: p.id, act: 'unboard', slot: x.id, pid: m.id }).then(() => { GEO.bd[m.id] = 2; loadTeam(); })); loadTeam(); }).catch(() => {}); } } }
     if (S.liveOK && Date.now() - (GEO.sent || 0) > 12000) { GEO.sent = Date.now(); api('live_push', { profile_id: p.id, lat: la, lng: ln, acc: Math.round(pos.coords.accuracy || 0) }).catch(() => {}); }
     if (!CFG.flags.auto_arrive) return;
     if (!ks.length) return;
@@ -1687,6 +1728,9 @@ async function liveTick() {
     L.m = Math.round(hav(L.lat, L.lng, p.data.lat, p.data.lng)); const key = ymd(new Date()) + x.id; S.liveN = S.liveN || {};
     if (L.m <= 1000 && !S.liveN[key]) { S.liveN[key] = 1; persist(); snd('arrive'); notify('ماشین نزدیک است 🚗', `حدود ${L.m} متر تا خانه‌ی شما؛ کم‌کم آماده شوید.`); toast(`ماشین حدود ${fa(L.m)} متر با خانه‌ی شما فاصله دارد؛ کم‌کم آماده شوید.`); }
   }
+  { const ord = stopOrder(T, x, r), ev = r.ev || {}, nxt = x.dir === 'out' ? ord.find(m => !(ev.bp || {})[m.id]) : null, key = ymd(new Date()) + x.id; S.liveN = S.liveN || {};
+    if (nxt && nxt.id === p.id && Object.keys(ev.bp || {}).length && !S.liveN[key + 'nx']) { S.liveN[key + 'nx'] = 1; persist(); snd('honk'); haptic('heavy'); notify('نفر بعدی شمایید 🚗', 'ماشین تیم به سمت شما می‌آید؛ بچه‌ها آماده باشند.'); toast('نفر بعدی شمایید؛ بچه‌ها آماده باشند! 🚗'); }
+    if (L && T.place && T.place.lat && x.dir === 'out' && !ord.some(m => !(ev.bp || {})[m.id]) && hav(L.lat, L.lng, T.place.lat, T.place.lng) < 800 && !S.liveN[key + 'sc']) { S.liveN[key + 'sc'] = 1; persist(); snd('arrive'); notify(`نزدیک ${T.place.name}`, 'تا چند دقیقه‌ی دیگر می‌رسند.'); toast(`ماشین نزدیک ${T.place.name} است؛ تا چند دقیقه‌ی دیگر می‌رسند.`); } }
   liveMarker(); const strip = $('#live-strip'); if (strip) strip.outerHTML = liveStrip();
 }
 function liveStrip() {
@@ -1823,11 +1867,14 @@ async function act(a, el) {
     case 't-pick': ui.slot = el.dataset.s; return renderMain();
     case 't-next': { ui.slot = null; const n = focusSlot(T, plan); ui.slot = n && n.id; return renderMain(); }
     case 'sl-go': { const tr = $('#sl-track'); const k = tr && tr.children[+el.dataset.v]; if (k) k.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' }); return; }
+    case 'to-list': { const L = $('#peer-list'); if (L) scrollTo({ top: L.getBoundingClientRect().top + scrollY - 70, behavior: 'smooth' }); el.classList.add('gone'); return; }
     case 'tsub': ui.tsub = el.dataset.v; snd('tap'); return renderMain();
     case 't-perkid': ui.perKid = true; return renderMain();
     case 't-remind': { if ('Notification' in window && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch (e) {} } const ok = 'Notification' in window && Notification.permission === 'granted'; S.remD = ''; persist();
       return sheet('یادآوری نوبت', `<p style="line-height:2">${ok ? 'اگر عصر رسیدیم را باز کنید، ساعت ۱۸ به بعد یک یادآوری می‌گیرید.' : 'مرورگر اجازه‌ی اعلان نداده.'}<br><b>مطمئن‌ترین راه: اپ اندروید رسیدیم.</b> شب قبل از هر نوبت، ساعت ۲۰:۳۰ حتی وقتی اپ بسته است، با صدا و لرزش خبرتان می‌کند.</p>${ui.apk && ui.apk.url ? `<a class="btn ac block" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`); }
-    case 't-board': return tact({ act: 'board', slot: x.id, pid: el.dataset.pid }, null).then(() => { snd('tap'); });
+    case 't-board': { const pid = el.dataset.pid, nm = fam(mem(T, pid)); await tact({ act: 'board', slot: x.id, pid }, null); snd('tap'); return offerUndo(`${nm} سوار شدند ✓`, () => tact({ act: 'unboard', slot: x.id, pid }, 'برگردانده شد.')); }
+    case 't-unboard': { const pid = el.dataset.pid; return sheet('سوار نشده‌اند؟', `<p style="line-height:2">«سوار شد» برای ${esc(fam(mem(T, pid)))} برگردد؟</p><div class="row"><button class="btn ac grow" data-a="t-unboard-ok" data-pid="${pid}">بله، برگردان</button><button class="btn line grow" data-a="close">نه</button></div>`); }
+    case 't-unboard-ok': closeLayer(); ui.sceneFrom = null; return tact({ act: 'unboard', slot: x.id, pid: el.dataset.pid }, 'برگردانده شد.');
     case 't-allin': return sheet('همه رسیدند؟', `<p style="line-height:2">همه‌ی بچه‌ها را تحویل دادید و <b>خودرو خالی است و چیزی جا نمانده</b>؟</p><div class="row"><button class="btn ac grow" data-a="t-allin-ok">بله، همه رسیدند ✓</button><button class="btn line grow" data-a="close">نه هنوز</button></div>`);
     case 't-allin-ok': { closeLayer(); try { await api('team_act', { profile_id: p.id, act: 'arrive', slot: x.id, kid: '*' }); await api('team_act', { profile_id: p.id, act: 'empty', slot: x.id, v: 1 }); await api('team_act', { profile_id: p.id, act: 'finish', slot: x.id, label: (x.dir === 'out' ? 'رفت ' : 'برگشت ') + DAYS[x.d] }); ui.perKid = false; ui.qDone = null; await loadTeam(); renderMain(); watchArrival(); snd('done'); toast('خدا قوت! همه به سلامت رسیدند؛ خانواده‌ها خبردار شدند.'); } catch (e) { fail(e); } return; }
     case 't-start': { const r = recOf(T, x, plan); if (!r.exec) return; ui.slot = x.id; await tact({ act: 'start', slot: x.id, exec: r.exec }, 'راه افتادید! سوار شدن‌ها خودکار تیک می‌خورد؛ آخر سفر یک «رسیدیم» کافی است.');
@@ -1915,7 +1962,7 @@ async function act(a, el) {
     case 'w-kid': w.d.kids[+el.dataset.i][el.dataset.f] = el.dataset.v; return wizRender();
     case 'w-needs': { const v = el.dataset.v; w.d.needs = { out: v !== 'back', back: v !== 'out' }; return wizRender(); }
     case 'w-day': { const v = +el.dataset.v, ds = w.d.days || []; w.d.days = ds.includes(v) ? ds.filter(z => z !== v) : [...ds, v].sort(); return wizRender(); }
-    case 'w-seats': { const n = (w.d.seats || 3) + +el.dataset.v; if (n > 5) return toast('بیشتر از ۵ نفر نمی‌شود؛ ایمنی بچه‌ها اول است.'); w.d.seats = Math.max(1, n); if (n === 5) toast('۵ نفر فقط وقتی حساب می‌شود که همه‌ی بچه‌ها زیر ۱۰ سال باشند.'); return wizRender(); }
+    case 'w-seats': { const n = (w.d.seats || 3) + +el.dataset.v; if (n > 5) return toast('بیشتر از ۵ نفر نمی‌شود؛ ایمنی بچه‌ها اول است.'); w.d.seats = Math.max(1, n); if (n === 5) toast('۵ نفر فقط وقتی حساب می‌شود که همه‌ی بچه‌ها زیر ۹ سال باشند.'); return wizRender(); }
     case 'w-val': { const v = el.dataset.v, vs = w.d.values || []; w.d.values = vs.includes(v) ? vs.filter(z => z !== v) : [...vs, v]; return wizRender(); }
     case 'w-rules': w.d.rules_at = el.checked ? Date.now() : null; w.err = ''; return;
     case 'w-show': w.d.phone_show = el.checked; return;
@@ -1951,7 +1998,10 @@ async function act(a, el) {
     case 'w-dupok': w.newPlace.dupOk = true; w.newPlace.dups = []; return wizRender();
     case 'w-pick': { const before = { place: w.place, newPlace: w.newPlace }; let pl = (w.near || []).find(z => z.id === el.dataset.id) || ((w.newPlace && w.newPlace.dups) || []).find(z => z.id === el.dataset.id); w.place = pl; w.newPlace = null; w.err = ''; if (before.newPlace) offerUndo(`«${pl.name}» انتخاب شد.`, () => { w.place = before.place; w.newPlace = before.newPlace; wizRender(); }); if (pl && (pl.gender === 'f' || pl.gender === 'm')) w.d.kids.forEach(k => k.g = pl.gender); return wizRender(); }
     case 'w-est': w.d.snapp = w.route.est || estSnapp(w.route.m); return wizRender();
-    case 'w-snapp': { const tgt = w.link || w.place || w.newPlace, here = el.dataset.v; const txt = here === 'home' ? `${tgt.name}${tgt.city ? '، ' + tgt.city : ''}` : (w.addr || ('محله ' + (w.d.hood || ''))); await copyText(txt); toast(`«${txt}» کپی شد؛ در اسنپ به‌عنوان مقصد بچسبانید.`); setTimeout(() => window.open('https://app.snapp.taxi/', '_blank', 'noopener'), 600); return; }
+    case 'w-snapp': { const tgt = w.link || w.place || w.newPlace, here = el.dataset.v; const txt = here === 'home' ? `${tgt.name}${tgt.city ? '، ' + tgt.city : ''}` : (w.addr || ('محله ' + (w.d.hood || '')));
+      const win = window.open('https://app.snapp.taxi/', '_blank'); copyText(txt).catch(() => {});
+      if (!win) location.href = 'https://app.snapp.taxi/';
+      return sheet('قیمت را در اسنپ ببینید', `<ol class="steps"><li>اسنپ باز شد (اگر نشد <a href="https://app.snapp.taxi/" target="_blank" rel="noopener">اینجا</a>). مبدأ همان جایی است که هستید.</li><li>در «مقصد» بچسبانید: <b>${esc(txt)}</b> (کپی شد).</li><li>فقط قیمت را ببینید؛ <b>درخواست سفر ندهید</b>. برگردید و عدد را اینجا بنویسید.</li></ol><p class="muted small">اسنپ لینک عمومی برای پر کردن خودکار مقصد ندارد؛ برای همین مقصد را کپی می‌کنیم.</p><button class="btn ac block" data-a="close">برگشتم</button>`); }
     case 'w-resend': w.otpSent = false; return otpSend(w, 'sms');
     case 'w-finish': ui.wiz = null; wizRender(); ui.tab = 'peers'; return render(true);
     case 'w-poster': ui.wiz = null; wizRender(); render(); return posterSheet();
