@@ -1116,3 +1116,29 @@ body.map-full .peek,body.chat-open .peek{display:none}
 .tip-ed{display:grid;gap:6px;padding:10px;border:1.5px solid var(--line);border-radius:14px}.tip-ed textarea{width:100%;font:inherit;border:1.5px solid var(--line);border-radius:10px;padding:8px}
 .tip-ed input,.tip-ed select,#adm-uq,#ci-city,#ci-n{font:inherit;border:1.5px solid var(--line);border-radius:10px;padding:8px;background:var(--surface)}
 .sc-light{z-index:0;opacity:.85}.sc-car{z-index:2}.sc-bub{z-index:3}
+
+/* ═════════ v18 ═════════ */
+/* header: always solid where blur or color-mix is missing (Android WebView) */
+.top{background:var(--bg)}
+@supports (backdrop-filter:blur(2px)) and (background:color-mix(in srgb,red 50%,blue)){.top{background:color-mix(in srgb,var(--bg) 88%,transparent)}}
+body.native .top{background:var(--bg)!important;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:0 1px 0 var(--line),0 6px 14px -12px rgba(12,20,16,.35);padding-top:env(safe-area-inset-top);height:calc(62px + env(safe-area-inset-top))}
+/* hold-to-commit bar */
+.undo .hold-bar{display:block;height:4px;border-radius:4px;margin-top:6px;background:#22C55E;transform-origin:right;animation:holdb linear forwards}
+@keyframes holdb{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+.prac-tag{margin:0 0 8px;padding:8px 12px;border-radius:12px;background:#FEF9C3;color:#713F12;font-size:.82rem;font-weight:700}
+/* get to know */
+.hi-msg{margin:4px 0;padding:8px 12px;border-radius:12px;background:var(--surface-2);font-size:.86rem;line-height:1.9}
+.th-list{display:grid;gap:6px;max-height:42vh;overflow:auto;margin:8px 0;padding:4px}
+.cx-sys{margin:8px auto;max-width:88%;padding:8px 14px;border-radius:14px;background:#ECFDF3;color:#14532D;font-size:.8rem;line-height:1.9;text-align:center}
+.card.agree{border-color:#86EFAC;background:linear-gradient(135deg,#F0FDF4,#FFFFFF);display:grid;gap:8px}.card.agree b{font-size:1rem}.card.agree span{font-size:.85rem;line-height:1.9}
+.agree-row{display:flex;flex-wrap:wrap;gap:6px}.ag{padding:3px 10px;border-radius:99px;background:var(--surface-2);font-size:.76rem;font-weight:700}.ag.ok{background:#DCFCE7;color:#166534}
+.c-act .icon-btn.sm{flex:none}
+/* map view label */
+.mapbox .seg .seg-l{align-self:center;padding:0 8px 0 4px;font-size:.72rem;font-weight:800;color:var(--muted)}
+/* live car: small and gliding */
+.mk-car svg{width:44px!important;height:auto}.mk-car span{font-size:.62rem!important;padding:1px 6px!important}
+.mk-car.flip svg{transform:scaleX(-1)}
+/* report rendered off-screen for PDF/PNG */
+#print-root.render{display:block!important;position:fixed;top:0;left:-12000px;width:794px;background:#fff;z-index:-1}
+#print-root.render .rp{padding:24px}
+.rp,.rp *{letter-spacing:0!important;word-spacing:normal!important}

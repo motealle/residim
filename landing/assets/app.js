@@ -218,7 +218,7 @@ async function mapLib() {
     }
     await loadCss('assets/maplibre-gl.css');
     await loadJs('assets/maplibre-gl.js', () => !!window.maplibregl, 12000);
-    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=17', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
+    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=18', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
     return (MapKit.lib = { name: 'libre', G: window.maplibregl });
   })();
   try { return await MapKit.loading; } catch (e) { MapKit.failed = true; MapKit.loading = null; throw e; }
@@ -227,7 +227,7 @@ async function makeMap(el, center, zoom) {
   const L = await mapLib();
   let map;
   if (L.name === 'neshan') map = new L.G.Map({ mapType: L.G.Map.mapTypes.neshanVector, container: el, zoom, pitch: 0, center: [center[1], center[0]], minZoom: 4, maxZoom: 19, trackResize: true, mapKey: CFG.web_key, poi: false, traffic: false, mapTypeControllerOptions: { show: false } });
-  else map = new L.G.Map({ container: el, style: 'assets/map-style.json?v=17', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+  else map = new L.G.Map({ container: el, style: 'assets/map-style.json?v=18', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('map-timeout')), 10000);
     map.on('load', () => { clearTimeout(t); res(); });
@@ -493,7 +493,7 @@ function planOf(T) {
   });
   return plan;
 }
-const recOf = (T, x, plan) => T.trips[x.id] || { status: 'pending', exec: plan[x.id], arr: {}, empty: 0 };
+const recOf = (T, x, plan) => (ui.prac && ui.prac[x.id]) || T.trips[x.id] || { status: 'pending', exec: plan[x.id], arr: {}, empty: 0 };
 const mem = (T, id) => T.members.find(m => m.id === id);
 const fam = m => m ? 'خانواده ' + m.family : '—';
 const kidName = (k, m) => k.first ? k.first + ' ' + m.family : (m.pg === 'f' ? 'خانم ' : 'آقای ') + m.family;
@@ -575,7 +575,7 @@ function peersTab(p) {
   return `${fix}${peek}<div class="split peers"><div class="stack">
       <div class="hint">${ic(t ? 'team' : 'spark')}<span>${hint}</span></div>
       <div class="mapbox"><div id="peermap-slot" style="position:absolute;inset:0"></div>
-        <div class="seg" role="group" aria-label="نمای نقشه"><button data-a="mview" data-v="peers" aria-pressed="${ui.mview !== 'dest'}">${isTrip(p) ? 'هم‌سفرها' : 'هم‌مسیرها'}</button><button data-a="mview" data-v="dest" aria-pressed="${ui.mview === 'dest'}">${ic('flag')}تا ${esc(isTrip(p) ? 'مقصد' : destWord(p))}</button></div>
+        <div class="seg" role="group" aria-label="نمای نقشه"><span class="seg-l">نما:</span><button data-a="mview" data-v="peers" aria-pressed="${ui.mview !== 'dest'}">${isTrip(p) ? 'هم‌سفرها' : 'هم‌مسیرها'}</button><button data-a="mview" data-v="dest" aria-pressed="${ui.mview === 'dest'}">${ic('flag')}تا ${esc(isTrip(p) ? 'مقصد' : destWord(p))}</button></div>
         <div class="tools"><div class="chiprow">${[['all', 'همه'], ['free', 'بی‌تیم'], ['drivers', 'راننده‌ها'], ['teams', 'تیم‌ها']].map(([k, v]) => `<button class="fchip" data-a="filter" data-v="${k}" aria-pressed="${ui.filter === k}">${v}</button>`).join('')}</div></div>
         <button class="fab" data-a="fit" aria-label="نمایش همه‌ی هم‌مسیرها">${ic('locate')}</button><div class="map-ctl"><button data-a="map-clean" aria-pressed="${document.body.classList.contains('map-clean')}" aria-label="نمایش یا پنهان کردن برچسب‌ها و فیلترها">${ic('eye')}</button><button data-a="map-full" aria-label="نقشه‌ی تمام‌صفحه">${ic(document.body.classList.contains('map-full') ? 'shrink' : 'expand')}</button></div><span class="badge-src" id="map-src"></span></div>
       <div class="legend" style="border:0;padding:0 4px">${ic('wheel')} رانندگی ${ic('coin')} هزینه ${ic('woman')} مادر ${ic('man')} پدر <span><i class="team-dot" style="background:#8E9892;box-shadow:none"></i>بی‌تیم</span></div>
@@ -598,8 +598,8 @@ function candCard(p, m) {
   const sc = score(p, m), t = m.team, c = t ? col(t.color) : null;
   let act;
   if (!m.rule_ok) act = `<button class="btn line sm" disabled>طبق قانون سن و جنسیت ممکن نیست</button>`;
-  else if (m.invite && m.invite.dir === 'in') act = `<button class="btn ac sm" data-a="accept" data-id="${m.invite.id}">پذیرفتن دعوت‌شان</button>`;
-  else if (m.invite) act = `<button class="btn line sm" disabled>دعوت رفت؛ منتظر پاسخ…</button>`;
+  else if (m.invite && m.invite.dir === 'in') act = `<button class="btn line sm" data-a="thread" data-id="${m.invite.id}">${ic('chat')}گفتگو</button><button class="btn ac sm" data-a="accept" data-id="${m.invite.id}">پذیرفتن</button>`;
+  else if (m.invite) act = `<button class="btn line sm" data-a="thread" data-id="${m.invite.id}">${ic('chat')}پیام آشنایی · منتظر پاسخ</button>`;
   else if (t && p.team) act = `<span class="muted small">هر دو در تیم هستید</span>`;
   else act = `<button class="btn ac sm" data-a="invite" data-id="${m.id}">${t ? 'درخواست پیوستن' : 'هم‌مسیر شویم؟'}</button>`;
   const why = sc.reasons.slice(1, 3);
@@ -608,7 +608,7 @@ function candCard(p, m) {
       <div class="ring" style="--p:${Math.max(0, Math.min(100, sc.score))}" title="هم‌خوانی"><b>${fa(sc.score)}٪</b></div></div>
     <div class="c-tags">${m.role !== 'pay' ? `<span>${ic('wheel')}رانندگی</span>` : ''}${m.role !== 'drive' ? `<span>${ic('coin')}هزینه</span>` : ''}<span>${ic(m.pg === 'f' ? 'woman' : 'man')}${isChild(p) ? relLabel(m) : m.pg === 'f' ? 'خانم' : 'آقا'}</span><span class="${t ? 'tm' : ''}">${t ? esc(teamName(t)) : 'بی‌تیم'}</span>${m.verified === false ? '<span class="warn">تأییدنشده</span>' : ''}</div>
     ${why.length ? `<div class="c-why">${why.map(([x, ok]) => `<span class="${ok ? 'ok' : 'no'}">${ok ? '✓' : '!'} ${esc(x)}</span>`).join('')}</div>` : ''}
-    <div class="c-act"><button class="btn line sm" data-a="cand" data-id="${m.id}">جزئیات</button>${act}</div></article>`;
+    <div class="c-act">${m.phone ? `<a class="icon-btn sm" href="tel:${esc(m.phone)}" aria-label="تماس">${ic('phone')}</a>` : ''}<button class="btn line sm" data-a="cand" data-id="${m.id}">جزئیات</button>${act}</div></article>`;
 }
 
 function teamTab(p) {
@@ -619,10 +619,10 @@ function teamTab(p) {
   const plan = planOf(T), x = focusSlot(T, plan), me = mem(T, p.id), issues = teamIssues(T);
   if (!isDesk()) { const sub = ui.tsub || 'plan', tabs = [['plan', 'برنامه', 'list'], ['stats', 'کارنامه', 'trophy'], ['fam', 'خانواده‌ها', 'team']];
     const members = `<div class="card"><div class="row between" style="margin-bottom:6px"><h2><i class="team-dot"></i>${esc(teamName(t))}</h2><span class="tag ac">هر سفر ${money(T.team.price)}</span></div>${T.members.map(m => `<div class="member">${shapeAv(m.id, 40)}<span class="grow"><b>${esc(fam(m))}</b>${m.id === p.id ? ' <span class="tag ac">شما</span>' : ''}${T.team.coord === m.id ? ' <span class="tag">هماهنگ‌کننده</span>' : ''}<br><span class="muted small">${m.kids.map(k => esc(kidName(k, m))).join('، ')}</span></span><span class="roles">${m.role !== 'pay' ? ic('wheel') : ''}${m.role !== 'drive' ? ic('coin') : ''}</span>${m.id !== p.id && m.phone ? `<a class="icon-btn" href="tel:${esc(m.phone)}" aria-label="تماس">${ic('phone')}</a>` : ''}</div>`).join('')}<p class="muted small" style="margin-top:8px">مبلغ هر سفر ۶۰٪ میانگین برآورد اسنپ اعضاست. هماهنگ‌کننده خودکار است.</p></div>`;
-    return `<div class="stack">${x ? todayCard(T, x, plan, p) : ''}${tomorrowCard(T, plan, p)}${issues.map(i => `<div class="hint warn">${ic('warn')}<span>${esc(i)}</span></div>`).join('')}
+    return `<div class="stack">${agreeCard(T, p)}${x ? todayCard(T, x, plan, p) : ''}${tomorrowCard(T, plan, p)}${issues.map(i => `<div class="hint warn">${ic('warn')}<span>${esc(i)}</span></div>`).join('')}
       <nav class="subtabs" role="tablist">${tabs.map(([k, n, i]) => `<button role="tab" data-a="tsub" data-v="${k}" aria-selected="${sub === k}">${ic(i)}${n}</button>`).join('')}</nav>
-      ${sub === 'plan' ? calCard(T, plan) : sub === 'stats' ? statsCard(T) + (CFG.flags.league_on ? `<button class="card row" data-a="quiz" style="text-align:right;border-color:var(--ac)">${ic('trophy')}<span class="grow"><b>لیگ راه ${esc(destWord(p))}</b><br><span class="muted small">معمای امروز را با هم حل کنید.</span></span>${ic('back')}</button>` : '') + campaignCard(p) : members + `<button class="card row" data-a="leave" style="text-align:right">${ic('leave')}<span class="grow"><b>ترک تیم</b><br><span class="muted small">اگر مسیر یا ساعت‌تان عوض شده.</span></span></button>`}</div>`; }
-  return `<div class="split"><div class="stack">${x ? todayCard(T, x, plan, p) : ''}${tomorrowCard(T, plan, p)}${issues.map(i => `<div class="hint warn">${ic('warn')}<span>${esc(i)}</span></div>`).join('')}
+      ${sub === 'plan' ? calCard(T, plan) : sub === 'stats' ? statsCard(T) + (CFG.flags.league_on ? `<button class="card row" data-a="quiz" style="text-align:right;border-color:var(--ac)">${ic('trophy')}<span class="grow"><b>لیگ راه ${esc(destWord(p))}</b><br><span class="muted small">معمای امروز را با هم حل کنید.</span></span>${ic('back')}</button>` : '') + campaignCard(p) : members + `<div id="trust-slot"></div>` + `<button class="card row" data-a="leave" style="text-align:right">${ic('leave')}<span class="grow"><b>ترک تیم</b><br><span class="muted small">اگر مسیر یا ساعت‌تان عوض شده.</span></span></button>`}</div>`; }
+  return `<div class="split"><div class="stack">${agreeCard(T, p)}${x ? todayCard(T, x, plan, p) : ''}${tomorrowCard(T, plan, p)}${issues.map(i => `<div class="hint warn">${ic('warn')}<span>${esc(i)}</span></div>`).join('')}
       <button class="card row" data-a="chat" style="text-align:right;border-color:var(--ac)">${ic('team')}<span class="grow"><b>گفتگوی تیم</b><br><span class="muted small">هماهنگی، خبر تأخیر، تشکر؛ کوتاه و محترمانه.</span></span>${ic('back')}</button>
       ${CFG.flags.league_on ? `<button class="card row" data-a="quiz" style="text-align:right;border-color:var(--ac)">${ic('trophy')}<span class="grow"><b>لیگ راه ${esc(destWord(p))}</b><br><span class="muted small">معمای امروز را با هم حل کنید؛ پاسخ بعد از رسیدن.</span></span>${ic('back')}</button>` : ''}</div>
     <aside class="stack">${calCard(T, plan)}${statsCard(T)}
@@ -657,6 +657,7 @@ function todayCard(T, x, plan, p) {
   const r = recOf(T, x, plan), ex = mem(T, r.exec), planned = mem(T, plan[x.id]), ks = ridersOf(T, x.dir), same = slotsOf(T.place).filter(y => y.d === x.d);
   const rem = ex ? [...new Set(T.members.filter(m => m.id !== ex.id).flatMap(m => [...(m.values || []).filter(v => v !== 'samegender' && v !== 'parent').map(v => VALUES[v]), ...(m.pickup === 'door' ? ['دمِ در خانه‌ی ' + m.family] : [])]))] : [];
   let body = '', act = '';
+  const pr = ui.prac && ui.prac[x.id] ? '<p class="prac-tag">🎈 حالت تمرین: الان وقت این سفر نیست؛ چیزی ثبت نمی‌شود.</p>' : '';
   if (r.status === 'pending') {
     body = `<div class="kids">${ks.map(k => `<span class="kid" style="--kc:var(--ac)"><i></i>${esc(kidName(k, mem(T, k.pid)))}</span>`).join('')}</div>`;
     act = `<button class="btn ac block" data-a="t-start" ${ex ? '' : 'disabled'}>راه افتادیم</button><button class="btn line block" data-a="t-swap">${ex && ex.id === p.id ? 'برایم مشکلی پیش آمد' : ex ? 'جایگزین لازم است؟' : 'من می‌برم'}</button>`;
@@ -685,7 +686,7 @@ function todayCard(T, x, plan, p) {
       <span class="tag ${r.status === 'done' ? 'ok' : r.status === 'started' ? 'ac' : ''}">${{ pending: 'هنوز راه نیفتاده', started: 'در مسیر', done: 'رسیدیم' }[r.status]}</span></div>
     ${liveRow}${learnLine(T, x)}<div class="when"><b>${dayWord(x.d)}${x.d === TODAY ? '، ' + DAYS[x.d] : ''}</b><span>${x.dir === 'out' ? 'به ' + esc(T.place.name) : 'برگشت به خانه'}</span></div>
     <div class="who">${ex ? `${esc(fam(ex))} <em>می‌برند</em>` : 'بدون راننده'}</div>
-    ${notes.map(n => `<p class="note">${ic('warn')}${n}</p>`).join('')}${body}
+    ${notes.map(n => `<p class="note">${ic('warn')}${n}</p>`).join('')}${pr}${body}
     ${rem.length && r.status !== 'done' ? `<p class="note">${ic('heart')}یادآوری محترمانه: ${rem.map(esc).join(' · ')}</p>` : ''}
     <div class="stack" style="gap:10px">${act}</div></article>`;
 }
@@ -732,6 +733,15 @@ function tripScene(T, x, r, p) {
 }
 function sceneAnimate() { const c = $('.sc-car'); if (!c) return; const a = +c.dataset.from, b = +c.dataset.to; if (Math.abs(a - b) < .1) return;
   c.classList.add('go'); requestAnimationFrame(() => requestAnimationFrame(() => { c.style.right = b + '%'; })); setTimeout(() => { c.classList.remove('go'); c.classList.add('stop'); setTimeout(() => c.classList.remove('stop'), 900); }, 1500); }
+async function trustPaint() { const el = $('#trust-slot'), p = active(); if (!el || !p || !CFG.flags.trusted_driver) return; let r; try { r = await api('trust_list', { profile_id: p.id }); } catch (e) { return; } if (!r.on) return;
+  el.innerHTML = `<section class="card stack"><h2>${ic('shield')}راننده‌ی معتمد</h2><p class="muted small">معلم، دانشجو، طلبه یا آشنای مطمئنی که خودش فرزند ندارد و یکی از والدین او را می‌شناسد. هر صندلی‌اش ظرفیت تازه است.</p>
+    ${r.list.map(t => `<div class="fam-row">${ic('user')}<span class="grow"><b>${esc(t.name)}</b><small>${esc(t.note || '')} · ${fa(t.seats)} صندلی · ${t.joined ? 'به تیم پیوست ✓' : `پذیرش ${fa(t.accepted.length)} از ${fa(t.need)} خانواده`}</small></span>${!t.me_ok && !t.joined ? `<button class="btn ac sm" data-a="trust-ok" data-c="${t.code}">می‌پذیرم</button>` : t.by === p.id && !t.joined ? `<button class="btn line sm" data-a="copy" data-v="${esc(t.link)}">لینک</button>` : ''}</div>`).join('')}
+    <button class="btn line block" data-a="trust-new">${ic('plus')}پیشنهاد یک راننده‌ی معتمد</button></section>`; }
+function agreeCard(T, p) { const A = T.agree; if (!Array.isArray(A)) return ''; const real = T.members.filter(m => !m.fake); if (real.every(m => A.includes(m.id)) && real.length) return '';
+  const mine = A.includes(p.id);
+  return `<section class="card agree"><b>🤝 اول آشنایی، بعد قرار</b><span>هم‌تیمی‌ها را در گفتگو بشناسید، شرایط هم را ببینید و «قرار تیم» را بنویسید. وقتی همه «توافق کردیم» را بزنند، این کادر می‌رود.</span>
+    <div class="agree-row">${T.members.map(m => `<span class="ag ${A.includes(m.id) ? 'ok' : ''}">${A.includes(m.id) ? '✓' : '…'} ${esc(m.family)}</span>`).join('')}</div>
+    <div class="row wrap"><button class="btn line sm" data-a="chat">${ic('chat')}گفتگو</button><button class="btn line sm" data-a="pact">${ic('shield')}قرار تیم</button><button class="btn ${mine ? 'line' : 'ac'} sm" data-a="agree" data-v="${mine ? 0 : 1}">${mine ? 'پس گرفتن توافق' : 'توافق کردیم ✓'}</button></div></section>`; }
 function campaignCard(p) { const pl = p && p.place; if (!pl) return '';
   return `<section class="card camp"><span class="camp-ic">📣</span><div class="grow"><b>پویش «پوستر ${esc(destWord(p))} ما»</b><span>پوستر و لینک «${esc(pl.name)}» را در گروه کلاس و کانال ${esc(destWord(p))} بگذارید. هر خانواده‌ای که بیاید، نوبت همه سبک‌تر می‌شود.</span></div><button class="btn sm" data-a="poster">${ic('share')}بفرستم</button></section>`; }
 function tomorrowCard(T, plan, p) {
@@ -817,9 +827,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=17" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=18" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)} <span class="pchip">${ic('down', '')}</span></b><small>${p.team ? esc(teamName(p.team)) + ' · ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</small></span>`; }
-  else t = `<img src="assets/icon.svg?v=17" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=18" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -843,7 +853,7 @@ function renderMain(anim) {
   dock.querySelectorAll('[data-tab]').forEach(b => b.dataset.tab === ui.tab ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
   if (anim) { main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter'); }
   if ($('#peermap-slot')) mountPeerMap();
-  slideWatch(); peekWatch(); sceneAnimate();
+  slideWatch(); peekWatch(); sceneAnimate(); trustPaint();
   { const cb = dock.querySelector('[data-a="chat"]'); if (cb) cb.classList.toggle('dim', !(p && p.team)); }
 }
 function render(anim) { renderTop(); renderMain(anim); renderSide(); paintNotice(); }
@@ -897,7 +907,7 @@ function drawer(keep) {
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const grp = (k, i, t, body) => `<div class="grp"><button class="sec-h" data-a="toggle" data-v="${k}" aria-expanded="${!!ui.open[k]}"><span>${ic(i, 'i')} ${t}</span>${ic('down', 'i chev' + (ui.open[k] ? ' open' : ''))}</button><div class="plist ${ui.open[k] ? '' : 'closed'}" style="max-height:${ui.open[k] ? 700 : 0}px">${body}</div></div>`;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=17" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان · شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="شب و روز">${ic('moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=18" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان · شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="شب و روز">${ic('moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     <div class="sec-h"><span>مسیرک‌های من</span><button class="link small" data-a="new-profile">${ic('plus')}تازه</button></div>
     <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیرک را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
     ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیرک دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
@@ -917,7 +927,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' · نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۱۷</small></span>` : `<span>نسخه‌ی وب ۱۷${ui.apk && ui.apk.ver ? ' · اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
+    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' · نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۱۸</small></span>` : `<span>نسخه‌ی وب ۱۸${ui.apk && ui.apk.ver ? ' · اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -984,14 +994,14 @@ async function ambView() {
       <div class="row"><input id="amb-pl" dir="ltr" placeholder="WPXJUG5A" maxlength="8" style="flex:1"><button class="btn ac" data-a="amb-make">ساختن</button></div><div id="amb-out"></div></section>
     <section class="card stack"><h2>ایده‌های سریع</h2><ol class="steps3"><li>پوستر A5 را روی تابلوی اعلانات مدرسه (با اجازه‌ی مدرسه) بچسبانید.</li><li>متن آماده و لینک را در گروه کلاس و کانال مدرسه بگذارید؛ صبح‌های شنبه بهترین زمان است.</li><li>از ۲ خانواده‌ی هم‌محله بخواهید با هم ثبت‌نام کنند؛ تیم زودتر شکل می‌گیرد.</li></ol></section>
     ${A.list.length ? `<section class="card"><h2>ثبت‌شده‌ها</h2><table><tr><th>تاریخ</th><th>مکان</th><th>نوع</th><th>مبلغ</th></tr>${A.list.slice(0, 60).map(x => `<tr><td>${jLabel(new Date(x.created * 1000))}</td><td>${esc(x.place || '—')}</td><td>${x.kind === 'team' ? 'تیم شد' : 'ثبت‌نام'}</td><td>${money(x.amount)}${+x.paid ? ' ✓' : ''}</td></tr>`).join('')}</table></section>` : ''}</div>`;
-  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=17" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
+  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=18" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
 }
 function reportHtml(p, T) {
   const H = (ui.hist && ui.hist.trips) || [], done = H.filter(x => x.status === 'done').sort((a, b) => a.date < b.date ? -1 : 1), b = balances(T), now = new Date();
   const by = {}; T.members.forEach(m => by[m.id] = { n: 0, kids: 0, th: 0 }); done.forEach(x => { if (by[x.exec]) { by[x.exec].n++; by[x.exec].kids += x.kids || 0; by[x.exec].th += x.thanks ? 1 : 0; } });
   const kidRides = done.reduce((a, x) => a + (x.kids || 0), 0), first = done[0] ? ymdD(done[0].date) : now, top = Object.entries(by).sort((a, c) => c[1].n - a[1].n)[0];
   const medal = n => n >= 40 ? '🏅 قهرمان راه' : n >= 15 ? '⭐ همسفر ثابت‌قدم' : n >= 5 ? '🌱 شروع خوب' : '🙂 تازه‌وارد';
-  return `<div class="rp"><header class="rp-h"><img src="assets/icon.svg?v=17" alt=""><div class="grow"><small>کارنامه‌ی تیم · رسیدیم</small><h1>${esc(teamName(T.team))}</h1><span>${esc(T.place.name)} · از ${jLabel(first)} تا ${jLabel(now)} ${fa(jp(now).y)}</span></div><div class="rp-seal">${fa(done.length)}<small>سفر به سلامت</small></div></header>
+  return `<div class="rp"><header class="rp-h"><img src="assets/icon-192.png" alt=""><div class="grow"><small>کارنامه‌ی تیم · رسیدیم</small><h1>${esc(teamName(T.team))}</h1><span>${esc(T.place.name)} · از ${jLabel(first)} تا ${jLabel(now)} ${fa(jp(now).y)}</span></div><div class="rp-seal">${fa(done.length)}<small>سفر به سلامت</small></div></header>
     <section class="rp-k">${[[fa(done.length), 'سفر انجام‌شده'], [fa(kidRides), 'بار رساندن بچه‌ها'], [fa(done.filter(x => x.thanks).length), 'تشکر ثبت‌شده'], [fa(T.members.length), 'خانواده']].map(([v, t]) => `<div><b>${v}</b><span>${t}</span></div>`).join('')}</section>
     <h2>بیلان خانواده‌ها</h2><table class="rp-t"><tr><th>خانواده</th><th>سفرِ رانده‌شده</th><th>رساندن بچه</th><th>تشکر</th><th>تراز حساب</th><th>نشان</th></tr>${T.members.map(m => `<tr><td><b>${esc(fam(m))}</b></td><td>${fa(by[m.id].n)}</td><td>${fa(by[m.id].kids)}</td><td>${fa(by[m.id].th)}</td><td class="${b[m.id] > 0 ? 'plus' : b[m.id] < 0 ? 'minus' : ''}">${b[m.id] > 0 ? '+' : b[m.id] < 0 ? '−' : ''}${money(b[m.id])}</td><td>${medal(by[m.id].n)}</td></tr>`).join('')}</table>
     ${top && top[1].n ? `<p class="rp-note">🌟 بیشترین زحمت این دوره: <b>${esc(fam(mem(T, top[0])))}</b> با ${fa(top[1].n)} سفر. دست‌شان درد نکند!</p>` : ''}
@@ -1001,12 +1011,27 @@ function reportHtml(p, T) {
 }
 async function reportPrint() {
   const p = active(), T = ui.team; if (!p || !T || !T.team) return;
-  if (NATIVE) return sheet('کارنامه‌ی PDF', `<p style="line-height:2">ذخیره‌ی PDF فعلاً در نسخه‌ی وب است. residim.ir را در مرورگر باز کنید و از «حساب ← کارنامه‌ی PDF» بگیرید.</p><a class="btn ac block" href="${SITE}/" target="_blank" rel="noopener">باز کردن در مرورگر</a>`);
+  if (NATIVE && false) return sheet('کارنامه‌ی PDF', `<p style="line-height:2">ذخیره‌ی PDF فعلاً در نسخه‌ی وب است. residim.ir را در مرورگر باز کنید و از «حساب ← کارنامه‌ی PDF» بگیرید.</p><a class="btn ac block" href="${SITE}/" target="_blank" rel="noopener">باز کردن در مرورگر</a>`);
   if (!ui.hist) { try { ui.hist = await api('team_history', { profile_id: p.id }); } catch (e) {} }
   let r = $('#print-root'); if (!r) { r = document.createElement('div'); r.id = 'print-root'; document.body.appendChild(r); }
-  r.innerHTML = reportHtml(p, T); document.body.classList.add('printing'); snd('ok');
-  const done = () => { document.body.classList.remove('printing'); removeEventListener('afterprint', done); };
-  setTimeout(() => print(), 350);
+  r.innerHTML = reportHtml(p, T);
+  sheet('کارنامه‌ی تیم', `<p class="muted small">فایل همین‌جا ساخته و ذخیره می‌شود.</p><div class="row"><button class="btn ac grow" data-a="rep-pdf">${ic('download')}PDF</button><button class="btn line grow" data-a="rep-png">${ic('download')}تصویر PNG</button></div><button class="link" data-a="rep-print">چاپ با چاپگر</button>`);
+}
+async function reportFile(kind) {
+  const r = $('#print-root'); if (!r || !r.innerHTML) return; toast('در حال ساختن فایل…');
+  try { await loadJs('assets/html2canvas.min.js?v=18', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=18', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { return toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); }
+  r.classList.add('render'); try { await document.fonts.ready; } catch (e) {}
+  try { const cv = await html2canvas(r.firstElementChild, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }); const name = 'residim-' + ymd(new Date());
+    let blob;
+    if (kind === 'png') blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+    else { const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' }), W = 210, H = 297, M = 8, iw = W - 2 * M, pageH = (H - 2 * M) * cv.width / iw;
+      for (let y = 0, i = 0; y < cv.height; y += pageH, i++) { const c2 = document.createElement('canvas'); c2.width = cv.width; c2.height = Math.min(pageH, cv.height - y); c2.getContext('2d').drawImage(cv, 0, -y); if (i) pdf.addPage(); pdf.addImage(c2.toDataURL('image/jpeg', .92), 'JPEG', M, M, iw, c2.height * iw / cv.width); }
+      blob = pdf.output('blob'); }
+    if (!blob || !blob.size) throw new Error('empty');
+    const f = new File([blob], name + '.' + kind, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [f] }) && matchMedia('(pointer:coarse)').matches) { try { await navigator.share({ files: [f], title: 'کارنامه‌ی تیم' }); r.classList.remove('render'); return; } catch (e) {} }
+    const u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 20000); snd('ok'); toast(`فایل ${kind.toUpperCase()} ذخیره شد (${fa(Math.round(blob.size / 1024))} کیلوبایت).`);
+  } catch (e) { toast('ساخت فایل نشد؛ «چاپ با چاپگر» را امتحان کنید.'); } r.classList.remove('render');
 }
 function aboutSheet() {
   sheet('درباره‌ی رسیدیم', `<p style="line-height:2">رسیدیم یک سرویس مشارکتی رفت‌وآمد است: خانواده‌های هم‌محله و هم‌مسیر را پیدا می‌کند تا بچه‌ها را نوبتی به مدرسه، مهد، آموزشگاه و باشگاه ببرند و بیاورند؛ همکاران و دانشجوها هم نوبتی برانند. خرج نصف، ترافیک کمتر، خیال راحت.</p>
@@ -1032,10 +1057,15 @@ function famSheet(m) {
     <p class="muted small">${m.exact ? '' : 'موقعیت تقریبی (حدود ۱۵۰ متر) است؛ نقطه‌ی دقیق فقط برای هم‌تیمی‌ها.'}</p>`,
     `${esc(m.hood)}${m.dist ? ' · ' + km1(m.dist.m / 1000) + ' کیلومتر مسیر از شما' : ''}`);
 }
+async function threadSheet(id) { let r; try { r = await api('invite_thread', { id }); } catch (e) { return fail(e); } const o = r.other || {};
+  sheet(`آشنایی با خانواده ${esc(o.family || '')}`, `<div class="mate">${shapeAv(o.id || id, 48)}<div><b>خانواده ${esc(o.family || '')}</b><small>${esc(o.hood || '')} · ${o.role === 'pay' ? 'هزینه می‌دهند' : o.role === 'drive' ? 'رانندگی می‌کنند' : 'رانندگی و هزینه'}</small></div>${o.phone ? `<a class="icon-btn" href="tel:${esc(o.phone)}" aria-label="تماس">${ic('phone')}</a>` : ''}</div>
+    <div class="th-list">${r.msgs.map(m => `<div class="cx-row ${m.mine ? 'me' : ''}"><div class="cx-b"><span>${esc(m.text)}</span><small>${jLabel(new Date(m.at * 1000))}</small></div></div>`).join('') || '<p class="muted small">هنوز پیامی نیست؛ یک سلام کافی است.</p>'}</div>
+    ${r.status === 'pending' ? `<div class="cx-foot" style="position:static;padding:0"><input id="th-in" maxlength="400" placeholder="پیام کوتاه و محترمانه…" enterkeyhint="send"><button class="cx-send" data-a="thread-send" data-id="${id}" aria-label="فرستادن">${ic('send')}</button></div>
+      ${r.dir === 'in' ? `<div class="row" style="margin-top:10px"><button class="btn ac grow" data-a="accept" data-id="${id}">آشنا شدیم؛ هم‌تیم شویم</button><button class="btn line grow" data-a="decline" data-id="${id}">فعلاً نه</button></div>` : '<p class="muted small" style="margin-top:8px">وقتی آن‌ها بپذیرند، تیم شکل می‌گیرد و همین پیام‌ها در گفتگوی تیم می‌ماند.</p>'}` : ''}`); }
 async function inboxSheet() {
   await loadInbox(true); const I = ui.inbox; if (!I) return;
-  sheet('دعوت‌ها و پیام‌ها', `${I.invites.map(v => `<div class="card stack" style="padding:14px"><b>خانواده ${esc(v.from.family)} دعوت به هم‌مسیری داده‌اند</b><span class="muted small">${esc(v.from.hood)}${v.from.dist ? ' · ' + km1(v.from.dist.m / 1000) + ' کیلومتر مسیر' : ''}</span>
-      <div class="row"><button class="btn ac sm grow" data-a="accept" data-id="${v.id}">پذیرفتن</button><button class="btn line sm grow" data-a="decline" data-id="${v.id}">فعلاً نه</button></div></div>`).join('')}
+  sheet('دعوت‌ها و پیام‌ها', `${I.invites.map(v => `<div class="card stack" style="padding:14px"><b>خانواده ${esc(v.from.family)} دعوت به هم‌مسیری داده‌اند</b><span class="muted small">${esc(v.from.hood)}${v.from.dist ? ' · ' + km1(v.from.dist.m / 1000) + ' کیلومتر مسیر' : ''}</span>${v.hi ? `<p class="hi-msg">«${esc(v.hi)}»</p>` : ''}
+      <div class="row"><button class="btn line sm grow" data-a="thread" data-id="${v.id}">${ic('chat')}گفتگو و آشنایی</button><button class="btn ac sm grow" data-a="accept" data-id="${v.id}">پذیرفتن</button><button class="btn line sm grow" data-a="decline" data-id="${v.id}">فعلاً نه</button></div></div>`).join('')}
     ${I.notes.map(n => `<div class="row" style="padding:6px 0;border-bottom:1px dashed var(--line)">${ic(n.kind === 'invite' ? 'team' : n.kind === 'arrive' ? 'check' : 'bell')}<span class="grow small">${esc(n.text)}</span></div>`).join('') || (I.invites.length ? '' : '<p class="muted">فعلاً پیامی نیست. وقتی کسی نزدیک شما ثبت‌نام کند یا دعوتی برسد، اینجا می‌بینید.</p>')}
     <button class="btn line sm" data-a="notify">${ic('bell')}روشن کردن نوتیف</button>`);
   paintBell();
@@ -1341,7 +1371,7 @@ async function finishWizard(w) {
 }
 async function otpSend(w, channel) {
   w.busy = true; w.err = ''; wizRender();
-  try { const r = await api('otp_send', { phone: normPhone(w.phone), channel: channel || 'sms' }); w.otpSent = true; w.smsFail = null; w.channel = channel || 'sms'; w.devCode = r.dev_code || null; }
+  try { const r = await api('otp_send', { phone: normPhone(w.phone), channel: channel || 'sms' }); w.otpSent = true; if (!channel || channel === 'sms') setTimeout(() => otpAuto('#w-otp'), 600); w.smsFail = null; w.channel = channel || 'sms'; w.devCode = r.dev_code || null; }
   catch (e) { if (e.code === 'sms') { w.smsFail = { pcode: e.pcode }; w.otpSent = false; } else if (e.code === 'bale') { w.smsFail = w.smsFail || { pcode: e.pcode }; w.otpSent = false; w.err = e.message; } else w.err = e.message; }
   w.busy = false; wizRender();
 }
@@ -1400,6 +1430,18 @@ let pkT; function pkReverse() { clearTimeout(pkT); pkT = setTimeout(async () => 
 function closePicker() { if (PK.node && PK.node.parentNode) PK.node.parentNode.removeChild(PK.node); $('#pick-root').innerHTML = ''; }
 /* undo snackbar: «اشتباه کردم، برگرد» */
 let undoT;
+function practice(body) { // the trip is not «now»: play along locally so a curious child still has fun, but record nothing
+  const T = ui.team, x = (slotsOf(T.place).find(y => y.id === body.slot)) || null; if (!x) return; ui.prac = ui.prac || {}; const P0 = ui.prac[x.id] = ui.prac[x.id] || { status: 'pending', exec: null, arr: {}, empty: 0, ev: { bp: {} } };
+  if (body.act === 'start') { P0.status = 'started'; P0.exec = body.exec; P0.ev = { start: Date.now() / 1000, bp: { [body.exec]: Date.now() / 1000 } }; snd('whoosh'); }
+  if (body.act === 'board') { P0.ev.bp[body.pid] = Date.now() / 1000; snd('tap'); }
+  if (body.act === 'unboard') delete P0.ev.bp[body.pid];
+  if (body.act === 'arrive' || body.act === 'finish') { P0.status = body.act === 'finish' ? 'done' : P0.status; P0.ev.arrive = Date.now() / 1000; snd('done'); if (body.act === 'finish') setTimeout(() => { delete ui.prac[x.id]; renderMain(); }, 6000); }
+  if (!ui.pracNoted) { ui.pracNoted = 1; toast('حالت تمرین 🎈 الان وقت این سفر نیست؛ هر چه بزنید فقط بازی است و ثبت نمی‌شود.'); }
+  renderMain();
+}
+function holdThen(msg, ms, fn) { // a countdown bar with «پشیمان شدم»; nothing reaches the server until it ends
+  const el = $('#undo'); clearTimeout(undoT); ui.holdFn = fn; el.innerHTML = `<span class="grow">${esc(msg)}<i class="hold-bar" style="animation-duration:${ms}ms"></i></span><button class="btn sm" data-a="hold-cancel">پشیمان شدم</button>`; el.classList.add('show');
+  ui.holdT = setTimeout(() => { el.classList.remove('show'); const f = ui.holdFn; ui.holdFn = null; if (f) f(); }, ms); }
 function snack(msg, label, fn) {
   const el = $('#undo'); el.innerHTML = `<span class="grow">${esc(msg)}</span><button class="btn sm" data-a="undo">${esc(label)}</button>`;
   el.classList.add('show'); ui.undoFn = fn; clearTimeout(undoT); undoT = setTimeout(() => { el.classList.remove('show'); ui.undoFn = null; }, 9000);
@@ -1465,6 +1507,7 @@ async function chatPull() {
   try { const r = await api('chat_list', { profile_id: p.id, after: 0 }); const sig = r.list.map(m => m.at + m.text).join('|'); if (sig === ui.chat.sig && el.dataset.ok) return; ui.chat.sig = sig; el.dataset.ok = 1;
     const atBottom = el.scrollHeight - el.clientHeight - el.scrollTop < 60; let lastDay = '';
     el.innerHTML = r.list.length ? r.list.map(m => { const dt = new Date(m.at * 1000), dk = ymd(dt), sep = dk !== lastDay ? `<div class="cx-day"><span>${dk === ymd(new Date()) ? 'امروز' : dk === ymd(addD(new Date(), -1)) ? 'دیروز' : jLabel(dt)}</span></div>` : ''; lastDay = dk;
+      if (m.sys) return `${sep}<div class="cx-sys">${esc(m.text)}</div>`;
       return `${sep}<div class="cx-row ${m.mine ? 'me' : ''}">${m.mine ? '' : shapeAv(m.who_id || m.who, 30)}<div class="cx-b">${m.mine ? '' : `<b>${esc(m.who)}</b>`}<span>${esc(m.text)}</span><small>${fa(dt.toTimeString().slice(0, 5))}${m.mine ? ' ✓' : ''}</small></div></div>`; }).join('')
       : `<div class="cx-empty">${artTeam()}<b>اولین پیام را بنویسید!</b><span>یخ گروه با یک «سلام، صبح بخیر» آب می‌شود. پاسخ‌های سریع پایین صفحه‌اند.</span></div>`;
     if (atBottom || !ui.chat.seen) { el.scrollTop = el.scrollHeight; ui.chat.seen = true; } S.chatSeen = Date.now(); persist(); } catch (e) {}
@@ -1513,7 +1556,7 @@ const KAVE_TPL = [
   ['residim-invite', 'پیامک', 'رسیدیم: خانواده %token10 برای %token20 به شما پیشنهاد هم‌مسیری داده‌اند. دیدن و پاسخ: residim.ir/%token'],
   ['residim-arrived', 'پیامک', 'رسیدیم: %token10 ساعت %token به %token20 رسید. راننده: خانواده %token2']];
 const SMSIR_TPL = [
-  ['کد ورود', 'smsir_tpl_login', 'رسیدیم\nکد ورود شما: #CODE#\nاین کد را به کسی ندهید.', 'CODE'],
+  ['کد ورود', 'smsir_tpl_login', 'رسیدیم\nکد ورود شما: #CODE#\nاین کد را به کسی ندهید.\n\n@residim.ir ##CODE#', 'CODE'],
   ['دعوت', 'smsir_tpl_invite', 'رسیدیم: خانواده #FAMILY# برای #PLACE# به شما پیشنهاد هم‌مسیری داده‌اند. residim.ir/#CODE#', 'CODE، FAMILY، PLACE'],
   ['رسیدن', 'smsir_tpl_arrived', 'رسیدیم: #KID# ساعت #TIME# به #PLACE# رسید. راننده: خانواده #DRIVER#', 'KID، TIME، PLACE، DRIVER']];
 const tplShow = x => esc(x).replace(/(%token\d*|#[A-Z]+#|@residim\.ir|residim\.ir\/\S+)/g, '<bdi dir="ltr">$1</bdi>');
@@ -1578,7 +1621,7 @@ function admHealth(A) {
 }
 function admHome(A) {
   const o = A.ov, cnt = o.counts, F = o.flags, SV = o.services, ST = o.settings || {};
-  const flagLbl = { family_link: 'همراه خانواده (همسر، پدربزرگ و مادربزرگ رخدادها را ببینند)', cand_swipe: 'پیشنهادهای هم‌مسیر به شکل کارت‌های ورق‌خوردنی (گوشی)', trip_scene: 'صحنه‌ی کارتونی سفر (ماشین، ایستگاه خانه‌ها، ابرهای پیام)', pay_gateway: 'پرداخت دنگ خیر از درگاه پی‌پینگ', signup_open: 'ثبت‌نام باز است', sms_invite: 'پیامک دعوت هم‌مسیری', sms_direct: 'پیامک مستقیم بدون الگو (روشن = sms/send؛ خاموش = اعتبارسنجی و الگو)', sms_arrive: 'پیامک «فرزندتان رسید» (فقط تیم‌های ویژه)', auto_arrive: 'تشخیص رسیدن با GPS', station_on: 'مسیرک سفر (ایستگاه، فرودگاه، ترمینال)', league_on: 'لیگ راه مدرسه (معما)', paid_mode: 'حالت پولی؛ اشتراک لازم است (خاموش = همه‌چیز رایگان)', test_tools: 'گزینه‌های آزمایشی در منو', otp_dev: 'کد ورود آزمایشی بدون پیامک (فقط تست!)' };
+  const flagLbl = { trip_window: 'اجرای واقعی: سفر فقط در بازه‌ی زمانی خودش ثبت شود (خاموش = حالت آزمایش، همه‌چیز ثبت می‌شود)', trusted_driver: 'راننده‌ی معتمد (فقط برای مکان‌هایی که در زبانه‌ی مکان‌ها روشن شود)', family_link: 'همراه خانواده (همسر، پدربزرگ و مادربزرگ رخدادها را ببینند)', cand_swipe: 'پیشنهادهای هم‌مسیر به شکل کارت‌های ورق‌خوردنی (گوشی)', trip_scene: 'صحنه‌ی کارتونی سفر (ماشین، ایستگاه خانه‌ها، ابرهای پیام)', pay_gateway: 'پرداخت دنگ خیر از درگاه پی‌پینگ', signup_open: 'ثبت‌نام باز است', sms_invite: 'پیامک دعوت هم‌مسیری', sms_direct: 'پیامک مستقیم بدون الگو (روشن = sms/send؛ خاموش = اعتبارسنجی و الگو)', sms_arrive: 'پیامک «فرزندتان رسید» (فقط تیم‌های ویژه)', auto_arrive: 'تشخیص رسیدن با GPS', station_on: 'مسیرک سفر (ایستگاه، فرودگاه، ترمینال)', league_on: 'لیگ راه مدرسه (معما)', paid_mode: 'حالت پولی؛ اشتراک لازم است (خاموش = همه‌چیز رایگان)', test_tools: 'گزینه‌های آزمایشی در منو', otp_dev: 'کد ورود آزمایشی بدون پیامک (فقط تست!)' };
   return `<div class="grid">${[['users', 'کاربر واقعی'], ['complete', 'مسیرکِ کامل'], ['places', 'مکان'], ['teams', 'تیم'], ['invites', 'دعوت منتظر'], ['tickets', 'پیام باز'], ['sms_day', 'پیامک ۲۴ ساعت'], ['app_users', 'نصب اپ اندروید'], ['fb', 'نظر و پیشنهاد'], ['fake', 'کاربر آزمایشی']].map(([k, v]) => `<div class="stat"><b>${fa(cnt[k] || 0)}</b><span>${v}</span></div>`).join('')}</div>
     <details class="card adm-more" data-dk="adm-app" ${(ui.dOpen || {})['adm-app'] ? 'open' : ''}><summary><b>${ic('install')}اپ اندروید</b></summary>
       <p class="muted small">نسخه و لینک اپ را ساخت خودکار (GitHub Actions) در residim.ir/app/android.json می‌نویسد؛ این دو فیلد فقط برای جایگزینی دستی‌اند.</p>
@@ -1607,7 +1650,7 @@ function admMsgs(A) {
       <div class="row"><div class="field grow"><input id="rep-${t.id}" value="${esc(t.reply || '')}" placeholder="${t.phone ? 'پاسخ (کاربر در اپ می‌بیند)' : 'یادداشت پاسخ'}"></div><button class="btn sm" data-a="adm-reply" data-id="${t.id}">ثبت</button><button class="link" data-a="adm-tclose" data-id="${t.id}" data-v="${t.status === 'closed' ? 1 : 0}">${t.status === 'closed' ? 'بازکردن' : 'بستن'}</button></div></div>`) : '<p class="muted">پیامی نیست.</p>'}</section>`;
 }
 function admPlaces(A) {
-  return `<section class="card"><h2>مکان‌ها (${fa(A.places.length)})</h2>${pager('places', A.places, p => `<tr class="${p.flags ? 'flagged' : ''}"><td>${esc(p.name)}${p.nv ? ' <span class="nv">' + ic('check') + 'نشان</span>' : ''}${p.flags ? ` <span class="tag warn">${fa(p.flags)} گزارش</span>` : ''}<br><span class="muted small">${esc(p.city)} · ${esc((KINDS[p.kind] || KINDS.other).n)}</span><div class="row wrap" style="gap:4px;margin-top:4px">${p.nv ? '' : `<button class="link" data-a="adm-nv" data-id="${p.id}">بررسی با نشان</button>`}<button class="link danger" data-a="adm-pdel" data-id="${p.id}" data-n="${esc(p.name)}" data-f="${p.families}">حذف</button></div></td><td dir="ltr">${esc(p.code)}</td><td>${fa(p.families)}</td><td><input type="checkbox" data-a="adm-verify" data-id="${p.id}" ${p.verified ? 'checked' : ''} aria-label="تأیید"></td></tr>`, x => `<table><tr><th>نام</th><th>کد</th><th>خانواده</th><th>تأیید</th></tr>${x}</table>`)}</section>
+  return `<section class="card"><h2>مکان‌ها (${fa(A.places.length)})</h2>${pager('places', A.places, p => `<tr class="${p.flags ? 'flagged' : ''}"><td>${esc(p.name)}${p.nv ? ' <span class="nv">' + ic('check') + 'نشان</span>' : ''}${p.flags ? ` <span class="tag warn">${fa(p.flags)} گزارش</span>` : ''}<br><span class="muted small">${esc(p.city)} · ${esc((KINDS[p.kind] || KINDS.other).n)}</span><div class="row wrap" style="gap:4px;margin-top:4px">${p.nv ? '' : `<button class="link" data-a="adm-nv" data-id="${p.id}">بررسی با نشان</button>`}<button class="link danger" data-a="adm-pdel" data-id="${p.id}" data-n="${esc(p.name)}" data-f="${p.families}">حذف</button><button class="link" data-a="adm-trust" data-id="${p.id}" data-v="${p.trusted ? 0 : 1}">راننده‌ی معتمد: ${p.trusted ? 'روشن' : 'خاموش'}</button></div></td><td dir="ltr">${esc(p.code)}</td><td>${fa(p.families)}</td><td><input type="checkbox" data-a="adm-verify" data-id="${p.id}" ${p.verified ? 'checked' : ''} aria-label="تأیید"></td></tr>`, x => `<table><tr><th>نام</th><th>کد</th><th>خانواده</th><th>تأیید</th></tr>${x}</table>`)}</section>
     <section class="card"><h2>تیم‌ها (ویژه = پیامک رسیدن و رسید خودکار)</h2>${pager('teams', A.teams, t => `<tr><td>تیم ${fa(t.no)} · ${esc(t.hood)}</td><td>${esc(t.place || '')}</td><td>${fa(t.members)}</td><td><input type="checkbox" data-a="adm-premium" data-id="${t.id}" ${t.premium ? 'checked' : ''} aria-label="ویژه"></td></tr>`, x => `<table><tr><th>تیم</th><th>مکان</th><th>اعضا</th><th>ویژه</th></tr>${x}</table>`)}</section>`;
 }
 const APP_BADGE = '<span class="app-b" title="از اپ اندروید استفاده می‌کند"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="5" y="2" width="10" height="16" rx="3" fill="#16A34A"/><rect x="7" y="4.5" width="6" height="8" rx="1" fill="#DCFCE7"/><circle cx="8.6" cy="8" r=".9" fill="#0C1410"/><circle cx="11.4" cy="8" r=".9" fill="#0C1410"/><path d="M8.5 10.2q1.5 1.2 3 0" stroke="#0C1410" stroke-width=".8" fill="none" stroke-linecap="round"/><circle cx="10" cy="15.3" r="1" fill="#DCFCE7"/></svg></span>';
@@ -1674,6 +1717,7 @@ const CITY_C = { 'قم': [34.6401, 50.8764], 'تهران': [35.7000, 51.4000], '
 function admCityImport() { const C = ui.cimp = ui.cimp || { city: 'قم', n: 5, step: 3200, log: '' };
   return `<section class="card stack"><h2>${ic('school')}ورود همه‌ی مدرسه‌ها و دانشگاه‌های یک شهر</h2><p class="muted small">شهر را انتخاب کنید؛ شهر به ${fa(C.n * C.n)} خانه‌ی شطرنجی تقسیم می‌شود و در هر خانه با کلیدواژه‌های دبستان، دبیرستان، هنرستان، پیش‌دبستانی، مهد، دانشگاه و آموزشگاه در نشان جستجو می‌شود. موارد تکراری کنار گذاشته می‌شوند و بقیه با تیک «نشان» در فهرست انتخاب مکانِ ویزارد پیدا می‌شوند. هزینه: حدود ${fa(C.n * C.n * 7)} درخواست جستجوی نشان.</p>
     <div class="row wrap"><select id="ci-city">${Object.keys(CITY_C).map(c => `<option ${c === C.city ? 'selected' : ''}>${c}</option>`).join('')}</select><select id="ci-n">${[[3, 'کوچک (۳×۳)'], [5, 'متوسط (۵×۵)'], [7, 'بزرگ (۷×۷)']].map(([k, v]) => `<option value="${k}" ${+C.n === k ? 'selected' : ''}>${v}</option>`).join('')}</select><button class="btn" data-a="ci-run" ${C.busy ? 'disabled' : ''}>${C.busy ? 'در حال اجرا…' : 'شروع'}</button></div>
+    <div class="row wrap"><button class="btn line sm" data-a="ci-file">${ic('download')}ورود ۱۹۱ مدرسه و دانشگاه قم از OpenStreetMap (بدون هزینه‌ی نشان)</button></div>
     ${C.log ? `<p class="small" id="ci-log">${C.log}</p>` : ''}</section>`; }
 function admPosters(A) {
   const P = ui.post = ui.post || { items: null, sel: {}, layout: 'a4', terms: ['دبستان', 'مدرسه', 'دبیرستان'] };
@@ -1788,7 +1832,8 @@ function liveMarker() {
   if (!PM.map || !PM.L) return; const L = ui.live;
   if (!L) { if (PM.car) { PM.car.remove(); PM.car = null; } return; }
   if (!PM.car) { const el = document.createElement('div'); el.className = 'mk-car'; el.innerHTML = CARTOON_CAR + '<span>ماشین تیم</span>'; PM.car = new PM.L.G.Marker({ element: el, anchor: 'bottom' }).setLngLat([L.lng, L.lat]).addTo(PM.map); }
-  else PM.car.setLngLat([L.lng, L.lat]);
+  else { const a = PM.car.getLngLat(), b = [L.lng, L.lat], t0 = performance.now(), el = PM.car.getElement(); if (Math.abs(b[0] - a.lng) > 1e-6) el.classList.toggle('flip', b[0] > a.lng);
+    const step = t => { const k = Math.min(1, (t - t0) / 1800); PM.car.setLngLat([a.lng + (b[0] - a.lng) * k, a.lat + (b[1] - a.lat) * k]); if (k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
 }
 function arrivalBanner(text, kid) {
   if ($('.banner')) return;
@@ -1802,7 +1847,7 @@ function arrivalBanner(text, kid) {
 async function act(a, el) {
   const p = active(), T = ui.team, w = ui.wiz;
   const plan = T && T.team ? planOf(T) : null, x = plan ? focusSlot(T, plan) : null;
-  const tact = async (body, msg) => { try { await api('team_act', { profile_id: p.id, ...body }); await loadTeam(); renderMain(); watchArrival(); if (msg) toast(msg); } catch (e) { fail(e); } };
+  const tact = async (body, msg) => { try { await api('team_act', { profile_id: p.id, ...body }); await loadTeam(); renderMain(); watchArrival(); if (msg) toast(msg); } catch (e) { if (e.code === 'practice') return practice(body); fail(e); } };
   switch (a) {
     case 'close': return closeLayer();
     case 'notice-x': S.noticeHid = CFG.notice; persist(); return paintNotice();
@@ -1846,7 +1891,7 @@ async function act(a, el) {
     case 'open-code': closeLayer(); return openCode(el.dataset.c);
     case 'go-code': { const v = ($('#code').value || '').trim().toUpperCase().replace(/^.*\//, '').replace(/[^A-Z0-9]/g, ''); if (v.length < 6) return toast('کد ۸ حرفی را وارد کنید.'); return openCode(v); }
     case 'login': closeLayer(); return loginSheet();
-    case 'lg-send': case 'lg-call': case 'lg-bale': { const ph = normPhone($('#lg-ph').value); if (!ph) return toast('شماره را درست بنویسید؛ مثلاً ۰۹۱۲۱۲۳۴۵۶۷.'); try { const r = await api('otp_send', { phone: ph, channel: a === 'lg-call' ? 'call' : a === 'lg-bale' ? 'bale' : 'sms' }); ui.lg = { ph, dev: r.dev_code }; loginSheet(); } catch (e) { toast(e.code === 'sms' ? `پیامک نرسید (کد ${fa(e.pcode || 0)})؛ تماس صوتی را امتحان کنید.` : e.message); } return; }
+    case 'lg-send': case 'lg-call': case 'lg-bale': { const ph = normPhone($('#lg-ph').value); if (!ph) return toast('شماره را درست بنویسید؛ مثلاً ۰۹۱۲۱۲۳۴۵۶۷.'); try { const r = await api('otp_send', { phone: ph, channel: a === 'lg-call' ? 'call' : a === 'lg-bale' ? 'bale' : 'sms' }); ui.lg = { ph, dev: r.dev_code }; loginSheet(); if (a === 'lg-send') setTimeout(() => otpAuto('#lg-otp'), 300); } catch (e) { toast(e.code === 'sms' ? `پیامک نرسید (کد ${fa(e.pcode || 0)})؛ تماس صوتی را امتحان کنید.` : e.message); } return; }
     case 'lg-verify': { try { const wasGuest = S.token && !S.phone; const r = await api('otp_verify', { phone: ui.lg.ph, code: en($('#lg-otp').value) }); S.token = r.token; S.phone = r.phone; ui.lg = null; persist(); await refreshMe(); closeLayer(); if (ui.famCode) return famJoin(ui.famCode); if (wasGuest) { toast('شماره تأیید شد ✓'); return setActive(S.active && P.find(x => x.id === S.active) ? S.active : (P[0] || {}).id, { noWizard: true }); } if (P.length) setActive(P[0].id); else { render(true); toast('خوش آمدید! حالا اولین مسیرک را بسازید.'); } } catch (e) { fail(e); } return; }
     case 'logout': try { await api('logout'); } catch (e) {} S.token = null; S.phone = null; S.active = null; P = []; persist(); closeLayer(); applyAccent(); render(true); return toast('از حساب خارج شدید.');
     case 'theme': { const d = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = d; S.theme = d; persist(); return; }
@@ -1860,8 +1905,12 @@ async function act(a, el) {
     case 'mview': ui.mview = el.dataset.v; snd('tap'); PM.key = ''; $$('.seg [data-a="mview"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.mview)); return drawPeers();
     case 'cand': { const m = ui.cand && ui.cand.list.find(x => x.id === el.dataset.id); return m && famSheet(m); }
     case 'invite': {
-      const m = ui.cand.list.find(x => x.id === el.dataset.id); closeLayer();
-      try { const r = await api('invite', { profile_id: p.id, to: m.id }); m.invite = { id: r.id, dir: 'out' }; PM.key = ''; renderMain(); snd('ok'); toast(`دعوت برای خانواده ${m.family} رفت${r.sms === 'sent' ? ' و پیامک شد' : ''}.` + (quip('invite') || ' منتظر پاسخ بمانید.')); setTimeout(() => loadInbox(), 4500); setTimeout(() => loadInbox(), 9000); } catch (e) { fail(e); }
+      const m = ui.cand.list.find(x => x.id === el.dataset.id); closeLayer(); const kids = (p.data.kids || []).map(k => k.first).filter(Boolean);
+      const hi = `سلام، وقت‌تان بخیر 🌷 ما خانواده‌ی ${p.data.family || ''}${p.data.hood ? ' از محله‌ی ' + p.data.hood : ''} هستیم${kids.length ? '؛ ' + kids.join(' و ') + ' به ' + (placeName(p) || destWord(p)) + ' می‌رود' : ''}. اگر موافق باشید با هم آشنا شویم و ببینیم می‌توانیم هم‌مسیر شویم.`;
+      return sheet(`آشنایی با خانواده ${m.family}`, `<p class="muted small">پیشنهاد شما با این پیام می‌رود. هنوز تیم نمی‌شوید؛ اول آشنا می‌شوید، بعد اگر هر دو خواستید، تیم شکل می‌گیرد.</p><div class="field"><label for="inv-hi">پیام آشنایی</label><textarea id="inv-hi" rows="4" maxlength="400">${esc(hi)}</textarea></div><button class="btn ac block" data-a="invite-send" data-id="${m.id}">${ic('send')}فرستادن پیشنهاد و پیام</button>`); }
+    case 'invite-send': {
+      const m = ui.cand.list.find(x => x.id === el.dataset.id), hi = ($('#inv-hi') || {}).value || ''; closeLayer();
+      try { const r = await api('invite', { profile_id: p.id, to: m.id, text: hi }); m.invite = { id: r.id, dir: 'out' }; PM.key = ''; renderMain(); snd('ok'); toast(`دعوت برای خانواده ${m.family} رفت${r.sms === 'sent' ? ' و پیامک شد' : ''}.` + (quip('invite') || ' منتظر پاسخ بمانید.')); setTimeout(() => loadInbox(), 4500); setTimeout(() => loadInbox(), 9000); } catch (e) { fail(e); }
       return;
     }
     case 'invite-all': { const sm = smartTeam(p, ui.cand.list); if (!sm) return; let n = 0; for (const m of sm.list) { try { const r = await api('invite', { profile_id: p.id, to: m.id }); m.invite = { id: r.id, dir: 'out' }; n++; } catch (e) {} } PM.key = ''; renderMain(); toast(`${fa(n)} دعوت رفت. هر کس بپذیرد، تیم شکل می‌گیرد.`); setTimeout(() => loadInbox(), 4500); setTimeout(() => loadInbox(), 9000); return; }
@@ -1890,6 +1939,17 @@ async function act(a, el) {
     case 'pw-free': closeLayer(); if (ui.wiz) { ui.wiz.d.role = 'drive'; ui.wiz.d.free_ride = true; const st = wizSteps(ui.wiz); ui.wiz.step = Math.max(0, st.findIndex(x => x.key === 'role')); wizRender(); toast('«رایگان می‌برم» را زدیم؛ با «ادامه» جلو بروید.'); } return;
     case 'radio-vote': if (S.radioVoted) return; try { const r = await api('radio_vote'); CFG.radio_votes = r.votes; S.radioVoted = 1; persist(); toast('ممنون! صدای شما شمرده شد.'); return radioSheet(); } catch (e) { return fail(e); }
     case 'mate': fromChat(); return mateSheet(el.dataset.id);
+    case 'thread': return threadSheet(el.dataset.id);
+    case 'trust-new': return sheet('راننده‌ی معتمد', `<div class="adm-form"><div class="field"><label for="tr-n">نام و نام خانوادگی</label><input id="tr-n"></div><div class="field"><label for="tr-s">صندلی خالی</label><input id="tr-s" inputmode="numeric" value="3"></div></div><div class="field"><label for="tr-o">چه نسبتی با شما دارد؟</label><input id="tr-o" placeholder="مثلاً معلم قرآن مدرسه، دانشجوی دانشگاه قم"></div>
+      <label class="check"><input type="checkbox" id="tr-sign">ایشان را شخصاً می‌شناسم و مسئولیت معرفی‌شان با من است.</label><button class="btn ac block" data-a="trust-send">ساختن لینک دعوت</button><p class="muted small">بقیه‌ی خانواده‌ها هم باید بپذیرند؛ بعد ایشان با لینک وارد تیم می‌شود.</p>`);
+    case 'trust-send': try { const r = await api('trust_add', { profile_id: p.id, name: $('#tr-n').value, seats: +en($('#tr-s').value) || 3, note: $('#tr-o').value, sign: $('#tr-sign').checked ? 1 : 0 }); await copyText(r.link); closeLayer(); toast('لینک دعوت کپی شد؛ برای ایشان بفرستید.'); renderMain(); } catch (e) { fail(e); } return;
+    case 'trust-ok': return sheet('پذیرفتن راننده‌ی معتمد', `<p style="line-height:2">این راننده را خانواده‌ای از تیم معرفی کرده است. با پذیرفتن، تأیید می‌کنید که <b>تصمیم اعتماد با خانواده‌ها است</b> و رسیدیم، که فقط معرفی‌کننده است، مسئولیتی در رفتار یا رانندگی ایشان ندارد.</p><label class="check"><input type="checkbox" id="tr-ok">خواندم و می‌پذیرم.</label><button class="btn ac block" data-a="trust-ok2" data-c="${el.dataset.c}">می‌پذیرم</button>`);
+    case 'trust-ok2': if (!$('#tr-ok').checked) return toast('اول متن را تأیید کنید.'); try { await api('trust_accept', { profile_id: p.id, code: el.dataset.c, sign: 1 }); closeLayer(); renderMain(); toast('ثبت شد.'); } catch (e) { fail(e); } return;
+    case 'rep-pdf': closeLayer(); return reportFile('pdf');
+    case 'rep-png': closeLayer(); return reportFile('png');
+    case 'rep-print': closeLayer(); document.body.classList.add('printing'); return setTimeout(() => print(), 300);
+    case 'agree': try { await api('team_agree', { profile_id: p.id, v: +el.dataset.v }); await loadTeam(); snd(+el.dataset.v ? 'done' : 'tap'); renderMain(); } catch (e) { fail(e); } return;
+    case 'thread-send': { const t = $('#th-in').value.trim(); if (!t) return; try { await api('invite_thread', { id: el.dataset.id, text: t }); snd('tap'); threadSheet(el.dataset.id); } catch (e) { fail(e); } return; }
     case 'dup-pick': { const o = (ui.dups || []).find(x => x.id === el.dataset.id); if (!o) return; ui.dupO = o;
       return sheet('کدام مبنا باشد؟', `<p style="line-height:2">اطلاعات کدام ثبت درست‌تر و کامل‌تر است؟ دیگری حذف می‌شود.</p><div class="choices two"><button class="choice col" data-a="dup-keep" data-v="mine">${ic('check', 'emo')}همین مسیرک فعلی<small>${esc(p.label)}</small></button><button class="choice col" data-a="dup-keep" data-v="other">${ic('check', 'emo')}آن ثبت دیگر<small>${esc(o.label)}${o.team ? ' (در تیم)' : ''}</small></button></div>
         ${!o.mine && o.phone ? `<p class="muted small">آن ثبت با شماره‌ی <span dir="ltr">${esc(o.phone)}</span> است؛ برای اطمینان یک کد به همان شماره می‌فرستیم.</p>` : ''}`); }
@@ -1928,6 +1988,7 @@ async function act(a, el) {
     case 'to-list': { const L = $('#peer-list'); if (L) scrollTo({ top: L.getBoundingClientRect().top + scrollY - 70, behavior: 'smooth' }); el.classList.add('gone'); return; }
     case 'tsub-noop': return;
     case 'tsub': ui.tsub = el.dataset.v; snd('tap'); return renderMain();
+    case 'hold-cancel': clearTimeout(ui.holdT); ui.holdFn = null; $('#undo').classList.remove('show'); return toast('لغو شد؛ چیزی ثبت نشد.');
     case 't-perkid': ui.perKid = true; return renderMain();
     case 't-remind': { if ('Notification' in window && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch (e) {} } const ok = 'Notification' in window && Notification.permission === 'granted'; S.remD = ''; persist();
       return sheet('یادآوری نوبت', `<p style="line-height:2">${ok ? 'اگر عصر رسیدیم را باز کنید، ساعت ۱۸ به بعد یک یادآوری می‌گیرید.' : 'مرورگر اجازه‌ی اعلان نداده.'}<br><b>مطمئن‌ترین راه: اپ اندروید رسیدیم.</b> شب قبل از هر نوبت، ساعت ۲۰:۳۰ حتی وقتی اپ بسته است، با صدا و لرزش خبرتان می‌کند.</p>${ui.apk && ui.apk.url ? `<a class="btn ac block" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`); }
@@ -1935,7 +1996,7 @@ async function act(a, el) {
     case 't-unboard': { const pid = el.dataset.pid; return sheet('سوار نشده‌اند؟', `<p style="line-height:2">«سوار شد» برای ${esc(fam(mem(T, pid)))} برگردد؟</p><div class="row"><button class="btn ac grow" data-a="t-unboard-ok" data-pid="${pid}">بله، برگردان</button><button class="btn line grow" data-a="close">نه</button></div>`); }
     case 't-unboard-ok': closeLayer(); ui.sceneFrom = null; return tact({ act: 'unboard', slot: x.id, pid: el.dataset.pid }, 'برگردانده شد.');
     case 't-allin': return sheet('همه رسیدند؟', `<p style="line-height:2">همه‌ی بچه‌ها را تحویل دادید و <b>خودرو خالی است و چیزی جا نمانده</b>؟</p><div class="row"><button class="btn ac grow" data-a="t-allin-ok">بله، همه رسیدند ✓</button><button class="btn line grow" data-a="close">نه هنوز</button></div>`);
-    case 't-allin-ok': { closeLayer(); try { await api('team_act', { profile_id: p.id, act: 'arrive', slot: x.id, kid: '*' }); await api('team_act', { profile_id: p.id, act: 'empty', slot: x.id, v: 1 }); await api('team_act', { profile_id: p.id, act: 'finish', slot: x.id, label: (x.dir === 'out' ? 'رفت ' : 'برگشت ') + DAYS[x.d] }); ui.perKid = false; ui.qDone = null; await loadTeam(); renderMain(); watchArrival(); snd('done'); toast('خدا قوت! همه به سلامت رسیدند؛ خانواده‌ها خبردار شدند.'); } catch (e) { fail(e); } return; }
+    case 't-allin-ok': { closeLayer(); if (ui.prac && ui.prac[x.id]) { practice({ act: 'finish', slot: x.id }); return; } try { await api('team_act', { profile_id: p.id, act: 'arrive', slot: x.id, kid: '*' }); await api('team_act', { profile_id: p.id, act: 'empty', slot: x.id, v: 1 }); await api('team_act', { profile_id: p.id, act: 'finish', slot: x.id, label: (x.dir === 'out' ? 'رفت ' : 'برگشت ') + DAYS[x.d] }); ui.perKid = false; ui.qDone = null; await loadTeam(); renderMain(); watchArrival(); snd('done'); toast('خدا قوت! همه به سلامت رسیدند؛ خانواده‌ها خبردار شدند.'); } catch (e) { fail(e); } return; }
     case 't-start': { const r = recOf(T, x, plan); if (!r.exec) return; ui.slot = x.id; await tact({ act: 'start', slot: x.id, exec: r.exec }, 'راه افتادید! سوار شدن‌ها خودکار تیک می‌خورد؛ آخر سفر یک «رسیدیم» کافی است.');
       if (r.exec === p.id && S.liveOK == null && navigator.geolocation) sheet('موقعیت زنده را روشن کنیم؟', `<p style="line-height:2">تا پایان همین سفر، خانواده‌های تیم ماشین شما را روی نقشه می‌بینند و وقتی به هزار متری خانه‌شان رسیدید خبردار می‌شوند؛ تا بچه‌ها در سرما زودتر از لازم بیرون نروند.</p><p class="muted small">${ic('shield')} فقط هم‌تیمی‌ها و فقط در طول سفر. با «ثبت پایان سفر» خاموش می‌شود. این صفحه باید باز بماند.</p><div class="row"><button class="btn ac grow" data-a="live-ok" data-v="1">روشن کن</button><button class="btn line grow" data-a="live-ok" data-v="0">این بار نه</button></div>`);
       return; }
@@ -1956,7 +2017,10 @@ async function act(a, el) {
     }
     case 't-open': closeLayer(); ui.slot = el.dataset.s; return renderMain();
     case 't-swapto': closeLayer(); ui.slot = el.dataset.s; return tact({ act: 'swap', slot: el.dataset.s, exec: el.dataset.id }, 'راننده‌ی این نوبت عوض شد؛ هم‌تیمی‌ها خبردار شدند.');
-    case 't-pay': case 't-gift': { const sg = settle(T)[+el.dataset.i]; return tact({ act: 'settle', kind: a === 't-pay' ? 'pay' : 'gift', from: sg.from, to: sg.to, amt: sg.amt }, a === 't-pay' ? 'پرداخت ثبت شد.' : 'بزرگواری‌تان ثبت شد. حساب‌ها روشن، دل‌ها روشن‌تر.'); }
+    case 't-pay': case 't-gift': { const sg = settle(T)[+el.dataset.i], gift = a === 't-gift';
+      return sheet(gift ? 'حلال می‌کنید؟' : 'پرداخت شده؟', `<p style="line-height:2">${gift ? `${money(sg.amt)} بدهی ${esc(fam(mem(T, sg.from)))} به شما <b>بخشیده</b> می‌شود و دیگر قابل مطالبه نیست.` : `ثبت می‌شود که ${esc(fam(mem(T, sg.from)))} مبلغ ${money(sg.amt)} را به ${esc(fam(mem(T, sg.to)))} <b>پرداخت کرده</b>.`}</p><p class="muted small">بعد از «بله» هم ۷ ثانیه فرصت پشیمانی دارید.</p><div class="row"><button class="btn ac grow" data-a="t-settle-ok" data-i="${el.dataset.i}" data-k="${a}">بله، مطمئنم</button><button class="btn line grow" data-a="close">نه</button></div>`); }
+    case 't-settle-ok': { closeLayer(); const sg = settle(T)[+el.dataset.i], k = el.dataset.k; return holdThen(k === 't-gift' ? 'حلال کردن…' : 'ثبت پرداخت…', 7000, () => tact({ act: 'settle', kind: k === 't-pay' ? 'pay' : 'gift', from: sg.from, to: sg.to, amt: sg.amt }, k === 't-pay' ? 'پرداخت ثبت شد.' : 'بزرگواری کردید؛ حلال شد. 🤍')); }
+    case 't-pay-old-unused': { const sg = settle(T)[+el.dataset.i]; return tact({ act: 'settle', kind: a === 't-pay' ? 'pay' : 'gift', from: sg.from, to: sg.to, amt: sg.amt }, a === 't-pay' ? 'پرداخت ثبت شد.' : 'بزرگواری‌تان ثبت شد. حساب‌ها روشن، دل‌ها روشن‌تر.'); }
     /* test tools */
     case 't-fake5': case 't-fake1': closeLayer(); try { const r = await api('test_fake', { profile_id: p.id, n: a === 't-fake5' ? 5 : 1, driver: a === 't-fake1' }); toast(`${fa(r.made)} همسایه‌ی آزمایشی اضافه شد.`); loadPeers(); } catch (e) { fail(e); } return;
     case 't-invme': closeLayer(); try { await api('test_invite_me', { profile_id: p.id }); await loadInbox(); toast('یک همسایه‌ی آزمایشی دعوت‌تان کرد؛ زنگوله را ببینید.'); loadPeers(); } catch (e) { fail(e); } return;
@@ -1984,10 +2048,12 @@ async function act(a, el) {
     case 'ci-run': { const C = ui.cimp; C.city = $('#ci-city').value; C.n = +$('#ci-n').value; const [la0, lo0] = CITY_C[C.city], terms = ['دبستان', 'دبیرستان', 'هنرستان', 'پیش دبستانی', 'مهد کودک', 'دانشگاه', 'آموزشگاه'];
       if (!confirm(`حدود ${C.n * C.n * terms.length} جستجو در نشان برای ${C.city} انجام شود؟`)) return; C.busy = true; let made = 0, seen = 0, k = 0; renderMain();
       const dLa = C.step / 110570, dLo = C.step / (111320 * Math.cos(la0 * Math.PI / 180)), h = (C.n - 1) / 2;
-      for (let i = 0; i < C.n; i++) for (let j = 0; j < C.n; j++) { k++; try { const r = await api('admin_neshan_search', { lat: la0 + (i - h) * dLa, lng: lo0 + (j - h) * dLo, terms }, true); const fresh = r.items.filter(x => !x.code); seen += r.items.length;
+      for (let i = 0; i < C.n; i++) for (let j = 0; j < C.n; j++) { k++; try { const r = await api('admin_neshan_search', { lat: la0 + (i - h) * dLa, lng: lo0 + (j - h) * dLo, terms }, true); const fresh = r.items.filter(x => !x.code); seen += r.items.length; if (r.err && !r.items.length) { C.log = 'نشان: ' + esc(r.err); C.busy = false; renderMain(); return; }
           for (let b = 0; b < fresh.length; b += 100) { const q = await api('admin_import_places', { items: fresh.slice(b, b + 100).map(x => ({ ...x, city: C.city })) }, true); made += (q.places || q.made || []).length; } } catch (e) { C.log = 'خطا: ' + esc(e.message || ''); }
         C.log = `خانه‌ی ${fa(k)} از ${fa(C.n * C.n)} · ${fa(seen)} نتیجه · ${fa(made)} مکان ثبت یا به‌روز شد`; const lg = $('#ci-log'); if (lg) lg.textContent = C.log; else renderMain(); }
       C.busy = false; renderMain(); toast(`تمام شد: ${fa(made)} مکان در ${C.city}.`); return; }
+    case 'adm-trust': try { await api('admin_place_trust', { id: el.dataset.id, v: +el.dataset.v }, true); const pp = ui.adm.places.find(x => x.id === el.dataset.id); if (pp) pp.trusted = +el.dataset.v; renderMain(); } catch (e) { fail(e); } return;
+    case 'ci-file': { el.disabled = true; try { const r = await api('admin_import_file', { city: 'qom' }, true); let made = 0; for (let b = 0; b < r.items.length; b += 100) { const q = await api('admin_import_places', { items: r.items.slice(b, b + 100) }, true); made += (q.places || []).length; } toast(`${fa(made)} مکان قم ثبت یا به‌روز شد.`); ui.cimp.log = `از فایل OpenStreetMap: ${fa(made)} مکان (${esc(r.source)})`; renderMain(); } catch (e) { fail(e); } el.disabled = false; return; }
     case 'fb-pub': try { await api('admin_fb_set', { id: el.dataset.id, pub: +el.dataset.v, text: $('#fbt-' + el.dataset.id).value }, true); ui.adm.fb = null; renderMain(); toast('ذخیره شد.'); } catch (e) { fail(e); } return;
     case 'fb-del': if (!confirm('این نظر حذف شود؟')) return; try { await api('admin_fb_set', { id: el.dataset.id, delete: 1 }, true); ui.adm.fb = null; renderMain(); } catch (e) { fail(e); } return;
     case 'am-save': try { const r = await api('admin_amb_save', { name: $('#am-n').value, phone: en($('#am-p').value), note: $('#am-note').value, rate_profile: +en($('#am-rp').value).replace(/\D/g, ''), rate_team: +en($('#am-rt').value).replace(/\D/g, '') }, true); ui.adm.amb = null; renderMain(); try { await navigator.clipboard.writeText(`${SITE}/#amb/${r.token}`); } catch (e) {} toast('سفیر ساخته شد؛ لینک مخفی‌اش کپی شد.'); } catch (e) { fail(e); } return;
@@ -2179,6 +2245,8 @@ const BASE = location.pathname.replace(/[^/]*$/, '').replace(/\/[A-Z2-9]{8}\/?$/
   addEventListener('unhandledrejection', e => { const r = e.reason; if (r && r.code !== 'net' && !(r.message || '').startsWith('اتصال')) rep('promise: ' + (r && (r.stack || r.message) || r)); }); }
 { const r = new URLSearchParams(location.search).get('r'); if (r && /^A[0-9A-F]{6}$/i.test(r)) { try { const s0 = JSON.parse(localStorage.getItem(KEY) || '{}'); s0.ref = r.toUpperCase(); localStorage.setItem(KEY, JSON.stringify(s0)); } catch (e) {} } }
 function loadApk() { fetch('/app/android.json?' + Math.floor(Date.now() / 36e5), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => { const c = CFG.app || {}; ui.apk = j && j.url ? j : c.url ? { ver: c.ver, url: c.url } : null; renderSide(); }).catch(() => { const c = CFG.app || {}; if (c.url) ui.apk = { ver: c.ver, url: c.url }; }); }
+function otpAuto(sel) { if (!('OTPCredential' in window)) return; try { ui.otpAbort && ui.otpAbort.abort(); const ac = ui.otpAbort = new AbortController(); setTimeout(() => ac.abort(), 180000);
+  navigator.credentials.get({ otp: { transport: ['sms'] }, signal: ac.signal }).then(o => { const i = $(sel); if (o && o.code && i) { i.value = fa(o.code); i.dispatchEvent(new Event('input', { bubbles: true })); snd('ok'); const b = sel === '#lg-otp' ? $('[data-a="lg-verify"]') : $('[data-a="w-next"]'); if (b) b.click(); } }).catch(() => {}); } catch (e) {} }
 async function nativeInit() { if (!NATIVE) return; document.body.classList.add('native');
   try { const PN = NP.PushNotifications; if (PN && / push/.test(navigator.userAgent) && S.token) { const st = await PN.checkPermissions(); if (st.receive !== 'granted') await PN.requestPermissions(); PN.addListener('registration', t => { api('push_reg', { token: t.value }).catch(() => {}); }); PN.addListener('pushNotificationActionPerformed', () => { ui.tab = 'team'; render(true); }); await PN.register(); } } catch (e) {}
   try { const LN = NP.LocalNotifications; if (LN) { await LN.createChannel({ id: 'residim', name: 'رسیدیم', description: 'سوار شدن، رسیدن، پیام تیم', importance: 5, visibility: 1, vibration: true, lights: true, lightColor: '#16A34A' }); await LN.createChannel({ id: 'turns', name: 'نوبت فردا', description: 'یادآوری شب قبل از نوبت رانندگی', importance: 5, visibility: 1, vibration: true });
@@ -2192,7 +2260,7 @@ async function nativeInit() { if (!NATIVE) return; document.body.classList.add('
   await refreshMe();
   const code = (location.pathname.match(/\/([A-Z2-9]{8})\/?$/) || [])[1] || (location.hash.match(/^#\/c\/([A-Z2-9]{8})/) || [])[1];
   if (location.hash === '#admin') ui.admin = true;
-  { const fm = location.hash.match(/^#fam\/([A-Za-z0-9]{6,12})/); if (fm) ui.famCode = fm[1]; }
+  { const fm = location.hash.match(/^#fam\/([A-Za-z0-9]{6,12})/); if (fm) ui.famCode = fm[1]; const tm = location.hash.match(/^#trust\/([A-Za-z0-9]{6,12})/); if (tm) ui.trustCode = tm[1]; }
   { const am = location.hash.match(/^#amb\/([A-Za-z0-9]{8,40})/); if (am) { ui.amb = am[1]; const mr = document.createElement('meta'); mr.name = 'robots'; mr.content = 'noindex,nofollow'; document.head.appendChild(mr); } }
   if (!active()) S.active = (allProfiles()[0] || {}).id || null;
   applyAccent();
@@ -2202,6 +2270,7 @@ async function nativeInit() { if (!NATIVE) return; document.body.classList.add('
   if (rd && rd[1] !== 'c') { try { const city = decodeURIComponent(rd[1]), name = decodeURIComponent(rd[2]).replace(/-/g, ' '); const r = await api('place_near', { q: name.split(' ').slice(0, 3).join(' ') }); const m = r.places.filter(x => !city || x.city === city || /^[a-z]+$/i.test(city)); if (m.length === 1) return openCode(m[0].code); if (m.length) { render(true); return sheet('کدام یکی؟', m.map(x => `<button class="place-opt" data-a="open-code" data-c="${x.code}">${kindIc(x.kind, false, false)}<span class="grow">${esc(x.name)}<small>${esc(x.city)}${x.shift ? ' · ' + esc(x.shift) : ''} · کد ${x.code}</small></span></button>`).join(''), 'چند مکان با این نام هست؛ برای همین لینک‌های رسیدیم کد کوتاه دارند.'); } } catch (e) {} }
   render(true);
   if (ui.famCode) famJoin(ui.famCode);
+  if (ui.trustCode) { if (!S.phone) { toast('برای پیوستن به‌عنوان راننده‌ی معتمد، با شماره‌ی خودتان وارد شوید.'); act('login'); } else { try { const r = await api('trust_join', { code: ui.trustCode }); ui.trustCode = null; history.replaceState(null, '', location.pathname); await refreshMe(); S.active = r.profile_id; persist(); render(true); toast('به تیم پیوستید؛ خوش آمدید!'); } catch (e) { fail(e); } } }
   const p = active();
   if (p && p.complete) { if (p.team) { ui.tab = 'team'; await loadTeam(); render(); } loadPeers(); loadInbox(); }
   setInterval(liveTick, 10000);

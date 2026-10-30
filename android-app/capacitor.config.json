@@ -7,14 +7,27 @@
     "androidScheme": "https",
     "cleartext": false,
     "errorPath": "index.html",
-    "allowNavigation": ["residim.ir", "*.residim.ir", "*.neshan.org", "tiles.openfreemap.org", "trustseal.enamad.ir", "payping.ir", "*.payping.ir", "*.shaparak.ir"]
+    "allowNavigation": [
+      "residim.ir",
+      "*.residim.ir",
+      "*.neshan.org",
+      "tiles.openfreemap.org",
+      "trustseal.enamad.ir",
+      "payping.ir",
+      "*.payping.ir",
+      "*.shaparak.ir"
+    ]
   },
   "android": {
     "appendUserAgent": "ResidimApp/1.0.0",
     "allowMixedContent": false,
-    "backgroundColor": "#16A34A"
+    "backgroundColor": "#16A34A",
+    "adjustMarginsForEdgeToEdge": "auto"
   },
   "plugins": {
-    "LocalNotifications": { "smallIcon": "ic_stat_residim", "iconColor": "#16A34A" }
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_residim",
+      "iconColor": "#16A34A"
+    }
   }
 }

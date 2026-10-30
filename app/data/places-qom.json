@@ -1,0 +1,1343 @@
+{
+"city": "قم",
+"source": "© OpenStreetMap contributors (ODbL), via Overpass, 2026-10-30",
+"items": [
+{
+"title": "مدرسه رضوان",
+"lat": 34.653638,
+"lng": 50.868739,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبستان پسرانه کوثر",
+"lat": 34.552859,
+"lng": 50.812798,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه علمیه حقانی",
+"lat": 34.643461,
+"lng": 50.874646,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه بزرگسالان آبت الله کاشانی",
+"lat": 34.609669,
+"lng": 50.857709,
+"amenity": "school",
+"address": "فردوسی"
+},
+{
+"title": "مرکز آموزشی فنی و حرفه ای امام رضا (ع)",
+"lat": 34.555953,
+"lng": 50.812421,
+"amenity": "college",
+"address": ""
+},
+{
+"title": "دبیرستان حاج حبیب الله عبداللهی راد",
+"lat": 34.565351,
+"lng": 50.814012,
+"amenity": "school",
+"address": "اندیشه"
+},
+{
+"title": "دانشگاه هنر و اندیشه اسلامی",
+"lat": 34.625387,
+"lng": 50.883016,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "مجتمع امين",
+"lat": 34.620696,
+"lng": 50.846616,
+"amenity": "school",
+"address": "بلوار محمد امین"
+},
+{
+"title": "مرکز رشد دانشگاه قم",
+"lat": 34.632613,
+"lng": 50.892946,
+"amenity": "university",
+"address": "انقلاب اسلامی (چهارمردان)- کوچه ۴۱"
+},
+{
+"title": "دبستان شهید محمد علی قمی",
+"lat": 34.627549,
+"lng": 50.90665,
+"amenity": "school",
+"address": "بلوار شهید جواد دل آذر"
+},
+{
+"title": "دبیرستان آیت الله مشکینی",
+"lat": 34.645789,
+"lng": 50.888513,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان شاهد صاحب الزمان",
+"lat": 34.61672,
+"lng": 50.84167,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان ۱۷ شهریور",
+"lat": 34.668185,
+"lng": 50.87758,
+"amenity": "school",
+"address": "مطهری"
+},
+{
+"title": "دبستان دخترانه سروش آزادی",
+"lat": 34.663935,
+"lng": 50.871786,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "موسسه آموزش عالی پویش",
+"lat": 34.612173,
+"lng": 50.83407,
+"amenity": "college",
+"address": "بلوار الغدیر"
+},
+{
+"title": "کانون فرهنگی آموزشی قلمچی",
+"lat": 34.612589,
+"lng": 50.833815,
+"amenity": "school",
+"address": "بلوار الغدیر"
+},
+{
+"title": "موسسه فرهنگی آموزشی و دبیرستان خاتم‌الانبیاء",
+"lat": 34.612333,
+"lng": 50.83313,
+"amenity": "school",
+"address": "بن بست قم ( شهید محمد حسین فهمیده ("
+},
+{
+"title": "پیش دبستانی و دبستان پسرانه سفیران",
+"lat": 34.626287,
+"lng": 50.854694,
+"amenity": "school",
+"address": "۱۹"
+},
+{
+"title": "آموزشگاه انگلیسی سفیر",
+"lat": 34.625055,
+"lng": 50.851555,
+"amenity": "school",
+"address": "کوچه ۲۹"
+},
+{
+"title": "هنرستان صنعتی ولیعصر",
+"lat": 34.608018,
+"lng": 50.818376,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مؤسسه آموزش عالی حکمت",
+"lat": 34.555299,
+"lng": 50.834997,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "مدرسه غیردولتی راه رشد",
+"lat": 34.629629,
+"lng": 50.885075,
+"amenity": "school",
+"address": "سمیه کوچه ۱۱"
+},
+{
+"title": "دبیرستان نمونه دولتی حضرت معصومه ( س )",
+"lat": 34.677046,
+"lng": 50.876253,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مجتمع بهداشتی علوم پزشکی قم",
+"lat": 34.663738,
+"lng": 50.880821,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "مدرسه پویندگان دانش",
+"lat": 34.622508,
+"lng": 50.848474,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "هنرستان شهید علی محمدی",
+"lat": 34.670029,
+"lng": 50.874267,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبستان الغدیر",
+"lat": 34.594244,
+"lng": 50.869178,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان بینات",
+"lat": 34.604195,
+"lng": 50.85744,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان شاهد رضویه",
+"lat": 34.630259,
+"lng": 50.889222,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان دخترانه شهید مهدی هندویان",
+"lat": 34.646351,
+"lng": 50.919839,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه دخترانه شهیدتوسلی",
+"lat": 34.604959,
+"lng": 50.910746,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشگاه فنی حرفه ای دختران قم",
+"lat": 34.567162,
+"lng": 50.810818,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "مجتمع زبان، ادبیات و فرهنگ‌شناسی",
+"lat": 34.628646,
+"lng": 50.89928,
+"amenity": "college",
+"address": ""
+},
+{
+"title": "مهدکودک و پیش دبستانی مشکات",
+"lat": 34.582695,
+"lng": 50.822434,
+"amenity": "kindergarten",
+"address": ""
+},
+{
+"title": "دبیرستان دخترانه ایران",
+"lat": 34.614462,
+"lng": 50.863314,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه ثارالله",
+"lat": 34.661693,
+"lng": 50.897083,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "هنرستان فنی و حرفه ای شهید چمران",
+"lat": 34.648969,
+"lng": 50.830106,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه کودکان استثنایی ابابصیر",
+"lat": 34.667494,
+"lng": 50.894744,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "پیش‌دبستانی و دبستان هوشمند غیردولتی دخترانه دیبا",
+"lat": 34.620215,
+"lng": 50.854404,
+"amenity": "school",
+"address": "جهان بینی"
+},
+{
+"title": "دبیرستان دخترانه متوسطه اول عصمت",
+"lat": 34.664219,
+"lng": 50.872,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشگاه قم",
+"lat": 34.595675,
+"lng": 50.8299,
+"amenity": "university",
+"address": "al-ghadir"
+},
+{
+"title": "دبیرستان متوسطه اول امام موسی صدر",
+"lat": 34.635501,
+"lng": 50.876145,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان امام صادق",
+"lat": 34.635121,
+"lng": 50.877521,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبستان دخترانه فرقانی",
+"lat": 34.607195,
+"lng": 50.907079,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشگاه سما واحد قم",
+"lat": 34.625711,
+"lng": 50.908397,
+"amenity": "college",
+"address": ""
+},
+{
+"title": "دانشگاه مفید",
+"lat": 34.606359,
+"lng": 50.848402,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "شهید باهنر",
+"lat": 34.608882,
+"lng": 50.83995,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان علوم و معارف اسلامی صدرا",
+"lat": 34.607777,
+"lng": 50.83607,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبستان پسرانه بیرمی کویتی",
+"lat": 34.600668,
+"lng": 50.841015,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشکده حرفه یی دختران قم",
+"lat": 34.5998,
+"lng": 50.833203,
+"amenity": "college",
+"address": ""
+},
+{
+"title": "جامعة المصطفی العالمیة",
+"lat": 34.633924,
+"lng": 50.882406,
+"amenity": "university",
+"address": "خیابان معلم غربی"
+},
+{
+"title": "دبیرستان دخترانه حضرت زینب کبری",
+"lat": 34.622229,
+"lng": 50.854367,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشکده فنی و مهندسی",
+"lat": 34.594107,
+"lng": 50.832242,
+"amenity": "college",
+"address": ""
+},
+{
+"title": "هنرستان فنی ماندگار قدس",
+"lat": 34.627237,
+"lng": 50.889548,
+"amenity": "school",
+"address": "میدان بسیج"
+},
+{
+"title": "دبیرستان کامکار",
+"lat": 34.638648,
+"lng": 50.875093,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان دخترانه تیزهوشان فرزانگان",
+"lat": 34.594956,
+"lng": 50.862724,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشگاه پیام نور",
+"lat": 34.556663,
+"lng": 50.782539,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "دبیرستان نمونه دولتی اصحاب کسا",
+"lat": 34.603123,
+"lng": 50.866153,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه اهل البیت",
+"lat": 34.631783,
+"lng": 50.862361,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشگاه مجازی جامعة المصطفی",
+"lat": 34.631983,
+"lng": 50.862692,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "دانشگاه تهران پردیس فارابی",
+"lat": 34.705273,
+"lng": 50.863414,
+"amenity": "university",
+"address": "University boulevard (Old Tehran Road)"
+},
+{
+"title": "مدرسه پسرانه باهنر",
+"lat": 34.651994,
+"lng": 50.84016,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "جامعه الزهرا",
+"lat": 34.615252,
+"lng": 50.850632,
+"amenity": "university",
+"address": "بو علی سینا"
+},
+{
+"title": "دبستان کوثر",
+"lat": 34.645224,
+"lng": 50.859579,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه شهید نواب صفوی",
+"lat": 34.645534,
+"lng": 50.859851,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبستان شهید قریشی",
+"lat": 34.645324,
+"lng": 50.859378,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "زین الدین",
+"lat": 34.64533,
+"lng": 50.869159,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبستان خازنی",
+"lat": 34.652807,
+"lng": 50.862536,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان ایزدی",
+"lat": 34.64513,
+"lng": 50.840461,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشگاه باقر العلوم",
+"lat": 34.558439,
+"lng": 50.814951,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "دانشگاه ادیان و مذاهب",
+"lat": 34.572436,
+"lng": 50.814604,
+"amenity": "university",
+"address": "بلوار دانشگاه"
+},
+{
+"title": "دانشگاه صنعتی قم",
+"lat": 34.706394,
+"lng": 50.868049,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "دانشگاه آزاد اسلامی قم مجتمع شهید سلیمانی",
+"lat": 34.574776,
+"lng": 50.80695,
+"amenity": "university",
+"address": "بردي سان"
+},
+{
+"title": "هنرستان کارودانش حاج علی محمدی",
+"lat": 34.614456,
+"lng": 50.876029,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "خوابگاه پردیس فارابی دانشگاه تهران",
+"lat": 34.703927,
+"lng": 50.872042,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "مجتمع تربیت تعالی امام علی (ع)",
+"lat": 34.59118,
+"lng": 50.823409,
+"amenity": "university",
+"address": "بلوار الغدیر"
+},
+{
+"title": "دانشگاه جامع علمی کاربردی",
+"lat": 34.569425,
+"lng": 50.809064,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "دانشگاه فرهنگیان پردیس آیت الله طالقانی",
+"lat": 34.587949,
+"lng": 50.827152,
+"amenity": "university",
+"address": "بلوار بقیه الله"
+},
+{
+"title": "مدرسه فدک",
+"lat": 34.648412,
+"lng": 50.837362,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "امام سجاد",
+"lat": 34.63782,
+"lng": 50.829126,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "موسسه آموزشی امام خمینی",
+"lat": 34.571414,
+"lng": 50.810459,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "پژوهشگاه حوزه و دانشگاه",
+"lat": 34.572254,
+"lng": 50.808947,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "موسسه غیرانتفاعی طلوع مهر برادران",
+"lat": 34.573687,
+"lng": 50.809205,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "مدرسه",
+"lat": 34.656718,
+"lng": 50.834424,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه معرفت",
+"lat": 34.617511,
+"lng": 50.841111,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "نمونه دولتی نخبگان",
+"lat": 34.626874,
+"lng": 50.924209,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان دکتر سیدی",
+"lat": 34.626778,
+"lng": 50.924613,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "اداره کل فنی حرفه ای",
+"lat": 34.62539,
+"lng": 50.915187,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان محتشم",
+"lat": 34.655812,
+"lng": 50.85929,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه شهید رجائی",
+"lat": 34.61194,
+"lng": 50.852104,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "حوزه علمیه شهید صدوقی",
+"lat": 34.605425,
+"lng": 50.859603,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان حضرت زهرا",
+"lat": 34.611385,
+"lng": 50.905193,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "آموزشگاه فنی و حرفه ای",
+"lat": 34.654598,
+"lng": 50.840136,
+"amenity": "college",
+"address": ""
+},
+{
+"title": "مدرسه بیهان شیرازی",
+"lat": 34.6627,
+"lng": 50.848203,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه شهید احمدلو-دفتری",
+"lat": 34.664599,
+"lng": 50.835109,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه قاضی طباطبایی",
+"lat": 34.665403,
+"lng": 50.835329,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان پسرانهٔ تیزهوشان شهید قدوسی",
+"lat": 34.594198,
+"lng": 50.862049,
+"amenity": "school",
+"address": "ایثار"
+},
+{
+"title": "مدرسه علمیه فاطمی",
+"lat": 34.622884,
+"lng": 50.906651,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه علمیه علوی",
+"lat": 34.622928,
+"lng": 50.907522,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان میعاد",
+"lat": 34.661338,
+"lng": 50.84917,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان نور",
+"lat": 34.641347,
+"lng": 50.84511,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه عبداللهی",
+"lat": 34.641626,
+"lng": 50.867189,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبستان دخترانه جواد الائمه",
+"lat": 34.606417,
+"lng": 50.876136,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه یوسفلو",
+"lat": 34.676019,
+"lng": 50.882561,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه علمیه حضرت ولی عصر",
+"lat": 34.637998,
+"lng": 50.876806,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان شهید سلمان درودیان",
+"lat": 34.556962,
+"lng": 50.829012,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه آیت اله ظاهری",
+"lat": 34.556592,
+"lng": 50.829436,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "هنرستان فني والفجر",
+"lat": 34.699024,
+"lng": 50.870077,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه علمیه حجتیه",
+"lat": 34.639728,
+"lng": 50.874841,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "حوزه علمیه المهدی",
+"lat": 34.625336,
+"lng": 50.853831,
+"amenity": "college",
+"address": ""
+},
+{
+"title": "مدرسه علمیه شهیدین",
+"lat": 34.633254,
+"lng": 50.88217,
+"amenity": "school",
+"address": "خیابان شهیدین"
+},
+{
+"title": "مهد کودک کوثر ۱",
+"lat": 34.67541,
+"lng": 50.866917,
+"amenity": "kindergarten",
+"address": ""
+},
+{
+"title": "مدرسه هاشمی نژاد ۲",
+"lat": 34.675095,
+"lng": 50.866839,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه تقوی ۱",
+"lat": 34.674779,
+"lng": 50.866717,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مهدکودک ولایت",
+"lat": 34.657594,
+"lng": 50.867794,
+"amenity": "kindergarten",
+"address": ""
+},
+{
+"title": "مدرسه آرزو رضایی",
+"lat": 34.651528,
+"lng": 50.831481,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه شرافت",
+"lat": 34.676731,
+"lng": 50.862719,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه محمدی کاشانی",
+"lat": 34.677127,
+"lng": 50.862941,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبستان و دبیرستان متوسطه اول شیخ بهاالدینی",
+"lat": 34.607397,
+"lng": 50.838085,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه ملاصدرا",
+"lat": 34.655508,
+"lng": 50.896233,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه سهیلی منش",
+"lat": 34.67067,
+"lng": 50.868328,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه جمهوری اسلامی",
+"lat": 34.670762,
+"lng": 50.867967,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان علی بن ابیطالب (ع)",
+"lat": 34.681756,
+"lng": 50.868345,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان آیت‌الله کاشانی",
+"lat": 34.660092,
+"lng": 50.868594,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مهدکودک جوانه های انقلاب",
+"lat": 34.647835,
+"lng": 50.887163,
+"amenity": "kindergarten",
+"address": ""
+},
+{
+"title": "دبیرستان امیرکبیر",
+"lat": 34.647273,
+"lng": 50.886872,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه صادقیه ۱",
+"lat": 34.667954,
+"lng": 50.868846,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشکده علوم قرآنی و حدیث",
+"lat": 34.640765,
+"lng": 50.908673,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "دانشگاه آزاد اسلامی قم",
+"lat": 34.641911,
+"lng": 50.908408,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "مدرسه طفلان مسلم",
+"lat": 34.642307,
+"lng": 50.85748,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه زرین اقبال",
+"lat": 34.662094,
+"lng": 50.856767,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه شهید اندرزگو",
+"lat": 34.663541,
+"lng": 50.857576,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "هنرستان امام حسن مجتبی (ع)",
+"lat": 34.639893,
+"lng": 50.893622,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه قائمیه",
+"lat": 34.632163,
+"lng": 50.895386,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه مبعث",
+"lat": 34.63466,
+"lng": 50.895838,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه نمونه دولتی فرهنگ",
+"lat": 34.636814,
+"lng": 50.890218,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مهدکودک صدیقه گوه چیان",
+"lat": 34.637169,
+"lng": 50.89553,
+"amenity": "kindergarten",
+"address": ""
+},
+{
+"title": "مدرسه دخترانه صدیقه گیوه چیان",
+"lat": 34.637279,
+"lng": 50.895558,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه آفرینش",
+"lat": 34.634286,
+"lng": 50.891751,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه شادیان",
+"lat": 34.630779,
+"lng": 50.894159,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "هنرستان شهید رجایی",
+"lat": 34.63139,
+"lng": 50.895002,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مهدکودک شکوفه های انقلاب",
+"lat": 34.631766,
+"lng": 50.89492,
+"amenity": "kindergarten",
+"address": ""
+},
+{
+"title": "مدرسه شهداری چهارمردان",
+"lat": 34.633585,
+"lng": 50.888894,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه خاتم الانبیا",
+"lat": 34.630351,
+"lng": 50.870339,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه نفیسه",
+"lat": 34.626493,
+"lng": 50.872116,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه نجمیه",
+"lat": 34.626904,
+"lng": 50.871394,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه مهر",
+"lat": 34.632213,
+"lng": 50.86652,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه امامت متوسطه اول",
+"lat": 34.659167,
+"lng": 50.866381,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه آل یاسین",
+"lat": 34.657119,
+"lng": 50.861806,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه معراج",
+"lat": 34.661254,
+"lng": 50.861352,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "آموزشگاه زبان امین",
+"lat": 34.655031,
+"lng": 50.898731,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه اسوه",
+"lat": 34.655009,
+"lng": 50.897883,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه شهید زین الدین",
+"lat": 34.658311,
+"lng": 50.898986,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه جوادالائمه",
+"lat": 34.658459,
+"lng": 50.898566,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه پیروزی",
+"lat": 34.657823,
+"lng": 50.898389,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "هنرستان علوم و فنون",
+"lat": 34.656765,
+"lng": 50.90128,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه اخلاص",
+"lat": 34.658124,
+"lng": 50.902553,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه پیام",
+"lat": 34.657812,
+"lng": 50.90285,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "هنرستان روشنگر",
+"lat": 34.659429,
+"lng": 50.90471,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه حاج محمود مکتبی",
+"lat": 34.662382,
+"lng": 50.906109,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه شهید مدرس",
+"lat": 34.659751,
+"lng": 50.853926,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه شهید عبدالله برقعی",
+"lat": 34.661578,
+"lng": 50.855921,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه محمد تقی",
+"lat": 34.659815,
+"lng": 50.853001,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "هنرستان حضرت زهرا س",
+"lat": 34.660247,
+"lng": 50.877454,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه اخوان کریمی",
+"lat": 34.657485,
+"lng": 50.882845,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه شهدای 15 خرداد",
+"lat": 34.65765,
+"lng": 50.882554,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "هنرستان شهید عاصمی",
+"lat": 34.657722,
+"lng": 50.878613,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه ائمه اطهار",
+"lat": 34.673785,
+"lng": 50.879281,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه مکارم الاخلاق",
+"lat": 34.669514,
+"lng": 50.862924,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه سیدالمرسلین",
+"lat": 34.669277,
+"lng": 50.862683,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه بعثت",
+"lat": 34.668879,
+"lng": 50.862376,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه فرهنگ",
+"lat": 34.667475,
+"lng": 50.911705,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه بی طرفان",
+"lat": 34.665254,
+"lng": 50.915338,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه ریحان النبی",
+"lat": 34.662655,
+"lng": 50.906384,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه حضرت امیرالمومنین ع",
+"lat": 34.6688,
+"lng": 50.886881,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه دارالزهرا",
+"lat": 34.669289,
+"lng": 50.887363,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه حاج محمد لسانی (تزکیه)",
+"lat": 34.667254,
+"lng": 50.886757,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "هنرستان فتح المبین",
+"lat": 34.666337,
+"lng": 50.886039,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه شهید سید مهدی برقعی",
+"lat": 34.666981,
+"lng": 50.884338,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه اسراء",
+"lat": 34.666035,
+"lng": 50.883947,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه شهید زرگری",
+"lat": 34.661589,
+"lng": 50.910188,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه ادب",
+"lat": 34.658119,
+"lng": 50.904131,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه علوم و فنون",
+"lat": 34.656433,
+"lng": 50.902063,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه اشراق",
+"lat": 34.656357,
+"lng": 50.902145,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه علمیه امام خمینی",
+"lat": 34.653364,
+"lng": 50.898513,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "مدرسه حکیم",
+"lat": 34.654551,
+"lng": 50.901806,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه خوش رفتار",
+"lat": 34.655875,
+"lng": 50.905611,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه سادات",
+"lat": 34.659464,
+"lng": 50.909211,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه شهید بهشتی",
+"lat": 34.655929,
+"lng": 50.908892,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه بشر دوست",
+"lat": 34.652484,
+"lng": 50.901139,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان پسرانه امام حسن مجتبی",
+"lat": 34.672452,
+"lng": 50.881653,
+"amenity": "school",
+"address": ""
+}
+]
+}
