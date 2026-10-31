@@ -1215,8 +1215,8 @@ body.px-open{overflow:hidden}
 
 /* ═════════ v21: animated aerial-map wallpaper (chat + the page's empty areas) ═════════ */
 .mapbg{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;contain:strict}
-.mapbg::before{content:"";position:absolute;left:-960px;top:-960px;width:calc(100% + 960px);height:calc(100% + 960px);background:url(mapbg.svg?v=25) 0 0/960px 960px repeat;opacity:.62;animation:mbpan 150s linear infinite;will-change:transform}
-:root[data-theme="dark"] .mapbg::before{background-image:url(mapbg-dark.svg?v=25);opacity:.9}
+.mapbg::before{content:"";position:absolute;left:-960px;top:-960px;width:calc(100% + 960px);height:calc(100% + 960px);background:url(mapbg.svg?v=26) 0 0/960px 960px repeat;opacity:.62;animation:mbpan 150s linear infinite;will-change:transform}
+:root[data-theme="dark"] .mapbg::before{background-image:url(mapbg-dark.svg?v=26);opacity:.9}
 @keyframes mbpan{to{transform:translate3d(960px,960px,0)}} /* camera drifts south-east → north-west */
 @media (prefers-reduced-motion:reduce){.mapbg::before{animation:none}}
 .page-bg{position:fixed;z-index:-1;display:none}
@@ -1451,3 +1451,4 @@ body.chat-open .page-bg,body.map-full .page-bg{visibility:hidden}
 .ng{width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:10px}.ng th{background:var(--surface-2);padding:6px;text-align:right}.ng td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.8}
 .q-mark{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--surface);font:inherit;font-size:.7rem;font-weight:900;line-height:1;cursor:pointer;margin-inline-start:4px;color:var(--muted);padding:0}
 .safety{justify-content:space-between;border-top:1px dashed var(--line);padding-top:8px}.safety .link{display:inline-flex;align-items:center;gap:4px;font-size:.8rem;color:var(--muted)}.safety svg{width:16px;height:16px}
+.splash .bism-sky{position:absolute;top:calc(env(safe-area-inset-top) + 12.5vh);left:50%;translate:-50% -50%;width:min(210px,54vw);height:auto;overflow:visible;pointer-events:none}
