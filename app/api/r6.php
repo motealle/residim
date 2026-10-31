@@ -72,8 +72,8 @@ function db6(): PDO {
 function schema(PDO $p): void {
     $v = 0;
     try { $v = (int)$p->query("SELECT v FROM settings WHERE k='schema'")->fetchColumn(); } catch (Throwable $e) {}
-    if ($v >= 13) return;
-    if ($v >= 9) { if ($v < 10) schema10($p); if ($v < 11) schema11($p); if ($v < 12) schema12($p); schema13($p); return; }
+    if ($v >= 14) return;
+    if ($v >= 9) { if ($v < 10) schema10($p); if ($v < 11) schema11($p); if ($v < 12) schema12($p); if ($v < 13) schema13($p); schema14($p); return; }
     $K = 'VARCHAR(40)';
     $sql = [
         "CREATE TABLE IF NOT EXISTS settings (k VARCHAR(40) PRIMARY KEY, v TEXT)",
@@ -118,7 +118,7 @@ function schema(PDO $p): void {
     try { $p->exec('CREATE TABLE IF NOT EXISTS fb_likes (fb_id VARCHAR(40), voter VARCHAR(40), created INT, PRIMARY KEY(fb_id, voter))'); } catch (Throwable $e) {}
     try { $p->exec('CREATE TABLE IF NOT EXISTS amb (id VARCHAR(40) PRIMARY KEY, token VARCHAR(40) UNIQUE, code VARCHAR(12) UNIQUE, name VARCHAR(80), phone VARCHAR(20), rate_profile INT, rate_team INT, note VARCHAR(255), active INT DEFAULT 1, created INT)' . $my); } catch (Throwable $e) {}
     try { $p->exec('CREATE TABLE IF NOT EXISTS referrals (id VARCHAR(40) PRIMARY KEY, amb_id VARCHAR(40), user_id VARCHAR(40), profile_id VARCHAR(40), place_id VARCHAR(40), kind VARCHAR(10), amount INT, paid INT DEFAULT 0, created INT)' . $my); } catch (Throwable $e) {}
-    setv('schema', '9', $p); schema10($p); schema11($p); schema12($p); schema13($p);
+    setv('schema', '9', $p); schema10($p); schema11($p); schema12($p); schema13($p); schema14($p);
     foreach (['sms_invite' => '1', 'sms_arrive' => '0', 'auto_arrive' => '1', 'test_tools' => '1', 'signup_open' => '1', 'otp_dev' => '0', 'sms_direct' => '1', 'sms_provider' => 'kavenegar', 'otp_bale' => '0', 'pay_gateway' => '0', 'pay_env' => 'test', 'league_on' => '0', 'paid_mode' => '0', 'station_on' => '1', 'map_provider' => 'neshan', 'sub_price' => '297000', 'free_permanent' => '1', 'free_temp_month' => '2'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
 }
 function schema10(PDO $p): void { // v17: family link, pact, push tokens; league off for launch
@@ -173,6 +173,17 @@ function jr_profile(array $p): array { $d = pdata($p); $pl = $p['place_id'] ? ro
             'trips' => $trips, 'balance' => $bal, 'wk' => week_key(), 'live' => (int)(row('SELECT at FROM live WHERE team_id=?', [$t['id']])['at'] ?? 0)];
     }
     return $out; }
+function schema14(PDO $p): void { // v25
+    foreach (['ALTER TABLE teams ADD COLUMN closed INT DEFAULT 0', 'CREATE INDEX ix_ev_created ON events(created)', 'CREATE INDEX ix_ev_kind ON events(kind, created)', 'CREATE INDEX ix_sms_phone ON sms(phone)',
+        'CREATE INDEX ix_wp_user ON webpush(user_id)', 'CREATE INDEX ix_inv_from ON invites(from_p)', 'CREATE INDEX ix_prof_team ON profiles(team_id)', 'CREATE INDEX ix_tk_user ON tickets(user_id)'] as $sql) { try { $p->exec($sql); } catch (Throwable $e) {} }
+    setv('schema', '14', $p);
+}
+/** Kavenegar remaining credit (Rial), cached one hour; null when unknown. */
+function kave_credit(): ?array { $c = json_decode((string)getv('sms_credit', ''), true); if ($c && $c['at'] > time() - 3600) return $c;
+    $key = (string)C('kavenegar_api_key'); if ($key === '' || getv('sms_provider', 'kavenegar') !== 'kavenegar') return null;
+    [$code, $res] = http_json('GET', 'https://api.kavenegar.com/v1/' . rawurlencode($key) . '/account/info.json', null, [], 8); $j = json_decode((string)$res, true);
+    $r = ['at' => time(), 'rial' => isset($j['entries']['remaincredit']) ? (int)$j['entries']['remaincredit'] : null, 'expire' => (int)($j['entries']['expiredate'] ?? 0)];
+    $r['low'] = $r['rial'] !== null && $r['rial'] < 1000000; setv('sms_credit', json_encode($r)); return $r; }
 function schema13(PDO $p): void { // v24
     try { $p->exec("CREATE TABLE IF NOT EXISTS webpush (id VARCHAR(40) PRIMARY KEY, user_id VARCHAR(40), endpoint TEXT, p256dh VARCHAR(140), auth VARCHAR(60), ua VARCHAR(60), created INT, ok INT DEFAULT 0, fail INT DEFAULT 0)"); } catch (Throwable $e) {}
     setv('schema', '13', $p);
@@ -519,14 +530,14 @@ function team_leave(array $p): string {
     $t = row('SELECT * FROM teams WHERE id=?', [$p['team_id']]); q('UPDATE profiles SET team_id=NULL WHERE id=?', [$p['id']]);
     $rest = rows('SELECT * FROM profiles WHERE team_id=? ORDER BY created', [$t['id']]);
     $d = pdata($p); $who = 'خانواده ' . ($d['family'] ?? '');
-    if (count($rest) < 2) { foreach ($rest as $r) { q('UPDATE profiles SET team_id=NULL WHERE id=?', [$r['id']]); note($r['id'], "$who از تیم جدا شدند؛ تیم بسته شد. روی نقشه دوباره هم‌مسیر پیدا کنید.", 'team'); } q('DELETE FROM teams WHERE id=?', [$t['id']]); return 'closed'; }
+    if (count($rest) < 2) { foreach ($rest as $r) { q('UPDATE profiles SET team_id=NULL WHERE id=?', [$r['id']]); note($r['id'], "$who از تیم جدا شدند؛ تیم بسته شد. روی نقشه دوباره هم‌مسیر پیدا کنید.", 'team'); } q('UPDATE teams SET closed=1 WHERE id=?', [$t['id']]); return 'closed'; }
     if ($t['coord'] === $p['id']) q('UPDATE teams SET coord=? WHERE id=?', [$rest[0]['id'], $t['id']]);
     q('UPDATE teams SET price=? WHERE id=?', [fair_price($t['id']), $t['id']]);
     foreach ($rest as $r) note($r['id'], "$who از تیم جدا شدند. برنامه‌ی هفته دوباره چیده می‌شود.", 'team');
     return 'left';
 }
 function note(string $pid, string $text, string $kind = 'info', ?string $ref = null): void { q('INSERT INTO notes(id,profile_id,text,kind,ref,rd,created) VALUES(?,?,?,?,?,0,?)', [uid(), $pid, mb_substr($text, 0, 250), $kind, $ref, time()]);
-    if (in_array($kind, ['trip', 'invite', 'team', 'near', 'urgent'], true)) push_queue(fam_users($pid), $kind === 'urgent' ? 'رسیدیم · فوری ⚡' : 'رسیدیم', $text, $kind); }
+    if (in_array($kind, ['trip', 'invite', 'team', 'near', 'urgent'], true)) push_queue(fam_users($pid), $kind === 'urgent' ? 'رسیدیم – فوری ⚡' : 'رسیدیم', $text, $kind); }
 /* ───────── push. 1) Web Push from our own PHP (VAPID + RFC 8291 aes128gcm): no Firebase project, no Google key.
    The browser's own push service carries it (Chrome → Google's, Firefox → Mozilla's, Safari → Apple's).
    2) FCM v1 stays optional for the Android app, only if an admin ever pastes a service-account JSON. ───────── */
@@ -799,7 +810,7 @@ case 'profile_save': {
     }
     $p = row('SELECT * FROM profiles WHERE id=?', [$id]);
     if ($complete && (!$old || !(int)$old['complete'])) { $pl0 = $place ? row('SELECT name,city,kind FROM places WHERE id=?', [$place]) : null; $kn = ['school' => 'مدرسه', 'kinder' => 'مهد', 'institute' => 'آموزشگاه', 'club' => 'باشگاه', 'work' => 'محل کار', 'uni' => 'دانشگاه', 'station' => 'سفر', 'other' => 'سایر'][$kind] ?? $kind;
-        ev_log('signup', 'خانواده ' . ($data['family'] ?? '؟') . ' ثبت‌نام را تمام کرد: ' . $kn . ' «' . ($pl0['name'] ?? '—') . '»' . (!empty($pl0['city']) ? '، ' . $pl0['city'] : '') . ' · ' . (($data['role'] ?? '') === 'pay' ? 'هزینه' : (($data['role'] ?? '') === 'drive' ? 'راننده' : 'راننده و هزینه')) . (count((array)($data['kids'] ?? [])) ? ' · ' . count((array)$data['kids']) . ' فرزند' : '') . ' · ' . pmask($u['phone'] ?? null), ['city' => $pl0['city'] ?? '', 'kind' => $kind, 'role' => $data['role'] ?? '', 'kids' => count((array)($data['kids'] ?? [])), 'job' => $data['job'] ?? '', 'guest' => !$u['phone']]); }
+        ev_log('signup', 'خانواده ' . ($data['family'] ?? '؟') . ' ثبت‌نام را تمام کرد: ' . $kn . ' «' . ($pl0['name'] ?? '—') . '»' . (!empty($pl0['city']) ? '، ' . $pl0['city'] : '') . ' – ' . (($data['role'] ?? '') === 'pay' ? 'هزینه' : (($data['role'] ?? '') === 'drive' ? 'راننده' : 'راننده و هزینه')) . (count((array)($data['kids'] ?? [])) ? ' – ' . count((array)$data['kids']) . ' فرزند' : '') . ' – ' . pmask($u['phone'] ?? null), ['city' => $pl0['city'] ?? '', 'kind' => $kind, 'role' => $data['role'] ?? '', 'kids' => count((array)($data['kids'] ?? [])), 'job' => $data['job'] ?? '', 'guest' => !$u['phone']]); }
     if ($complete && (!$old || !(int)$old['complete']) && $place) { // tell neighbours (≤2km) in the same place
         foreach (rows('SELECT * FROM profiles WHERE place_id=? AND complete=1 AND id<>? AND fake=0', [$place, $id]) as $o) { $od = pdata($o); if (isset($od['lat'], $data['lat']) && hav((float)$od['lat'], (float)$od['lng'], (float)$data['lat'], (float)$data['lng']) <= 2000) note($o['id'], 'خانواده‌ی ' . ($data['family'] ?? '') . ' نزدیک شما به «' . (row('SELECT name FROM places WHERE id=?', [$place])['name'] ?? '') . '» پیوستند. سری به هم‌مسیرها بزنید!', 'neighbor', $id); }
     }
@@ -813,7 +824,8 @@ case 'account_reset': { $u = auth(); foreach (rows('SELECT id FROM profiles WHER
 case 'candidates': {
     $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); if (!$me['place_id']) YES(['list' => []]);
     $md = pdata($me); $others = rows('SELECT * FROM profiles WHERE place_id=? AND complete=1 AND id<>?', [$me['place_id'], $me['id']]);
-    $mplace = row('SELECT * FROM places WHERE id=?', [$me['place_id']]);
+    $mplace = row('SELECT * FROM places WHERE id=?', [$me['place_id']]); $myBlk = (array)($md['blocked'] ?? []);
+    $others = array_values(array_filter($others, fn($o) => !in_array($o['id'], $myBlk, true) && !in_array($me['id'], (array)(pdata($o)['blocked'] ?? []), true)));
     if ($mplace && in_array($mplace['kind'], TEMP_KINDS, true)) {
         $t0 = strtotime((string)($md['arrive'] ?? '')) ?: 0;
         $others = array_values(array_filter($others, function ($o) use ($md, $t0) { $od = pdata($o); $t1 = strtotime((string)($od['arrive'] ?? '')) ?: 0;
@@ -838,6 +850,8 @@ case 'candidates': {
 }
 case 'invite': {
     $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $to = row('SELECT * FROM profiles WHERE id=?', [(string)($in['to'] ?? '')]);
+    if (!$u['phone']) NO('برای پیشنهاد هم‌مسیری اول شماره‌تان را تأیید کنید؛ خانواده‌ها باید بدانند با چه کسی هم‌مسیر می‌شوند.', 403, 'need_phone');
+    if ($to && (in_array($to['id'], (array)(pdata($me)['blocked'] ?? []), true) || in_array($me['id'], (array)(pdata($to)['blocked'] ?? []), true))) NO('امکان پیشنهاد به این خانواده نیست.');
     if (!$to || $to['place_id'] !== $me['place_id'] || !(int)$to['complete']) NO('این خانواده در همین مکان نیست.');
     if ($me['team_id'] && $to['team_id']) NO('هر دو در تیم هستید؛ برای جابه‌جایی اول از تیم خودتان جدا شوید.');
     if ($me['team_id'] && $me['team_id'] === $to['team_id']) NO('هم‌تیمی شما هستند.');
@@ -860,7 +874,7 @@ case 'invite': {
     if ((int)$to['fake']) { // test neighbours answer on their own after a moment (accepted when the client polls)
         q('UPDATE invites SET status=?, responded=? WHERE id=?', ['autoaccept', time() + 3, $id]);
     }
-    ev_log('invite', 'خانواده ' . ($md['family'] ?? '') . ' به خانواده ' . (pdata($to)['family'] ?? '') . ' پیشنهاد هم‌مسیری داد (' . ($pl['name'] ?? '') . ')' . ($sms !== 'off' ? ' · پیامک: ' . $sms : ''), []);
+    ev_log('invite', 'خانواده ' . ($md['family'] ?? '') . ' به خانواده ' . (pdata($to)['family'] ?? '') . ' پیشنهاد هم‌مسیری داد (' . ($pl['name'] ?? '') . ')' . ($sms !== 'off' ? ' – پیامک: ' . $sms : ''), []);
     YES(['id' => $id, 'sms' => $sms]);
 }
 case 'invite_thread': { $u = auth(); $i = row('SELECT * FROM invites WHERE id=?', [(string)($in['id'] ?? '')]); if (!$i) NO('این گفتگو پیدا نشد.');
@@ -875,6 +889,7 @@ case 'invite_respond': {
     $u = auth(); $i = row('SELECT * FROM invites WHERE id=?', [(string)($in['id'] ?? '')]); if (!$i || $i['status'] !== 'pending') NO('این پیشنهاد دیگر معتبر نیست.');
     $to = my_profile($u, $i['to_p']); $from = row('SELECT * FROM profiles WHERE id=?', [$i['from_p']]); if (!$from) NO('فرستنده دیگر نیست.');
     if (empty($in['accept'])) { q('UPDATE invites SET status=?, responded=? WHERE id=?', ['declined', time(), $i['id']]); YES(['status' => 'declined']); }
+    if (!$u['phone']) NO('برای پذیرفتن هم‌مسیری اول شماره‌تان را تأیید کنید.', 403, 'need_phone');
     try { $team = accept_invite($i, $from, $to); } catch (RuntimeException $e) { NO($e->getMessage(), 400, 'rule'); }
     YES(['team' => $team]);
 }
@@ -884,6 +899,11 @@ case 'invite_undo': {
 }
 case 'inbox': {
     $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? ''));
+    if ($me['team_id']) foreach (rows("SELECT * FROM trips WHERE team_id=? AND status='started' AND updated<?", [$me['team_id'], time() - 7200]) as $tr) { $ev = json_decode((string)($tr['ev'] ?? ''), true) ?: [];
+        if (!empty($ev['overdue']) || empty($ev['start']) || $ev['start'] > time() - 7200) continue; $ev['overdue'] = time(); q('UPDATE trips SET ev=? WHERE id=?', [json_encode($ev), $tr['id']]);
+        $exf = pdata(row('SELECT data FROM profiles WHERE id=?', [$tr['exec']]) ?? ['data' => '{}'])['family'] ?? '';
+        foreach (rows('SELECT id FROM profiles WHERE team_id=?', [$me['team_id']]) as $m) note($m["id"], "فوری: سفرِ خانواده $exf از دو ساعت پیش باز مانده. اگر همه رسیده‌اند، راننده «پایان سفر» را بزند؛ اگر نه، همین حالا تماس بگیرید.", 'urgent');
+        ev_log('urgent', "سفر تیم بیش از ۲ ساعت باز مانده (راننده: خانواده $exf)", ['trip' => $tr['id']]); }
     settle_auto($me['id']);
     $inv = []; foreach (rows('SELECT * FROM invites WHERE to_p=? AND status=? ORDER BY created DESC', [$me['id'], 'pending']) as $i) { $f = row('SELECT * FROM profiles WHERE id=?', [$i['from_p']]); if ($f) { $m = public_member($f, false, null, (bool)$u['phone']); $md = pdata($me); $m['dist'] = isset($md['lat']) ? road_many((float)$md['lat'], (float)$md['lng'], [[$m['lat'], $m['lng']]])[0] : null; $hi = row('SELECT text FROM invite_msgs WHERE invite_id=? ORDER BY created LIMIT 1', [$i['id']]); $inv[] = ['id' => $i['id'], 'from' => $m, 'hi' => $hi ? $hi['text'] : '']; } }
     $notes = rows('SELECT id,text,kind,rd,created FROM notes WHERE profile_id=? ORDER BY created DESC LIMIT 30', [$me['id']]);
@@ -926,11 +946,11 @@ case 'trust_join': { $u = auth(); if (!$u['phone']) NO('اول با شماره�
     if ($r['profile_id']) NO('این دعوت قبلاً استفاده شده.'); $mem = rows('SELECT * FROM profiles WHERE team_id=? AND fake=0', [$r['team_id']]); $a = json_decode((string)$r['accepted'], true) ?: [];
     foreach ($mem as $m) if (!in_array($m['id'], $a, true)) NO('هنوز همه‌ی خانواده‌های تیم شما را نپذیرفته‌اند؛ کمی بعد دوباره همین لینک را باز کنید.', 409, 'wait');
     $t = row('SELECT * FROM teams WHERE id=?', [$r['team_id']]); $pid = uid(); $data = ['family' => $r['name'], 'title' => 'راننده‌ی معتمد', 'pg' => 'm', 'role' => 'drive', 'seats' => (int)$r['seats'], 'trusted' => ['by' => $r['by_profile'], 'note' => $r['note'], 'at' => time()], 'needs' => ['out' => true, 'back' => true], 'days' => [0, 1, 2, 3, 4], 'rules_at' => time()];
-    q('INSERT INTO profiles(id,user_id,label,kind,color,place_id,team_id,data,step,complete,fake,created,updated) VALUES(?,?,?,?,?,?,?,?,0,1,0,?,?)', [$pid, $u['user_id'], 'راننده‌ی معتمد · ' . mb_substr($r['name'], 0, 30), (string)(row('SELECT kind FROM places WHERE id=?', [$t['place_id']])['kind'] ?? 'school'), (int)$t['color'], $t['place_id'], $t['id'], json_encode($data, JSON_UNESCAPED_UNICODE), time(), time()]);
+    q('INSERT INTO profiles(id,user_id,label,kind,color,place_id,team_id,data,step,complete,fake,created,updated) VALUES(?,?,?,?,?,?,?,?,0,1,0,?,?)', [$pid, $u['user_id'], 'راننده‌ی معتمد – ' . mb_substr($r['name'], 0, 30), (string)(row('SELECT kind FROM places WHERE id=?', [$t['place_id']])['kind'] ?? 'school'), (int)$t['color'], $t['place_id'], $t['id'], json_encode($data, JSON_UNESCAPED_UNICODE), time(), time()]);
     q('UPDATE trust_inv SET user_id=?, profile_id=? WHERE code=?', [$u['user_id'], $pid, $r['code']]); foreach ($mem as $m) note($m['id'], '«' . $r['name'] . '» به‌عنوان راننده‌ی معتمد به تیم پیوست.', 'team'); YES(['profile_id' => $pid]); }
 case 'admin_place_trust': { need_admin(); q('UPDATE places SET trusted=? WHERE id=?', [!empty($in['v']) ? 1 : 0, (string)($in['id'] ?? '')]); YES(); }
 case 'price_vote': { $u = auth(); $f = max(0, min(1000000, (int)($in['fair'] ?? 0))); $h = max(0, min(2000000, (int)($in['high'] ?? 0)));
-    q('DELETE FROM price_poll WHERE user_id=?', [$u['user_id']]); q('INSERT INTO price_poll(user_id,fair,high,created) VALUES(?,?,?,?)', [$u['user_id'], $f, $h, time()]); ev_log('price', 'نظرسنجی قیمت: منصفانه ' . number_format($f) . ' · گران ' . number_format($h), []); YES(); }
+    q('DELETE FROM price_poll WHERE user_id=?', [$u['user_id']]); q('INSERT INTO price_poll(user_id,fair,high,created) VALUES(?,?,?,?)', [$u['user_id'], $f, $h, time()]); ev_log('price', 'نظرسنجی قیمت: منصفانه ' . number_format($f) . ' – گران ' . number_format($h), []); YES(); }
 case 'team_agree': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); if (!$me['team_id']) NO('تیم ندارید.'); $t = row('SELECT agree FROM teams WHERE id=?', [$me['team_id']]);
     $a = json_decode((string)($t['agree'] ?? '[]'), true) ?: []; $a = array_values(array_diff($a, [$me['id']])); if (!empty($in['v'])) $a[] = $me['id']; q('UPDATE teams SET agree=? WHERE id=?', [json_encode($a), $me['team_id']]);
     if (!empty($in['v'])) { $fam = pdata($me)['family'] ?? ''; q('INSERT INTO msgs(id,team_id,profile_id,text,created) VALUES(?,?,?,?,?)', [uid(), $me['team_id'], 'system', "خانواده $fam «توافق کردیم» را زد ✓", time()]); } YES(['agree' => $a]); }
@@ -1010,7 +1030,10 @@ case 'amb_view': { $a = row('SELECT * FROM amb WHERE token=? AND active=1', [pre
     $sum = 0; $paid = 0; foreach ($R as $x) { $sum += (int)$x['amount']; if ((int)$x['paid']) $paid += (int)$x['amount']; }
     YES(['amb' => ['name' => $a['name'], 'code' => $a['code'], 'rate_profile' => (int)$a['rate_profile'], 'rate_team' => (int)$a['rate_team']], 'list' => $R, 'sum' => $sum, 'paid' => $paid,
         'profiles' => count(array_filter($R, fn($x) => $x['kind'] === 'profile')), 'teams' => count(array_filter($R, fn($x) => $x['kind'] === 'team'))]); }
-case 'team_leave': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); YES(['result' => team_leave($me)]); }
+case 'team_leave': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? ''));
+    if ($me['team_id'] && empty($in['force'])) { $bal = 0; foreach (rows('SELECT d FROM ledger WHERE team_id=?', [$me['team_id']]) as $l) $bal += (int)((json_decode((string)$l['d'], true) ?: [])[$me['id']] ?? 0);
+        if (abs($bal) >= 1000) NO('حساب شما با تیم ' . ($bal > 0 ? 'طلبکار ' : 'بدهکار ') . number_format(abs($bal)) . ' تومان است؛ اول تسویه کنید یا با تأیید دوباره جدا شوید.', 409, 'balance'); }
+    YES(['result' => team_leave($me)]); }
 
 /* team daily */
 case 'team_state': {
@@ -1031,7 +1054,8 @@ case 'team_act': {
     $tr = $slot ? row('SELECT * FROM trips WHERE id=?', [$rid]) : null;
     $members = rows('SELECT * FROM profiles WHERE team_id=?', [$t['id']]); $ids = array_column($members, 'id');
     $dir = str_ends_with($slot, 'out') ? 'out' : 'back';
-    $riders = []; foreach ($members as $m) { $n = pdata($m)['needs'] ?? ['out' => true, 'back' => true]; if (!empty($n[$dir])) foreach (riders_of($m) as $r) $riders[] = $r + ['pid' => $m['id']]; }
+    $absent = (array)((json_decode((string)($tr['ev'] ?? ''), true) ?: [])['absent'] ?? []);
+    $riders = []; foreach ($members as $m) { if (!empty($absent[$m['id']])) continue; $n = pdata($m)['needs'] ?? ['out' => true, 'back' => true]; if (!empty($n[$dir])) foreach (riders_of($m) as $r) $riders[] = $r + ['pid' => $m['id']]; }
     $save = function (array $f) use ($rid, $t, $wk, $slot, &$tr) {
         if ($tr) { $sets = implode(',', array_map(fn($k) => "`$k`=?", array_keys($f))); q("UPDATE trips SET $sets, updated=? WHERE id=?", array_merge(array_values($f), [time(), $rid])); }
         else { $f += ['status' => 'pending', 'exec' => null, 'arr' => '{}', 'empty' => 0, 'thanks' => 0]; q('INSERT INTO trips(id,team_id,wk,slot,status,exec,arr,`empty`,thanks,updated) VALUES(?,?,?,?,?,?,?,?,?,?)', [$rid, $t['id'], $wk, $slot, $f['status'], $f['exec'], $f['arr'], $f['empty'], $f['thanks'], time()]); }
@@ -1040,7 +1064,7 @@ case 'team_act': {
     if (getv('trip_window', '0') === '1' && in_array($act, ['start', 'board', 'unboard', 'depart', 'arrive', 'empty', 'finish'], true) && !trip_now($t, $slot)) NO('الان وقت این سفر نیست؛ این بار فقط تمرین است و چیزی ثبت نمی‌شود.', 409, 'practice');
     switch ($act) {
         case 'start': { $ex = (string)($in['exec'] ?? ''); if (!in_array($ex, $ids, true)) NO('راننده معتبر نیست.'); if ($tr && $tr['status'] !== 'pending') NO('این نوبت قبلاً شروع شده.');
-            $ev = ['start' => time(), 'board' => [], 'bp' => []]; if ($dir === 'out') { foreach ($riders as $r) if ($r['pid'] === $ex) $ev['board'][$r['id']] = time(); $ev['bp'][$ex] = time(); } // the driver's own children are already in the car
+            $ev = ['start' => time(), 'board' => [], 'bp' => [], 'absent' => $absent]; if ($dir === 'out') { foreach ($riders as $r) if ($r['pid'] === $ex) $ev['board'][$r['id']] = time(); $ev['bp'][$ex] = time(); } // the driver's own children are already in the car
             $save(['status' => 'started', 'exec' => $ex, 'arr' => '{}', 'empty' => 0]); q('UPDATE trips SET ev=? WHERE id=?', [json_encode($ev), $rid]); ev_log('trip', 'سفر تیم ' . $t['no'] . ' راه افتاد 🚗', []); break; }
         case 'unboard': { // a mistaken «سوار شد» can be taken back by the driver
             if (!$tr || $tr['status'] !== 'started') NO('سفر شروع نشده.'); $ev = json_decode((string)($tr['ev'] ?? ''), true) ?: ['board' => [], 'bp' => []]; $pid = (string)($in['pid'] ?? '');
@@ -1069,6 +1093,18 @@ case 'team_act': {
             if ($kid === '*') { $ev = json_decode((string)($tr['ev'] ?? ''), true) ?: []; if (empty($ev['arrive'])) { $ev['arrive'] = time(); q('UPDATE trips SET ev=? WHERE id=?', [json_encode($ev), $rid]); } }
             break;
         }
+        case 'absent': { // «امروز نمی‌آییم» — by the family itself or by the driver of this trip
+            $pid = (string)($in['pid'] ?? ''); if (!in_array($pid, $ids, true)) NO('خانواده معتبر نیست.'); if ($tr && $tr['status'] === 'done') NO('این سفر تمام شده است.');
+            if ($pid !== $me['id'] && !($tr && $tr['exec'] === $me['id'])) NO('فقط خود خانواده یا راننده‌ی همین سفر می‌تواند این را بزند.');
+            if ($tr && $tr['exec'] === $pid && !empty($in['v'])) NO('راننده‌ی همین سفر هستید؛ اول «برایم مشکلی پیش آمد» را بزنید تا جایگزین پیدا شود.');
+            if (!$tr) $save(['status' => 'pending']); $ev = json_decode((string)($tr['ev'] ?? ''), true) ?: []; $ab = (array)($ev['absent'] ?? []);
+            if (!empty($in['v'])) $ab[$pid] = time(); else unset($ab[$pid]); $ev['absent'] = (object)$ab;
+            q('UPDATE trips SET ev=?, updated=? WHERE id=?', [json_encode($ev), time(), $rid]); $tr = row('SELECT * FROM trips WHERE id=?', [$rid]);
+            $fd = pdata(row('SELECT data FROM profiles WHERE id=?', [$pid]) ?? ['data' => '{}']); $kn = implode(' و ', array_filter(array_map(fn($k) => (string)($k['first'] ?? ''), (array)($fd['kids'] ?? []))));
+            $txt = ($kn !== '' ? $kn . ' (خانواده ' . ($fd['family'] ?? '') . ')' : 'خانواده ' . ($fd['family'] ?? '')) . (!empty($in['v']) ? ' این نوبت نمی‌آیند؛ سهمی هم برای‌شان حساب نمی‌شود.' : ' این نوبت می‌آیند.');
+            foreach ($ids as $x) if ($x !== $me['id']) note($x, $txt, 'trip'); break; }
+        case 'lock': { // freeze today's / tomorrow's planned driver so a join or leave does not reshuffle a turn people already count on
+            $ex = (string)($in['exec'] ?? ''); if (!in_array($ex, $ids, true)) NO('راننده معتبر نیست.'); if (!$tr) $save(['status' => 'pending', 'exec' => $ex]); break; }
         case 'empty': { if (!$tr) NO('سفر شروع نشده.'); $save(['empty' => !empty($in['v']) ? 1 : 0]); break; }
         case 'finish': {
             if (!$tr || $tr['status'] !== 'started') NO('سفر شروع نشده.'); $arr = json_decode((string)$tr['arr'], true) ?: [];
@@ -1078,7 +1114,7 @@ case 'team_act': {
                 $price = (int)$t['price']; $share = (int)(round($price / count($riders) / 1000) * 1000); $d = [$tr['exec'] => $share * count($riders)];
                 foreach ($riders as $r) $d[$r['pid']] = ($d[$r['pid']] ?? 0) - $share;
                 $exd = pdata(row('SELECT * FROM profiles WHERE id=?', [$tr['exec']]));
-                q('INSERT INTO ledger(id,team_id,kind,ref,text,d,created) VALUES(?,?,?,?,?,?,?)', [uid(), $t['id'], 'trip', $ref, (string)($in['label'] ?? 'سفر') . ' · خانواده ' . ($exd['family'] ?? ''), json_encode($d), time()]);
+                q('INSERT INTO ledger(id,team_id,kind,ref,text,d,created) VALUES(?,?,?,?,?,?,?)', [uid(), $t['id'], 'trip', $ref, (string)($in['label'] ?? 'سفر') . ' – خانواده ' . ($exd['family'] ?? ''), json_encode($d), time()]);
             }
             break;
         }
@@ -1116,6 +1152,13 @@ case 'quiz_answer': {
 }
 
 /* tickets */
+case 'report_user': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $ab = row('SELECT * FROM profiles WHERE id=?', [(string)($in['about'] ?? '')]); if (!$ab) NO('خانواده پیدا نشد.');
+    $txt = trim((string)($in['text'] ?? '')); if (mb_strlen($txt) < 5) NO('کمی بیشتر بنویسید چه شد.'); if (hit('rep_' . $u['user_id'], 86400) > 5) NO('گزارش‌های امروزتان زیاد شد؛ با پشتیبانی تماس بگیرید.', 429);
+    $no = 1024 + (int)q('SELECT COUNT(*) FROM tickets')->fetchColumn(); $af = pdata($ab)['family'] ?? '';
+    q('INSERT INTO tickets(id,no,user_id,profile_id,cat,text,status,reply,created,updated) VALUES(?,?,?,?,?,?,?,?,?,?)', [uid(), $no, $u['user_id'], $me['id'], 'گزارش رفتار', mb_substr("درباره‌ی خانواده $af (" . $ab['id'] . ', کاربر ' . $ab['user_id'] . "):\n" . $txt, 0, 2000), 'open', '', time(), time()]);
+    ev_log('report', "⚠️ گزارش رفتار درباره‌ی خانواده $af: " . mb_substr($txt, 0, 80), ['about' => $ab['id']]); YES(['no' => $no]); }
+case 'block_user': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $id = (string)($in['about'] ?? ''); $d = pdata($me); $b = array_values(array_diff((array)($d['blocked'] ?? []), [$id]));
+    if (!empty($in['v'])) $b[] = $id; $d['blocked'] = array_slice($b, -200); q('UPDATE profiles SET data=?, updated=? WHERE id=?', [json_encode($d, JSON_UNESCAPED_UNICODE), time(), $me['id']]); YES(['blocked' => $d['blocked']]); }
 case 'ticket': {
     $u = auth(); $txt = trim((string)($in['text'] ?? '')); if (mb_strlen($txt) < 5) NO('چند کلمه بیشتر بنویسید.');
     $no = 1024 + (int)q('SELECT COUNT(*) FROM tickets')->fetchColumn();
@@ -1165,7 +1208,7 @@ case 'admin_login': {
 }
 case 'admin_overview': {
     need_admin(); $c = fn($s, $a = []) => (int)q($s, $a)->fetchColumn();
-    YES(['counts' => ['users' => $c('SELECT COUNT(*) FROM users WHERE fake=0'), 'fake' => $c('SELECT COUNT(*) FROM users WHERE fake=1'), 'profiles' => $c('SELECT COUNT(*) FROM profiles WHERE fake=0'), 'complete' => $c('SELECT COUNT(*) FROM profiles WHERE complete=1 AND fake=0'),
+    YES(['sms_credit' => kave_credit(), 'counts' => ['users' => $c('SELECT COUNT(*) FROM users WHERE fake=0'), 'fake' => $c('SELECT COUNT(*) FROM users WHERE fake=1'), 'profiles' => $c('SELECT COUNT(*) FROM profiles WHERE fake=0'), 'complete' => $c('SELECT COUNT(*) FROM profiles WHERE complete=1 AND fake=0'),
         'places' => $c('SELECT COUNT(*) FROM places'), 'teams' => $c('SELECT COUNT(*) FROM teams'), 'invites' => $c("SELECT COUNT(*) FROM invites WHERE status='pending'"), 'tickets' => $c("SELECT COUNT(*) FROM tickets WHERE status='open'"), 'sms_day' => $c('SELECT COUNT(*) FROM sms WHERE created>?', [time() - 86400]), 'unseen' => $c('SELECT COUNT(*) FROM tickets WHERE seen=0 OR seen IS NULL'), 'errors_day' => $c('SELECT COUNT(*) FROM errors WHERE last>?', [time() - 86400]), 'app_users' => $c("SELECT COUNT(*) FROM users WHERE client LIKE 'android%'"), 'fb' => $c('SELECT COUNT(*) FROM feedback'), 'paid' => $c("SELECT COUNT(*) FROM payments WHERE status='paid' AND env='live'")],
         'flags' => ['trip_scene' => getv('trip_scene', '1') === '1', 'family_link' => getv('family_link', '1') === '1', 'cand_swipe' => getv('cand_swipe', '0') === '1', 'trip_window' => getv('trip_window', '0') === '1', 'bismillah' => getv('bismillah', '1') === '1', 'price_poll' => getv('price_poll', '0') === '1', 'trusted_driver' => getv('trusted_driver', '0') === '1', 'sms_invite' => flag('sms_invite'), 'sms_arrive' => flag('sms_arrive'), 'auto_arrive' => flag('auto_arrive'), 'test_tools' => flag('test_tools'), 'signup_open' => flag('signup_open'), 'otp_dev' => flag('otp_dev'), 'sms_direct' => flag('sms_direct'), 'otp_bale' => flag('otp_bale'), 'pay_gateway' => flag('pay_gateway'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')],
         'settings' => ['map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '75000'), 'free_permanent' => (int)getv('free_permanent', '1'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'sub_interest' => (int)getv('sub_interest', '0'), 'kave_sender' => (string)getv('kave_sender', ''), 'kave_sender_auto' => (string)getv('kave_sender_auto', ''), 'donate_card' => (string)getv('donate_card', ''), 'donate_name' => (string)getv('donate_name', ''), 'engine' => db_engine(), 'sms_provider' => getv('sms_provider', 'kavenegar'), 'pay_env' => getv('pay_env', 'test'), 'notice' => (string)getv('notice', ''), 'tips' => (string)getv('tips', ''), 'app_ver' => (string)getv('app_ver', ''), 'app_url' => (string)getv('app_url', '')],
@@ -1271,7 +1314,7 @@ case 'admin_place_nv': { need_admin(); $pl = row('SELECT * FROM places WHERE id=
 case 'admin_places': { need_admin(); YES(['list' => array_map(fn($p) => place_out($p), rows('SELECT * FROM places ORDER BY created DESC LIMIT 200'))]); }
 case 'admin_place': { need_admin(); $id = (string)($in['id'] ?? ''); if (!empty($in['delete'])) { foreach (rows('SELECT id FROM profiles WHERE place_id=?', [$id]) as $p) q('UPDATE profiles SET place_id=NULL, team_id=NULL, complete=0 WHERE id=?', [$p['id']]); q('DELETE FROM teams WHERE place_id=?', [$id]); q('DELETE FROM places WHERE id=?', [$id]); YES(); }
     if (isset($in['verified'])) q('UPDATE places SET verified=? WHERE id=?', [!empty($in['verified']) ? 1 : 0, $id]); if (!empty($in['name'])) q('UPDATE places SET name=? WHERE id=?', [mb_substr((string)$in['name'], 0, 150), $id]); YES(); }
-case 'admin_teams': { need_admin(); $l = []; foreach (rows('SELECT t.*, p.name pname FROM teams t LEFT JOIN places p ON p.id=t.place_id ORDER BY t.created DESC LIMIT 200') as $t) { $o = team_out($t); $o['place'] = $t['pname']; $o['members'] = (int)q('SELECT COUNT(*) FROM profiles WHERE team_id=?', [$t['id']])->fetchColumn(); $l[] = $o; } YES(['list' => $l]); }
+case 'admin_teams': { need_admin(); $l = []; foreach (rows('SELECT t.*, p.name pname FROM teams t LEFT JOIN places p ON p.id=t.place_id WHERE COALESCE(t.closed,0)=0 ORDER BY t.created DESC LIMIT 200') as $t) { $o = team_out($t); $o['place'] = $t['pname']; $o['members'] = (int)q('SELECT COUNT(*) FROM profiles WHERE team_id=?', [$t['id']])->fetchColumn(); $l[] = $o; } YES(['list' => $l]); }
 case 'admin_team': { need_admin(); q('UPDATE teams SET premium=? WHERE id=?', [!empty($in['premium']) ? 1 : 0, (string)($in['id'] ?? '')]); YES(); }
 case 'admin_tickets': { need_admin(); YES(['list' => rows('SELECT t.id,t.no,t.cat,t.text,t.status,t.reply,t.created,t.name,t.contact,t.seen,u.phone FROM tickets t LEFT JOIN users u ON u.id=t.user_id ORDER BY t.created DESC LIMIT 200')]); }
 case 'admin_ticket': { need_admin(); q('UPDATE tickets SET reply=?, status=?, updated=? WHERE id=?', [mb_substr((string)($in['reply'] ?? ''), 0, 2000), in_array($in['status'] ?? '', ['open', 'answered', 'closed'], true) ? $in['status'] : 'answered', time(), (string)($in['id'] ?? '')]); YES(); }
@@ -1283,7 +1326,8 @@ case 'admin_user_delete': { need_admin(); $id = (string)($in['id'] ?? ''); $u0 =
     foreach (rows('SELECT id FROM profiles WHERE user_id=?', [$id]) as $p) wipe_profile($p['id']); foreach (['tokens', 'fam_links', 'push_tokens'] as $tb) { try { q("DELETE FROM $tb WHERE user_id=?", [$id]); } catch (Throwable $e) {} } q('DELETE FROM users WHERE id=?', [$id]); YES(); }
 case 'admin_events': { need_admin(); $after = (int)($in['after'] ?? 0);
     YES(['list' => array_map(fn($e) => ['id' => $e['id'], 'kind' => $e['kind'], 'text' => $e['text'], 'meta' => json_decode((string)$e['meta'], true), 'at' => (int)$e['created']], rows('SELECT * FROM events WHERE created>=? ORDER BY created DESC LIMIT 150', [$after])),
-        'today' => array_column(rows('SELECT kind, COUNT(*) n FROM events WHERE created>? GROUP BY kind', [strtotime('today')]), 'n', 'kind')]); }
+        'today' => (function () { $c = json_decode((string)getv('ev_today', ''), true); if ($c && $c['at'] > time() - 30 && $c['day'] === date('Ymd')) return $c['n'];
+            $n = array_column(rows('SELECT kind, COUNT(*) n FROM events WHERE created>? GROUP BY kind', [strtotime('today')]), 'n', 'kind'); setv('ev_today', json_encode(['at' => time(), 'day' => date('Ymd'), 'n' => $n])); return $n; })()]); }
 case 'admin_price': { need_admin(); $R = rows('SELECT fair, high FROM price_poll'); $med = function ($a) { if (!$a) return 0; sort($a); $n = count($a); return $n % 2 ? $a[intdiv($n, 2)] : (int)(($a[$n / 2 - 1] + $a[$n / 2]) / 2); };
     $fair = array_map('intval', array_column($R, 'fair')); $high = array_map('intval', array_filter(array_column($R, 'high')));
     $okAt = fn($price) => $high ? round(100 * count(array_filter($high, fn($h) => $h > $price)) / count($high)) : null;
@@ -1332,7 +1376,7 @@ case 'admin_demo_journey': { need_admin();
     $d1 = max(0, $dw - 1);
     if ($dw >= 1) { $mk($d1 . '-out', 'done', $m1, 26, true, true); $mk($d1 . '-back', 'done', $me, 20, true, true); }
     $mk($dw . '-out', 'started', $me, 0.4, false, false);
-    q('INSERT INTO ledger(id,team_id,kind,ref,text,d,created) VALUES(?,?,?,?,?,?,?)', [uid(), $t['id'], 'trip', $wk . '|x', 'سفر · خانواده نمونه', json_encode([$m1 => 40000, $me => -20000, $m2 => -20000]), $now - 86400]);
+    q('INSERT INTO ledger(id,team_id,kind,ref,text,d,created) VALUES(?,?,?,?,?,?,?)', [uid(), $t['id'], 'trip', $wk . '|x', 'سفر – خانواده نمونه', json_encode([$m1 => 40000, $me => -20000, $m2 => -20000]), $now - 86400]);
     q('INSERT INTO sms(id,phone,tpl,status,by_user,created) VALUES(?,?,?,?,?,?)', [uid(), row('SELECT phone FROM users WHERE id=?', [$uidv])['phone'], 'residim-login', 'خطا 418 (اعتبار کافی نیست)', null, $now - 9 * 86400]);
     q('INSERT INTO sms(id,phone,tpl,status,by_user,created) VALUES(?,?,?,?,?,?)', [uid(), row('SELECT phone FROM users WHERE id=?', [$uidv])['phone'], 'residim-login', '200 ok', null, $now - 9 * 86400 + 120]);
     YES(['uid' => $uidv]); }
@@ -1383,9 +1427,9 @@ function accept_invite(array $i, array $from, array $to): ?array {
         $fams = implode(' و ', array_map(fn($x) => 'خانواده ' . (pdata($x)['family'] ?? ''), [$from, $to]));
         q('INSERT INTO msgs(id,team_id,profile_id,text,created) VALUES(?,?,?,?,?)', [uid(), $t['id'], 'system', "سلام و خوش آمدید! 🌷 $fams حالا هم‌تیمی‌اند. اول با هم آشنا شوید: یک سلام، معرفی کوتاه، و مرور شرایط هم (روی عکس هر خانواده بزنید). بعد «قرار تیم» را بنویسید و هر کس «توافق کردیم» را بزند.", time()]);
         q('UPDATE teams SET agree=? WHERE id=?', ['[]', $t['id']]); } catch (Throwable $e) {}
-    $t = row('SELECT * FROM teams WHERE id=?', [$t['id']]); $name = 'تیم ' . $t['no'] . ' · محله ' . $t['hood'];
+    $t = row('SELECT * FROM teams WHERE id=?', [$t['id']]); $name = 'تیم ' . $t['no'] . ' – محله ' . $t['hood'];
     foreach (rows('SELECT id FROM profiles WHERE team_id=?', [$t['id']]) as $m) note($m['id'], "$name شکل گرفت/بزرگ‌تر شد! خوش آمدید.", 'team', $t['id']);
-    ev_log('team', "$name شکل گرفت یا بزرگ‌تر شد: خانواده " . (pdata($from)['family'] ?? '') . ' و ' . (pdata($to)['family'] ?? '') . ' · ' . ($place['name'] ?? ''), ['size' => (int)q('SELECT COUNT(*) FROM profiles WHERE team_id=?', [$t['id']])->fetchColumn()]);
+    ev_log('team', "$name شکل گرفت یا بزرگ‌تر شد: خانواده " . (pdata($from)['family'] ?? '') . ' و ' . (pdata($to)['family'] ?? '') . ' – ' . ($place['name'] ?? ''), ['size' => (int)q('SELECT COUNT(*) FROM profiles WHERE team_id=?', [$t['id']])->fetchColumn()]);
     foreach ([$from, $to] as $pp) { $rr = row("SELECT amb_id FROM referrals WHERE profile_id=? AND kind='profile'", [$pp['id']]); if ($rr) { $am = row('SELECT code FROM amb WHERE id=?', [$rr['amb_id']]); if ($am) ref_credit($am['code'], $pp['user_id'], $pp, 'team'); } }
     return team_out($t);
 }

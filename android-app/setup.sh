@@ -9,6 +9,8 @@ for p in $perms; do grep -q "android.permission.$p\"" "$M" || sed -i "s#</manife
 # a location foreground service needs the location feature declared as optional
 grep -q 'android.hardware.location.gps' "$M" || sed -i 's#</manifest>#    <uses-feature android:name="android.hardware.location.gps" android:required="false" />\n</manifest>#' "$M"
 cp res/drawable/ic_stat_residim.xml android/app/src/main/res/drawable/
+# notification sounds for our own channels (door, urgent, …)
+mkdir -p android/app/src/main/res/raw && cp res/raw/*.mp3 android/app/src/main/res/raw/
 SRC=../landing/assets/icon-512.png
 for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do n=${d%%:*}; s=${d##*:}; f=android/app/src/main/res/mipmap-$n
   convert "$SRC" -resize ${s}x${s} "$f/ic_launcher.png"

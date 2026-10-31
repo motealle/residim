@@ -2,7 +2,7 @@
   "name": "residim-android",
   "private": true,
   "version": "1.0.0",
-  "description": "Android shell for residim.ir (Capacitor). The web app at https://residim.ir runs inside; native plugins add notifications, haptics and background location.",
+  "description": "Android shell for residim.ir (Capacitor). The web app at https://residim.ir runs inside; native plugins add notifications with our own sounds, haptics, background location, saving and sharing files (PDF/PNG).",
   "dependencies": {
     "@capacitor/android": "^7.0.0",
     "@capacitor/app": "^7.0.0",
@@ -10,6 +10,8 @@
     "@capacitor/core": "^7.0.0",
     "@capacitor/haptics": "^7.0.0",
     "@capacitor/local-notifications": "^7.0.0",
-    "@capacitor-community/background-geolocation": "^1.2.0"
+    "@capacitor-community/background-geolocation": "^1.2.0",
+    "@capacitor/filesystem": "^7.0.0",
+    "@capacitor/share": "^7.0.0"
   }
 }
