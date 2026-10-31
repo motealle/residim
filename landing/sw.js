@@ -1,5 +1,5 @@
-const CACHE='residim-23-v1';
-const SHELL=['./','index.html','manifest.webmanifest','radio.json','assets/app.css?v=23','assets/app.js?v=23','assets/map-style.json?v=23','assets/map-style-dark.json?v=23','assets/qrcode.js?v=23','assets/maplibre-gl.css','assets/icon.svg?v=23','assets/mapbg.svg?v=23','assets/bism.png?v=23','assets/icon-192.png','assets/icon-512.png','assets/vazirmatn.woff2'];
+const CACHE='residim-24-v1';
+const SHELL=['./','index.html','manifest.webmanifest','radio.json','assets/app.css?v=24','assets/app.js?v=24','assets/map-style.json?v=24','assets/map-style-dark.json?v=24','assets/qrcode.js?v=24','assets/maplibre-gl.css','assets/icon.svg?v=24','assets/mapbg.svg?v=24','assets/icon-192.png','assets/icon-512.png','assets/vazirmatn.woff2'];
 const SCOPE=new URL('./',self.registration.scope).pathname;
 const TILES='residim-tiles-v1',MAX=900,AGE=14*864e5;
 const MAPS=/(^|\.)(openfreemap\.org|neshan\.org)$/;
@@ -19,4 +19,8 @@ self.addEventListener('fetch',e=>{
   if(u.pathname.endsWith('radio.json')){e.respondWith(fetch(e.request).then(r=>{const c=r.clone();caches.open(CACHE).then(x=>x.put(e.request,c));return r}).catch(()=>caches.open(CACHE).then(c=>c.match(e.request))));return}
   e.respondWith(caches.open(CACHE).then(c=>c.match(e.request)).then(h=>h||fetch(e.request).then(r=>{if(r.ok){const c=r.clone();caches.open(CACHE).then(x=>x.put(e.request,c))}return r})));
 });
-self.addEventListener('notificationclick',e=>{e.notification.close();e.waitUntil(clients.matchAll({type:'window'}).then(w=>w.length?w[0].focus():clients.openWindow('./')))});
+// Web Push from our own server (VAPID). Urgent and trip news stay on screen until tapped.
+self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{}}catch(x){d={b:e.data?e.data.text():''}}
+  const hot=d.k==='urgent'||d.k==='trip';
+  e.waitUntil(self.registration.showNotification(d.t||'رسیدیم',{body:d.b||'',icon:'assets/icon-192.png',badge:'assets/icon-192.png',dir:'rtl',lang:'fa',tag:hot?'residim-'+d.k+'-'+(d.at||''):'residim-'+(d.k||'info'),renotify:hot,requireInteraction:hot,vibrate:hot?[300,120,300,120,500]:[120],data:{k:d.k||''}}))});
+self.addEventListener('notificationclick',e=>{e.notification.close();e.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(w=>{const c=w.find(x=>new URL(x.url).pathname.startsWith(SCOPE));return c?c.focus():clients.openWindow(SCOPE)}))});

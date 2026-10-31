@@ -221,7 +221,7 @@ async function mapLib() {
     }
     await loadCss('assets/maplibre-gl.css');
     await loadJs('assets/maplibre-gl.js', () => !!window.maplibregl, 12000);
-    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=23', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
+    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=24', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
     return (MapKit.lib = { name: 'libre', G: window.maplibregl });
   })();
   try { return await MapKit.loading; } catch (e) { MapKit.failed = true; MapKit.loading = null; throw e; }
@@ -230,7 +230,7 @@ async function makeMap(el, center, zoom) {
   const L = await mapLib();
   let map;
   if (L.name === 'neshan') map = new L.G.Map({ mapType: (isDark() && L.G.Map.mapTypes.neshanVectorNight) || L.G.Map.mapTypes.neshanVector, container: el, zoom, pitch: 0, center: [center[1], center[0]], minZoom: 4, maxZoom: 19, trackResize: true, mapKey: CFG.web_key, poi: false, traffic: false, mapTypeControllerOptions: { show: false } });
-  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=23' : 'assets/map-style.json?v=23', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=24' : 'assets/map-style.json?v=24', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('map-timeout')), 10000);
     map.on('load', () => { clearTimeout(t); res(); });
@@ -852,9 +852,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=23" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=24" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)} <span class="pchip">${ic('down', '')}</span></b><small>${p.team ? esc(teamName(p.team)) + ' · ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</small></span>`; }
-  else t = `<img src="assets/icon.svg?v=23" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=24" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -932,7 +932,7 @@ function drawer(keep) {
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const grp = (k, i, t, body) => `<div class="grp"><button class="sec-h" data-a="toggle" data-v="${k}" aria-expanded="${!!ui.open[k]}"><span>${ic(i, 'i')} ${t}</span>${ic('down', 'i chev' + (ui.open[k] ? ' open' : ''))}</button><div class="plist ${ui.open[k] ? '' : 'closed'}" style="max-height:${ui.open[k] ? 700 : 0}px">${body}</div></div>`;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=23" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان · شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=24" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان · شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     <div class="sec-h"><span>مسیرک‌های من</span><button class="link small" data-a="new-profile">${ic('plus')}تازه</button></div>
     <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${!x.complete && !x.shared ? `<button class="pdel" data-a="prof-del" data-id="${x.id}" aria-label="پاک کردن «${esc(x.label)}»">${ic('close')}</button>` : ''}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیرک را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
     ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیرک دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
@@ -952,7 +952,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' · نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۲۳</small></span>` : `<span>نسخه‌ی وب ۲۳${ui.apk && ui.apk.ver ? ' · اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
+    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' · نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۲۴</small></span>` : `<span>نسخه‌ی وب ۲۴${ui.apk && ui.apk.ver ? ' · اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -1019,7 +1019,7 @@ async function ambView() {
       <div class="row"><input id="amb-pl" dir="ltr" placeholder="WPXJUG5A" maxlength="8" style="flex:1"><button class="btn ac" data-a="amb-make">ساختن</button></div><div id="amb-out"></div></section>
     <section class="card stack"><h2>ایده‌های سریع</h2><ol class="steps3"><li>پوستر A5 را روی تابلوی اعلانات مدرسه (با اجازه‌ی مدرسه) بچسبانید.</li><li>متن آماده و لینک را در گروه کلاس و کانال مدرسه بگذارید؛ صبح‌های شنبه بهترین زمان است.</li><li>از ۲ خانواده‌ی هم‌محله بخواهید با هم ثبت‌نام کنند؛ تیم زودتر شکل می‌گیرد.</li></ol></section>
     ${A.list.length ? `<section class="card"><h2>ثبت‌شده‌ها</h2><table><tr><th>تاریخ</th><th>مکان</th><th>نوع</th><th>مبلغ</th></tr>${A.list.slice(0, 60).map(x => `<tr><td>${jLabel(new Date(x.created * 1000))}</td><td>${esc(x.place || '—')}</td><td>${x.kind === 'team' ? 'تیم شد' : 'ثبت‌نام'}</td><td>${money(x.amount)}${+x.paid ? ' ✓' : ''}</td></tr>`).join('')}</table></section>` : ''}</div>`;
-  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=23" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
+  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=24" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
 }
 function reportHtml(p, T) {
   const H = (ui.hist && ui.hist.trips) || [], done = H.filter(x => x.status === 'done').sort((a, b) => a.date < b.date ? -1 : 1), b = balances(T), now = new Date();
@@ -1044,7 +1044,7 @@ async function reportPrint() {
 }
 async function reportFile(kind) {
   const r = $('#print-root'); if (!r || !r.innerHTML) return; toast('در حال ساختن فایل…');
-  try { await loadJs('assets/html2canvas.min.js?v=23', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=23', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { return toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); }
+  try { await loadJs('assets/html2canvas.min.js?v=24', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=24', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { return toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); }
   r.classList.add('render'); try { await document.fonts.ready; } catch (e) {}
   try { const cv = await html2canvas(r.firstElementChild, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }); const name = 'residim-' + ymd(new Date());
     let blob;
@@ -1603,7 +1603,7 @@ function pager(key, list, row, wrap = x => x, size = 20) {
   const nav = n > size ? `<div class="pager">${all ? `<button class="link" data-a="pg" data-k="${key}" data-v="0">صفحه‌بندی</button>` : `<button class="btn line sm" data-a="pg" data-k="${key}" data-v="${pg - 1}" ${pg ? '' : 'disabled'}>قبلی</button><span class="small">صفحه‌ی ${fa(pg + 1)} از ${fa(pages)} · ${fa(n)} مورد</span><button class="btn line sm" data-a="pg" data-k="${key}" data-v="${pg + 1}" ${pg < pages - 1 ? '' : 'disabled'}>بعدی</button><button class="link" data-a="pg" data-k="${key}" data-v="all">نمایش همه</button>`}</div>` : '';
   return wrap(part.map(row).join('')) + nav;
 }
-const ADM_TABS = [['home', 'نمای کلی', 'gear'], ['live', 'زنده', 'radio'], ['launch', 'چک‌لیست لانچ', 'flag'], ['conn', 'اتصال‌ها', 'spark'], ['pays', 'پرداخت‌ها', 'money'], ['health', 'سلامت', 'shield'], ['msgs', 'پیام‌ها', 'ticket'], ['content', 'نکته‌ها', 'book'], ['fb', 'نظرها', 'spark'], ['amb', 'سفیرها', 'heart'], ['places', 'مکان‌ها و تیم‌ها', 'pin'], ['users', 'کاربران', 'user'], ['sms', 'پیامک', 'phone'], ['posters', 'پوستر مدارس', 'print'], ['db', 'پایگاه داده', 'shield']];
+const ADM_TABS = [['home', 'نمای کلی', 'gear'], ['live', 'زنده', 'radio'], ['launch', 'چک‌لیست لانچ', 'flag'], ['journey', 'مسیر کاربر', 'map'], ['conn', 'اتصال‌ها', 'spark'], ['pays', 'پرداخت‌ها', 'money'], ['health', 'سلامت', 'shield'], ['msgs', 'پیام‌ها', 'ticket'], ['content', 'نکته‌ها', 'book'], ['fb', 'نظرها', 'spark'], ['amb', 'سفیرها', 'heart'], ['places', 'مکان‌ها و تیم‌ها', 'pin'], ['users', 'کاربران', 'user'], ['sms', 'پیامک', 'phone'], ['posters', 'پوستر مدارس', 'print'], ['db', 'پایگاه داده', 'shield']];
 function adminView() {
   if (!S.admin) return `<section class="card stack" style="max-width:420px;margin:30px auto"><h1 style="font-size:1.5rem">ورود مدیر</h1><div class="field"><label for="au">نام کاربری</label><input id="au" dir="ltr" autocomplete="username"></div><div class="field"><label for="ap">رمز</label><input id="ap" type="password" dir="ltr" autocomplete="current-password"></div><button class="btn" data-a="adm-login">ورود</button><button class="link" data-a="adm-exit">بازگشت به اپ</button></section>`;
   const A = ui.adm; if (!A) { loadAdmin(); return '<p class="muted" style="text-align:center;padding:40px">در حال بارگذاری…</p>'; }
@@ -1611,7 +1611,7 @@ function adminView() {
   return `<div class="adm">${o.default_pass ? `<div class="hint warn">${ic('warn')}<span>رمز مدیر پیش‌فرض (mot) است؛ در config.local.php مقدار admin_pass را عوض کنید.</span></div>` : ''}
     <div class="row between"><h1 style="font-size:1.4rem">پیشخوان مدیریت</h1><div class="row"><button class="btn line sm" data-a="adm-refresh">تازه‌سازی</button><button class="btn line sm" data-a="adm-exit">بازگشت</button></div></div>
     <nav class="adm-tabs" aria-label="بخش‌های پیشخوان">${ADM_TABS.map(([k, t, i]) => `<button data-a="adm-tab" data-v="${k}" aria-pressed="${tab === k}">${ic(i)}<span>${t}</span>${k === 'msgs' && cnt.unseen ? `<i class="badge">${fa(cnt.unseen)}</i>` : ''}${k === 'live' && ui.evNew ? `<i class="badge">${fa(ui.evNew)}</i>` : ''}</button>`).join('')}</nav>
-    ${({ live: admLive, launch: admLaunch, home: admHome, conn: admConn, pays: admPays, health: admHealth, msgs: admMsgs, content: admContent, fb: admFb, amb: admAmb, places: admPlaces, users: admUsers, sms: admSms, posters: admPosters, db: admDb }[tab] || admHome)(A)}</div>`;
+    ${({ live: admLive, launch: admLaunch, journey: admJourney, home: admHome, conn: admConn, pays: admPays, health: admHealth, msgs: admMsgs, content: admContent, fb: admFb, amb: admAmb, places: admPlaces, users: admUsers, sms: admSms, posters: admPosters, db: admDb }[tab] || admHome)(A)}</div>`;
 }
 function secRow(K, k, label, hint, opt) {
   const x = K[k] || {}, hid = opt && opt.secret;
@@ -1666,8 +1666,10 @@ function admConn(A) {
         <div class="tpl"><div class="row between"><span>نام سرویس</span>${cp('رسیدیم')}</div><pre>رسیدیم</pre></div>
         <div class="tpl"><div class="row between"><span>وب‌سایت</span>${cp('https://residim.ir')}</div><pre dir="ltr">https://residim.ir</pre></div>
         <div class="tpl"><div class="row between"><span>توضیح کوتاه</span>${cp('ارسال کد ورود یکبارمصرف برای کاربران سرویس مشارکتی رفت‌وآمد رسیدیم')}</div><pre>ارسال کد ورود یکبارمصرف برای کاربران سرویس مشارکتی رفت‌وآمد رسیدیم</pre></div>`)}</section>
-    <section class="card stack"><h2>اعلان اپ وقتی بسته است (Firebase)</h2><p class="muted small">برای اینکه «سرویس دم در است» و خبرهای مهم حتی با اپ بسته برسد: ۱) در console.firebase.google.com پروژه بسازید و اپ اندروید با شناسه‌ی <b dir="ltr">ir.residim.app</b> اضافه کنید؛ فایل <b dir="ltr">google-services.json</b> را با FTP در <b dir="ltr">app/storage/android/</b> بگذارید و از Actions «Android app» را دوباره اجرا کنید. ۲) در Project settings ← Service accounts یک کلید JSON بسازید و کل متنش را اینجا بچسبانید.</p>
-      ${secRow(K, 'fcm_service_json', 'JSON حساب سرویس', '{"type":"service_account",…}', { secret: 1 })}<div class="row wrap"><button class="btn line sm" data-a="adm-push-test">فرستادن اعلان آزمایشی به گوشی‌های خودم</button></div></section>
+    <section class="card stack"><h2>اعلان با برنامه‌ی بسته (سرور خودمان)</h2><p class="muted small">اعلان‌ها از همین هاست و با PHP خودمان فرستاده می‌شوند (Web Push با کلید VAPID که خودکار روی هاست ساخته شده)؛ پروژه‌ی Firebase لازم نیست. کاربر در سایت یا نسخه‌ی نصب‌شده‌ی سایت (کروم، فایرفاکس، سافاری iOS ۱۶٫۴ به بعد) از «منو ← تنظیمات ← اعلان‌ها» اجازه می‌دهد. نکته: پیام از سرویس پوش خود مرورگر رد می‌شود (کروم ← سرور گوگل). داخل اپ اندروید (WebView) این راه کار نمی‌کند؛ برای آن پایین را ببینید.</p>
+      <div class="row wrap"><button class="btn line sm" data-a="adm-push-test">فرستادن اعلان آزمایشی به یک شماره</button></div>
+      <details><summary class="small">اختیاری: Firebase برای اپ اندروید</summary><p class="muted small">اگر روزی خواستید اپ اندروید هم با برنامه‌ی بسته اعلان بگیرد: پروژه‌ی Firebase با شناسه‌ی <b dir="ltr">ir.residim.app</b>، فایل google-services.json در ساخت اپ، و JSON حساب سرویس اینجا.</p>
+      ${secRow(K, 'fcm_service_json', 'JSON حساب سرویس', '{"type":"service_account",…}', { secret: 1 })}<div class="row wrap"></div></details></section>
     <section class="card stack"><h2>نقشه‌ی نشان</h2>${secRow(K, 'neshan_service_key', 'کلید سرویس (service.…)', 'service.xxxxxxxx', { secret: 1 })}${secRow(K, 'neshan_web_key', 'کلید نقشه‌ی وب (web.…)', 'web.xxxxxxxx', { secret: 1 })}
       <button class="btn line sm" data-a="adm-test" data-v="neshan">آزمون کلید سرویس</button>${out('t-neshan')}</section>
     <section class="card stack"><h2>پیام همگانی بالای اپ</h2><p class="muted small">مثلاً «امشب ساعت ۲۳ تا ۲۴ به‌روزرسانی داریم.» خالی = پنهان.</p>
@@ -1691,7 +1693,7 @@ function admHealth(A) {
 }
 function admHome(A) {
   const o = A.ov, cnt = o.counts, F = o.flags, SV = o.services, ST = o.settings || {};
-  const flagLbl = { bismillah: 'نشان بسم الله الرحمن الرحیم بعد از صفحه‌ی آغاز', bism_tv: 'افکت تلویزیون قدیمی برای بسم‌الله (خاموش = جهش/Bounce)', price_poll: 'نظرسنجی قیمت منصفانه (بعد از دو سفر واقعی، یک بار)', trip_window: 'اجرای واقعی: سفر فقط در بازه‌ی زمانی خودش ثبت شود (خاموش = حالت آزمایش، همه‌چیز ثبت می‌شود)', trusted_driver: 'راننده‌ی معتمد (فقط برای مکان‌هایی که در زبانه‌ی مکان‌ها روشن شود)', family_link: 'همراه خانواده (همسر، پدربزرگ و مادربزرگ رخدادها را ببینند)', cand_swipe: 'پیشنهادهای هم‌مسیر به شکل کارت‌های ورق‌خوردنی (گوشی)', trip_scene: 'صحنه‌ی کارتونی سفر (ماشین، ایستگاه خانه‌ها، ابرهای پیام)', pay_gateway: 'پرداخت دنگ خیر از درگاه پی‌پینگ', signup_open: 'ثبت‌نام باز است', sms_invite: 'پیامک دعوت هم‌مسیری', sms_direct: 'پیامک مستقیم بدون الگو (روشن = sms/send؛ خاموش = اعتبارسنجی و الگو)', sms_arrive: 'پیامک «فرزندتان رسید» (فقط تیم‌های ویژه)', auto_arrive: 'تشخیص رسیدن با GPS', station_on: 'مسیرک سفر (ایستگاه، فرودگاه، ترمینال)', league_on: 'لیگ راه مدرسه (معما)', paid_mode: 'حالت پولی؛ اشتراک لازم است (خاموش = همه‌چیز رایگان)', test_tools: 'گزینه‌های آزمایشی در منو', otp_dev: 'کد ورود آزمایشی بدون پیامک (فقط تست!)' };
+  const flagLbl = { bismillah: 'ابر «بسم الله الرحمن الرحیم» در آسمان اسپلش', price_poll: 'نظرسنجی قیمت منصفانه (بعد از دو سفر واقعی، یک بار)', trip_window: 'اجرای واقعی: سفر فقط در بازه‌ی زمانی خودش ثبت شود (خاموش = حالت آزمایش، همه‌چیز ثبت می‌شود)', trusted_driver: 'راننده‌ی معتمد (فقط برای مکان‌هایی که در زبانه‌ی مکان‌ها روشن شود)', family_link: 'همراه خانواده (همسر، پدربزرگ و مادربزرگ رخدادها را ببینند)', cand_swipe: 'پیشنهادهای هم‌مسیر به شکل کارت‌های ورق‌خوردنی (گوشی)', trip_scene: 'صحنه‌ی کارتونی سفر (ماشین، ایستگاه خانه‌ها، ابرهای پیام)', pay_gateway: 'پرداخت دنگ خیر از درگاه پی‌پینگ', signup_open: 'ثبت‌نام باز است', sms_invite: 'پیامک دعوت هم‌مسیری', sms_direct: 'پیامک مستقیم بدون الگو (روشن = sms/send؛ خاموش = اعتبارسنجی و الگو)', sms_arrive: 'پیامک «فرزندتان رسید» (فقط تیم‌های ویژه)', auto_arrive: 'تشخیص رسیدن با GPS', station_on: 'مسیرک سفر (ایستگاه، فرودگاه، ترمینال)', league_on: 'لیگ راه مدرسه (معما)', paid_mode: 'حالت پولی؛ اشتراک لازم است (خاموش = همه‌چیز رایگان)', test_tools: 'گزینه‌های آزمایشی در منو', otp_dev: 'کد ورود آزمایشی بدون پیامک (فقط تست!)' };
   return `<div class="grid">${[['users', 'کاربر واقعی'], ['complete', 'مسیرکِ کامل'], ['places', 'مکان'], ['teams', 'تیم'], ['invites', 'دعوت منتظر'], ['tickets', 'پیام باز'], ['sms_day', 'پیامک ۲۴ ساعت'], ['app_users', 'نصب اپ اندروید'], ['fb', 'نظر و پیشنهاد'], ['fake', 'کاربر آزمایشی']].map(([k, v]) => `<div class="stat"><b>${fa(cnt[k] || 0)}</b><span>${v}</span></div>`).join('')}</div>
     <details class="card adm-more" data-dk="adm-app" ${(ui.dOpen || {})['adm-app'] ? 'open' : ''}><summary><b>${ic('install')}اپ اندروید</b></summary>
       <p class="muted small">نسخه و لینک اپ را ساخت خودکار (GitHub Actions) در residim.ir/app/android.json می‌نویسد؛ این دو فیلد فقط برای جایگزینی دستی‌اند.</p>
@@ -1748,7 +1750,7 @@ const LAUNCH = [
   ['ورود و پیامک', [['sms', 'سرویس پیامک تنظیم شده', 'زبانه‌ی اتصال‌ها', 'tab:conn'], ['sms_ok', 'در ۷ روز اخیر دست‌کم یک پیامک موفق', 'یک ورود واقعی امتحان کنید', 'tab:sms'], ['otp_dev', 'کد آزمایشی خاموش است', '', 'flag:otp_dev:0'], ['m_tpl', 'خط آخر الگوی پیامک «@residim.ir #کد» است', 'برای خواندن خودکار کد', 'manual']]],
   ['داده و آزمایش', [['fake', 'هیچ کاربر آزمایشی نمانده', 'زبانه‌ی کاربران ← حذف همه‌ی آزمایشی‌ها', 'tab:users'], ['test_tools', 'ابزار آزمایشی منو خاموش است', '', 'flag:test_tools:0'], ['places', 'مدرسه‌های شهرهای هدف وارد شده‌اند', 'پوستر مدارس ← ورود از OSM', 'tab:posters']]],
   ['اجرای واقعی', [['trip_window', 'سفر فقط در بازه‌ی زمانی خودش ثبت می‌شود', '', 'flag:trip_window:1'], ['league', 'لیگ خاموش است (فعلاً)', '', 'flag:league_on:0'], ['signup', 'ثبت‌نام باز است', '', 'flag:signup_open:1']]],
-  ['اپ و اعلان', [['app', 'اپ اندروید منتشر شده', 'residim.ir/app/residim.apk', null], ['fcm', 'اعلان با اپ بسته (Firebase)', 'اختیاری؛ اتصال‌ها', 'tab:conn'], ['neshan', 'کلید سرویس نشان', 'اختیاری؛ اتصال‌ها', 'tab:conn']]],
+  ['اپ و اعلان', [['app', 'اپ اندروید منتشر شده', 'residim.ir/app/residim.apk', null], ['fcm', 'اعلان با برنامه‌ی بسته (Web Push خودمان)', 'دست‌کم یک دستگاه اعلان را روشن کرده باشد؛ اتصال‌ها ← آزمایشی', 'tab:conn'], ['neshan', 'کلید سرویس نشان', 'اختیاری؛ اتصال‌ها', 'tab:conn']]],
   ['محتوا و اعتماد', [['m_rules', 'قوانین و حریم خصوصی را خواندم و تأیید کردم', '', 'manual'], ['m_tips', 'نکته‌های تربیتی (اختیاری) با منبع دقیق', 'زبانه‌ی نکته‌ها', 'manual'], ['m_human', '۳ تا ۵ خانواده یک هفته آزمایش واقعی کردند', '', 'manual'], ['m_poster', 'پوستر مدرسه‌های اول چاپ و نصب شد', '', 'manual']]],
   ['ظرفیت', [['mysql', 'پایگاه داده‌ی MySQL (برای بیش از چند صد کاربر)', 'اختیاری در شروع', 'tab:db']]]];
 function admLaunch(A) { if (!ui.launch) { api('admin_launch', {}, true).then(r => { ui.launch = r; renderMain(); }).catch(fail); api('admin_price', {}, true).then(r => { ui.price = r; renderMain(); }).catch(() => {}); return '<p class="muted">در حال بررسی…</p>'; }
@@ -1784,13 +1786,147 @@ function admAmb(A) {
       <span class="small">${fa(a.n)} معرفی · ${fa(a.teams)} تیم · پورسانت ${money(a.sum)} · پرداخت‌شده ${money(a.paid)} · <b>مانده ${money(a.sum - a.paid)}</b>${a.note ? ' · ' + esc(a.note) : ''}</span>
       <div class="row wrap"><button class="btn sm" data-a="copy" data-v="${SITE}/#amb/${esc(a.token)}">${ic('copy')}لینک مخفی سفیر</button>${a.sum - a.paid > 0 ? `<button class="btn line sm" data-a="am-paid" data-id="${a.id}">تسویه شد</button>` : ''}<button class="btn line sm" data-a="am-off" data-id="${a.id}" data-v="${+a.active ? 1 : 0}">${+a.active ? 'غیرفعال کردن' : 'فعال کردن'}</button></div></div>`).join('') : '<p class="muted small">هنوز سفیری نساخته‌اید.</p>'}</section>`;
 }
+/* ═════════ admin: user journey — swimlane of where this family is in our process, their trips, and a support diagnosis ═════════ */
+const JR_LANES = [['fam', 'خانواده'], ['sys', 'رسیدیم'], ['peer', 'هم‌مسیرها']];
+const jrAgo = t => { if (!t) return '—'; const s = Math.max(0, Date.now() / 1000 - t); return s < 90 ? 'همین الان' : s < 3600 ? fa(Math.round(s / 60)) + ' دقیقه پیش' : s < 86400 ? fa(Math.round(s / 3600)) + ' ساعت پیش' : fa(Math.round(s / 86400)) + ' روز پیش'; };
+const jrClock = t => t ? fa(new Date(t * 1000).toTimeString().slice(0, 5)) : '';
+const jrSlot = s => { const [d, dir] = String(s || '').split('-'); return `${DAYS[+d] || ''} ${dir === 'out' ? 'رفت' : 'برگشت'}`; };
+const kidFig = (k, sz = 26) => `<span class="jr-kid" title="${esc(k.first || '')}"><svg viewBox="0 0 16 24" width="${sz * .66}" height="${sz}"><circle cx="8" cy="5" r="4" fill="#FFE1C4" stroke="#04140B" stroke-width="1.3"/><path d="M3 22l2-8h6l2 8" fill="${k.g === 'm' ? '#7FD8FF' : '#FF8FA3'}" stroke="#04140B" stroke-width="1.3"/></svg><small>${esc(k.first || 'فرزند')}</small></span>`;
+const roleL = r => ({ drive: ['🚗', 'رانندگی'], pay: ['💰', 'فقط هزینه'], both: ['🔁', 'رانندگی و هزینه'] }[r] || ['❔', 'نقش نامشخص']);
+const smsOk = st => /^(200|ok|sent)|\b200\b|ok$/i.test(String(st || ''));
+function jrStages(J, P) {
+  const u = J.user, T = P && P.team, done = T ? T.trips.filter(t => t.status === 'done') : [], run = T ? T.trips.find(t => t.status === 'started') : null, lastSms = J.sms[0];
+  const me = T ? T.members.find(m => m.me) : null, agreeN = T ? T.agree.length : 0, invN = P ? P.inv_out.length + P.inv_in.length : 0, pendIn = P ? P.inv_in.filter(i => i.status === 'pending').length : 0;
+  const S = [
+    { k: 'login', lane: 0, ic: '📱', t: 'ورود به رسیدیم', ok: true, at: u.created, sub: u.phone ? 'با شماره' : 'مهمان، بدون شماره', bad: !u.phone },
+    { k: 'otp', lane: 1, ic: '✉️', t: 'کد پیامکی', ok: !!u.phone, at: lastSms && lastSms.created, sub: lastSms ? (smsOk(lastSms.status) ? 'پیامک رسید' : 'آخرین پیامک: ' + lastSms.status) : u.phone ? 'تأیید شد' : 'تأیید نشده', bad: lastSms && !smsOk(lastSms.status) && !u.phone },
+    { k: 'make', lane: 0, ic: '📍', t: 'ساخت مسیرک', ok: !!P, at: P && P.created, sub: P ? (P.place ? P.place.name : P.label) : 'هنوز مسیرکی نساخته' },
+    { k: 'done', lane: 0, ic: '📝', t: 'تکمیل ثبت‌نام', ok: P && P.complete, at: P && P.complete && P.updated, sub: P ? (P.complete ? `${roleL(P.d.role)[1]}، ${fa(P.d.kids.length)} فرزند` : `مانده در گام ${fa(P.step || 0)}`) : '' },
+    { k: 'peers', lane: 1, ic: '🧭', t: 'پیدا کردن هم‌مسیر', ok: P && P.peers > 0, sub: P ? (P.peers ? `${fa(P.peers)} خانواده در همین مکان` : 'هنوز کسی در این مکان نیست') : '', bad: P && P.complete && !P.peers },
+    { k: 'invite', lane: 2, ic: '🤝', t: 'پیشنهاد هم‌مسیری', ok: invN > 0 && (!!T || !pendIn), sub: P ? `${fa(P.inv_out.length)} فرستاده، ${fa(P.inv_in.length)} گرفته${pendIn ? `، ${fa(pendIn)} بی‌جواب` : ''}` : '', warn: pendIn > 0 },
+    { k: 'team', lane: 2, ic: '👨‍👩‍👧', t: 'تشکیل تیم', ok: !!T, at: T && T.created, sub: T ? `تیم ${fa(T.no)}، ${fa(T.members.length)} خانواده` : 'هنوز تیم ندارد' },
+    { k: 'pact', lane: 2, ic: '📜', t: 'آشنایی و قرار تیم', ok: T && T.pact && me && T.agree.includes(me.id), at: T && T.pact_at, sub: T ? `${T.pact ? 'قرار نوشته شده' : 'قرار ندارد'}؛ ${fa(agreeN)} از ${fa(T.members.length)} توافق` : '' },
+    { k: 'trip1', lane: 0, ic: '🚗', t: 'اولین سفر', ok: done.length > 0, at: done.length ? done[done.length - 1].at : run && run.start, sub: run ? `در جریان: ${jrSlot(run.slot)} با ${run.exec}` : done.length ? `${fa(done.length)} سفر تمام‌شده` : 'هنوز سفری نرفته' },
+    { k: 'habit', lane: 1, ic: '🔁', t: 'سفرهای منظم', ok: done.length >= 4, at: done[0] && done[0].at, sub: done.length ? `آخرین سفر ${jrAgo(done[0].at)}` : '' },
+    { k: 'money', lane: 1, ic: '💳', t: 'حساب شفاف', ok: T && done.length > 0, sub: T ? (T.balance ? (T.balance > 0 ? 'طلبکار ' : 'بدهکار ') + money(Math.abs(T.balance)) : 'حساب صفر') : '' },
+  ];
+  let cur = S.findIndex(s => !s.ok); if (cur < 0) cur = S.length - 1;
+  S.forEach((s, i) => { s.st = i < cur ? 'done' : i === cur ? (s.bad ? 'bad' : 'cur') : s.ok ? 'done' : 'todo'; });
+  return { S, cur };
+}
+function jrDx(J, P) {
+  const u = J.user, F = [], add = (lv, ic, t, fix) => F.push({ lv, ic, t, fix }), now = J.now;
+  if (u.fake) add('info', '🧪', 'این حساب آزمایشی است.', '');
+  if (!u.phone) add('warn', '👤', 'مهمان است؛ شماره‌اش تأیید نشده.', 'بخواهید با شماره وارد شود تا پیامک و بازیابی حساب کار کند.');
+  const ls = J.sms[0]; if (ls && !smsOk(ls.status)) add('bad', '✉️', `آخرین پیامک کد نرسید (${ls.status}).`, 'اعتبار و الگوی پیامک را در «اتصال‌ها» ببینید؛ ورود با بله یا تماس صوتی را پیشنهاد دهید.');
+  if (J.otp && J.otp.tries >= 3) add('warn', '🔢', `${fa(J.otp.tries)} بار کد را اشتباه زده.`, 'شاید کد دیر می‌رسد یا کد قدیمی را می‌زند.');
+  if (u.seen && now - u.seen > 7 * 86400) add('warn', '💤', `${jrAgo(u.seen)} سر زده است.`, 'یک پیام یا تماس کوتاه؛ شاید وسط کار گیر کرده.');
+  if (!J.push.web && !J.push.fcm) add('warn', '🔕', 'اعلان روشن نکرده؛ پیام فوری و «سرویس دم در است» با صفحه‌ی بسته به او نمی‌رسد.', 'منو ← تنظیمات ← اعلان‌ها');
+  J.tickets.filter(t => t.status !== 'done' && t.status !== 'closed').forEach(t => add('warn', '🎫', `درخواست پشتیبانی باز: #${fa(t.no)} «${String(t.text || '').slice(0, 50)}»`, 'جواب در «پیام‌ها».'));
+  if (!J.profiles.length) add('bad', '📍', 'هنوز هیچ مسیرکی نساخته.', 'ثبت‌نام ۲ دقیقه‌ای را با او جلو ببرید یا لینک مدرسه را بفرستید.');
+  if (P) {
+    if (!P.complete) add('bad', '📝', `ثبت‌نام در گام ${fa(P.step || 0)} نیمه‌کاره مانده.`, 'بپرسید کدام سؤال گیجش کرده؛ معمولاً «نقش» یا «موقعیت خانه».');
+    else if (!P.d.located) add('warn', '🏠', 'موقعیت خانه ثبت نشده؛ فاصله‌ها حساب نمی‌شود.', 'از «ویرایش مسیرک» نقطه‌ی خانه را بزند.');
+    if (P.complete && !P.peers) add('bad', '🏝️', 'هیچ خانواده‌ی دیگری در این مکان نیست.', 'پوستر و سفیر برای همین مدرسه؛ لینک دعوت را در گروه کلاس بگذارد.');
+    const pin = P.inv_in.filter(i => i.status === 'pending'); if (pin.length) add('warn', '📨', `${fa(pin.length)} پیشنهاد هم‌مسیری بی‌جواب برایش مانده (${pin.map(i => i.with).join('، ')}).`, 'یادآوری کنید جواب بدهد؛ بی‌جوابی برای طرف مقابل دلسردکننده است.');
+    const pout = P.inv_out.filter(i => i.status === 'pending' && now - i.at > 2 * 86400); if (pout.length) add('warn', '⏳', `${fa(pout.length)} پیشنهادش بیش از ۲ روز بی‌جواب مانده.`, 'به آن خانواده‌ها یادآوری شود یا هم‌مسیر دیگری پیشنهاد دهید.');
+    if (P.inv_out.filter(i => i.status === 'declined').length >= 2) add('info', '🙅', 'دو بار یا بیشتر پیشنهادش رد شده.', 'شرایطش (جنسیت، روزها، نقش) را با هم‌مسیرهای نزدیک مقایسه کنید.');
+    if (P.complete && P.peers && !P.team && !P.inv_out.length && !P.inv_in.length) add('warn', '🤔', 'هم‌مسیر دارد اما هنوز به کسی پیشنهاد نداده.', 'شاید دکمه‌ی «هم‌مسیر شویم؟» را ندیده؛ راهنمایی کوتاه.');
+    const T = P.team;
+    if (T) {
+      const drv = T.members.filter(m => m.role !== 'pay'); if (!drv.length) add('bad', '🚫', 'تیم هیچ راننده‌ای ندارد.', 'یک خانواده‌ی راننده یا رانندهٔ مورد اعتماد اضافه شود.'); else if (drv.length === 1 && !drv[0].daily) add('warn', '🧍', 'تیم فقط یک راننده دارد؛ یک روز بیماری یعنی سفر نرفتن.', 'یک راننده‌ی دوم یا جایگزین.');
+      if (!T.pact) add('warn', '📜', 'قرار تیم نوشته نشده.', 'قرار کوتاه (ساعت، تأخیر، لغو) دعوا را کم می‌کند.'); else if (T.agree.length < T.members.length) add('info', '✍️', `${fa(T.agree.length)} از ${fa(T.members.length)} خانواده «توافق کردیم» را زده‌اند.`, '');
+      const done = T.trips.filter(t => t.status === 'done');
+      if (!done.length && now - T.created > 3 * 86400) add('warn', '🛑', `تیم ${jrAgo(T.created)} ساخته شده و هنوز سفری ثبت نکرده.`, 'شاید بیرون از اپ هماهنگ می‌کنند یا «راه افتادیم» را بلد نیستند؛ یک تماس آموزشی.');
+      T.trips.filter(t => t.status === 'started' && now - t.start > 3 * 3600).forEach(t => add('bad', '⚠️', `سفر ${jrSlot(t.slot)} (${t.exec}) ${jrAgo(t.start)} شروع شده و تمام نشده.`, 'راننده «پایان سفر» را نزده یا «خالی بودن خودرو» را تأیید نکرده.'));
+      if (T.balance < -150000) add('warn', '💸', `بدهکار ${money(-T.balance)} به تیم است.`, 'یادآوری مهربانانه‌ی تسویه.');
+      const quiet = T.members.filter(m => !m.me && m.seen && now - m.seen > 10 * 86400); if (quiet.length) add('info', '👻', `هم‌تیمی‌های کم‌پیدا: ${quiet.map(m => m.family).join('، ')}`, '');
+    }
+  }
+  if (!F.some(f => f.lv === 'bad' || f.lv === 'warn')) add('ok', '🌿', 'مسیرش سالم است؛ گیر مشخصی دیده نمی‌شود.', '');
+  const o = { bad: 0, warn: 1, info: 2, ok: 3 }; return F.sort((a, b) => o[a.lv] - o[b.lv]);
+}
+function admJourney() {
+  const J = ui.jr, L = ui.jrList;
+  const head = `<section class="card stack jr-find no-print"><h2>${ic('map')} مسیر کاربر</h2><p class="muted small">شناسه، شماره یا نام خانوادگی را بزنید تا ببینید این خانواده کجای مسیر رسیدیم است، هم‌مسیرها و سفرهایش چیست و گیرش کجاست.</p>
+    <div class="row"><input id="jr-q" placeholder="مثلاً 0912… یا نور یا شناسه" value="${esc(ui.jrQ || '')}" style="flex:1"><button class="btn" data-a="jr-search">جستجو</button></div>
+    <div class="row wrap"><button class="btn line sm" data-a="jr-demo">${ic('flask')}ساختن یک خانواده‌ی آزمایشی کامل</button>${J ? `<button class="btn line sm" data-a="jr-reload">${ic('undo')}تازه‌سازی</button><button class="btn line sm" data-a="jr-print">${ic('print')}چاپ / PDF</button>` : ''}</div>
+    ${L && L.length ? `<div class="jr-pick">${L.map(x => `<button data-a="jr-open" data-v="${esc(x.id)}">${shapeAv(x.id, 32)}<span><b>${esc((x.fams || []).join('، ') || 'بدون مسیرک')}</b><small dir="ltr">${esc(x.phone || 'مهمان')}</small></span>${+x.fake ? '<i class="tag">آزمایشی</i>' : ''}</button>`).join('')}</div>` : L ? '<p class="muted small">کسی پیدا نشد.</p>' : ''}</section>`;
+  if (!J) { if (!L && !ui.jrBusy) { ui.jrBusy = 1; api('admin_journey', {}, true).then(r => { ui.jrList = r.list; ui.jrBusy = 0; if (ui.admTab === 'journey') renderMain(); }).catch(() => { ui.jrBusy = 0; }); } return head; }
+  setTimeout(() => jrWire($('#main .jr')), 30);
+  return head + jrView(J);
+}
+function jrView(J) {
+  const u = J.user, P = J.profiles[ui.jrP || 0] || J.profiles[0], fams = [...new Set(J.profiles.map(p => p.d.family).filter(Boolean))];
+  const { S, cur } = jrStages(J, P), D = jrDx(J, P), T = P && P.team, worst = D[0].lv;
+  const chips = [];
+  if (P) { const r = roleL(P.d.role); chips.push([r[0], r[1]]); if (P.d.kids.length) chips.push(['👧', P.d.kids.map(k => k.first).filter(Boolean).join('، ') || fa(P.d.kids.length) + ' فرزند']); if (P.d.job && JOB_L[P.d.job]) chips.push(['💼', JOB_L[P.d.job]]); if (P.d.relig) chips.push(['🕌', 'مذهبی']); if (P.d.daily) chips.push(['⭐', 'هر روز خودش می‌برد']); if (P.d.days.length) chips.push(['📅', P.d.days.map(d => DAYS[d]).join('، ')]); if (P.d.hood) chips.push(['🏘️', P.d.hood]); }
+  chips.push(J.push.web || J.push.fcm ? ['🔔', 'اعلان روشن'] : ['🔕', 'اعلان خاموش']); chips.push([/^android/.test(u.client) ? '🤖' : '🌐', /^android/.test(u.client) ? 'اپ اندروید' : 'وب']);
+  if (J.watch.length) chips.push(['👵', 'همراه خانواده‌ی ' + J.watch.map(w => w.family).join('، ')]); if (u.premium_until * 1000 > Date.now()) chips.push(['✨', 'اشتراک فعال']);
+  return `<div class="jr" data-lv="${worst}">
+  <section class="card jr-id"><div class="jr-me">${shapeAv(P ? P.id : u.id, 64)}<i class="jr-pulse"></i></div>
+    <div class="grow"><span class="jr-k">پرونده‌ی پشتیبانی · ${new Date().toLocaleDateString('fa-IR')}</span><h2>${fams.length ? 'خانواده‌ی ' + esc(fams.join(' / ')) : 'بدون نام خانوادگی'} ${u.fake ? '<i class="tag">آزمایشی</i>' : ''}</h2>
+      <div class="jr-meta"><span>📞 <b dir="ltr">${esc(u.phone || 'مهمان')}</b>${u.phone ? cp(u.phone) : ''}</span><span>🆔 <b dir="ltr">${esc(u.id)}</b>${cp(u.id)}</span><span>🗓️ عضو از ${jrAgo(u.created)}</span><span>👀 آخرین حضور ${jrAgo(u.seen)}</span></div>
+      <div class="jr-chips">${chips.map(([i, t]) => `<span>${i} ${esc(t)}</span>`).join('')}</div></div>
+    <div class="jr-where"><small>نقطه‌ی حضور</small><b>${S[cur].ic} ${S[cur].t}</b><span>${esc(S[cur].sub || '')}</span></div></section>
+  <section class="card jr-dx"><h3>🩺 تشخیص</h3><ul>${D.map(f => `<li class="is-${f.lv}"><span class="jr-dxi">${f.ic}</span><span><b>${esc(f.t)}</b>${f.fix ? `<small>${esc(f.fix)}</small>` : ''}</span></li>`).join('')}</ul></section>
+  ${J.profiles.length > 1 ? `<div class="jr-ptabs no-print">${J.profiles.map((p, i) => `<button data-a="jr-prof" data-v="${i}" aria-pressed="${p === P}">${kindIc(p.kind)}<span>${esc(p.place ? p.place.name : p.label)}</span>${p.team ? '<i>تیم</i>' : ''}</button>`).join('')}</div>` : ''}
+  <section class="card jr-swc"><h3>🗺️ مسیر در فرایند رسیدیم ${P && P.place ? `<small>${esc(P.place.name)}${P.place.city ? '، ' + esc(P.place.city) : ''}</small>` : ''}</h3>
+    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=24" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
+      <div class="jr-grid" style="--n:${S.length}">${[0, 1, 2].map(l => `<i class="jr-lane l${l}" style="grid-column:${l + 2}"></i>`).join('')}<svg class="jr-wires" aria-hidden="true"></svg>
+        ${S.map((s, i) => `<span class="jr-no is-${s.st}" style="grid-row:${i + 1}">${fa(i + 1)}</span><div class="jr-node is-${s.st} l${s.lane}" style="grid-row:${i + 1};grid-column:${s.lane + 2};--d:${i}" data-i="${i}">${i === cur ? `<span class="jr-here">${shapeAv(P ? P.id : u.id, 30)}<em>اینجاست</em></span>` : ''}<b><i>${s.ic}</i>${s.t}</b><small>${esc(s.sub || '')}</small>${s.at ? `<time>${jrAgo(s.at)}</time>` : ''}</div>`).join('')}
+      </div></div>
+    <p class="jr-legend"><span class="is-done">انجام شده</span><span class="is-cur">اینجاست</span><span class="is-bad">گیر کرده</span><span class="is-todo">هنوز نرسیده</span></p></section>
+  ${T ? jrTeam(T, P) + jrTrips(T, P) : ''}
+  <section class="card jr-sys"><h3>📡 ارتباط با سامانه</h3><div class="jr-cols">
+    <div><b>پیامک‌ها</b>${J.sms.length ? J.sms.map(m => `<p class="${smsOk(m.status) ? 'is-ok' : 'is-no'}">${smsOk(m.status) ? '✓' : '✗'} ${esc(m.tpl)} · ${esc(m.status)} · ${jrAgo(m.created)}</p>`).join('') : '<p class="muted">پیامکی ثبت نشده.</p>'}</div>
+    <div><b>اعلان</b><p>${J.push.web ? `🔔 ${fa(J.push.web)} مرورگر/دستگاه با Web Push` : '🔕 Web Push ندارد'}</p>${J.push.fcm ? `<p>🤖 ${fa(J.push.fcm)} دستگاه اندروید (FCM)</p>` : ''}${P ? `<p>📬 ${fa(P.unread)} پیام نخوانده در اپ</p>` : ''}</div>
+    <div><b>پشتیبانی و نظر</b>${J.tickets.length ? J.tickets.map(t => `<p>🎫 #${fa(t.no)} ${esc(t.cat || '')} · ${esc(t.status || '')}</p>`).join('') : '<p class="muted">درخواستی نداده.</p>'}<p>⭐ ${fa(J.feedback)} نظر${J.price ? ` · قیمت منصفانه از نظرش: ${money(J.price.fair)}` : ''}</p></div></div></section>
+</div>`;
+}
+function jrTeam(T, P) {
+  return `<section class="card jr-team"><h3>👨‍👩‍👧‍👦 تیم ${fa(T.no)} محله‌ی ${esc(T.hood)} <small>${jrAgo(T.created)} · هر سفر ${money(T.price)}</small></h3><div class="jr-mates">${T.members.map(m => { const r = roleL(m.role), ag = T.agree.includes(m.id);
+    return `<div class="jr-mate ${m.me ? 'me' : ''}"><div class="jr-av">${shapeAv(m.id, 48)}${m.me ? '<em>خودش</em>' : ''}</div><b>خانواده‌ی ${esc(m.family)}</b><small>${r[0]} ${r[1]}${m.daily ? ' · ⭐ هر روز' : ''}${m.trusted ? ' · 🛡️ راننده‌ی مورد اعتماد' : ''}</small>
+      <div class="jr-kids">${m.kids.map(k => kidFig(k)).join('')}</div>
+      <small>${ag ? '✍️ توافق کرده' : '… هنوز توافق نکرده'} · 💬 ${fa(m.msgs.n)}${m.msgs.u ? ` · ⚡${fa(m.msgs.u)}` : ''}</small><small dir="ltr" class="jr-ph">${esc(m.phone || '')}${m.fake ? ' 🧪' : ''}</small><small>👀 ${jrAgo(m.seen)}</small></div>`; }).join('')}</div></section>`;
+}
+function jrTrips(T, P) {
+  const L = T.trips; if (!L.length) return `<section class="card jr-trip"><h3>🚗 سفرها</h3><p class="muted">هنوز هیچ سفری ثبت نشده.</p></section>`;
+  const i = Math.min(ui.jrT || 0, L.length - 1), t = L[i], mem = Object.fromEntries(T.members.map(m => [m.id, m])), ex = mem[t.exec_id];
+  const order = Object.entries(t.bp || {}).sort((a, b) => a[1] - b[1]).map(([id, at]) => ({ m: mem[id], at })).filter(x => x.m);
+  T.members.forEach(m => { if (!order.some(x => x.m.id === m.id) && m.id !== t.exec_id) order.push({ m, at: 0 }); });
+  const st = [{ k: 'start', ic: '🔑', t: 'راه افتاد', who: ex, at: t.start || t.depart }];
+  order.filter(x => x.m.id !== t.exec_id).forEach(x => st.push({ k: 'pick', ic: '🧒', t: 'سوار شدن', who: x.m, at: x.at }));
+  st.push({ k: 'dest', ic: t.slot.endsWith('out') ? '🏫' : '🏠', t: t.slot.endsWith('out') ? (P.place ? P.place.name : 'مقصد') : 'رسیدن به خانه‌ها', at: t.arrive }, { k: 'fin', ic: '🏁', t: 'پایان و خالی بودن خودرو', at: t.status === 'done' ? t.at : 0 });
+  let curI = st.findIndex(s => !s.at); if (t.status === 'pending') curI = 0; if (curI < 0) curI = st.length;
+  return `<section class="card jr-trip"><h3>🚗 سفر کاربر <small>${fa(L.length)} سفر اخیر</small></h3>
+    <div class="jr-hist no-print">${L.slice(0, 14).map((x, j) => `<button data-a="jr-trip" data-v="${j}" class="is-${x.status}" aria-pressed="${j === i}" title="${jrSlot(x.slot)}"><b>${jrSlot(x.slot)}</b><small>${x.status === 'done' ? '✓ تمام' : x.status === 'started' ? '● در راه' : 'منتظر'}</small></button>`).join('')}</div>
+    <div class="jr-road">${st.map((s, j) => `<div class="jr-st ${j < curI ? 'is-done' : j === curI ? 'is-cur' : 'is-todo'}"><span class="jr-dot">${j === curI && t.status === 'started' ? '<i class="jr-car">🚗</i>' : s.ic}</span><span class="jr-lbl"><b>${esc(s.t)}</b>${s.who ? `<span class="jr-who">${shapeAv(s.who.id, 22)}${esc(s.who.family)}${s.who.kids && s.k === 'pick' ? ' · ' + s.who.kids.map(k => esc(k.first)).join('، ') : ''}</span>` : ''}<time>${s.at ? jrClock(s.at) : '—'}</time></span></div>`).join('')}</div>
+    <p class="muted small">${jrSlot(t.slot)} · هفته‌ی ${fa(t.wk)} · راننده: خانواده‌ی ${esc(t.exec || '—')} · ${fa(t.board)} سوار، ${fa(t.arr)} رسیده${t.thanks ? ' · 💐 تشکر گرفت' : ''}</p></section>`;
+}
+/** Draw the animated dashed connectors between the swimlane nodes, and a small car that keeps driving the finished part. */
+function jrWire(root) {
+  if (!root) return; const g = root.querySelector('.jr-grid'), svg = root.querySelector('.jr-wires'); if (!g || !svg) return;
+  const B = g.getBoundingClientRect(), N = [...g.querySelectorAll('.jr-node')]; if (!B.width) return;
+  svg.setAttribute('viewBox', `0 0 ${B.width} ${B.height}`); svg.setAttribute('width', B.width); svg.setAttribute('height', B.height);
+  let html = '', run = ''; const pt = (el, top) => { const r = el.getBoundingClientRect(); return [r.left - B.left + r.width / 2, (top ? r.top : r.bottom) - B.top]; };
+  for (let i = 0; i < N.length - 1; i++) {
+    const [x1, y1] = pt(N[i], false), [x2, y2] = pt(N[i + 1], true), m = (y1 + y2) / 2;
+    const d = Math.abs(x1 - x2) < 2 ? `M${x1} ${y1}L${x2} ${y2}` : `M${x1} ${y1}C${x1} ${m} ${x2} ${m} ${x2} ${y2}`;
+    const go = !N[i + 1].classList.contains('is-todo'); html += `<path class="${go ? 'is-go' : 'is-todo'}" d="${d}"/>`; if (go) run += (run ? d.replace('M', 'L') : d) + ' ';
+  }
+  if (run && !matchMedia('(prefers-reduced-motion: reduce)').matches) html += `<g class="jr-mini"><circle r="9"/><text text-anchor="middle" dy="4" font-size="10">🚗</text><animateMotion dur="${Math.max(3, N.length * .7)}s" repeatCount="indefinite" path="${run.trim()}"/></g>`;
+  svg.innerHTML = html;
+}
+addEventListener('resize', () => { if (ui.jr && ui.admTab === 'journey') { clearTimeout(ui.jrRz); ui.jrRz = setTimeout(() => jrWire($('#main .jr')), 120); } });
+
 function admUsers(A) {
   return `<section class="card stack"><h2>کاربران آزمایشی</h2><p class="muted small">همسایه‌ی آزمایشی دور یک مکان (کد ۸ حرفی) یا دور خانه‌ی یک کاربر واقعی (شماره) می‌سازد؛ برای دیدن نقشه و تیم‌سازی. پیامکی برایشان نمی‌رود.</p>
       <div class="adm-form three"><div class="field full"><label for="fk-t">کد مکان یا شماره‌ی کاربر</label><input id="fk-t" dir="ltr" placeholder="WPXJUG5A یا 0912…"></div><div class="field"><label for="fk-n">تعداد (حداکثر ۵۰)</label><input id="fk-n" inputmode="numeric" dir="ltr" value="8"></div><div class="field"><label for="fk-d">درصد راننده</label><input id="fk-d" inputmode="numeric" dir="ltr" value="35"></div></div>
       <div class="row wrap">${A.places.slice(0, 6).map(p => `<button class="chip" data-a="fk-fill" data-v="${esc(p.code)}">${esc(p.name)}</button>`).join('')}</div>
       <div class="row wrap"><button class="btn" data-a="adm-fake">${ic('plus')}ساختن کاربران آزمایشی</button><button class="btn line sm" data-a="adm-purge">حذف همه‌ی کاربران آزمایشی</button></div></section>
     <section class="card"><h2>کاربران (${fa(A.users.length)})</h2>${(() => { const dupl = {}; A.users.forEach(u => (u.labels || '').split(',').filter(Boolean).forEach(l => { dupl[l] = (dupl[l] || 0) + 1; })); const U = ui.uq ? A.users.filter(u => (u.phone || 'مهمان').includes(en(ui.uq)) || (u.labels || '').includes(ui.uq)) : A.users;
-      return `<div class="row wrap" style="margin-bottom:8px"><input id="adm-uq" placeholder="جستجوی شماره یا نام مسیرک" value="${esc(ui.uq || '')}" style="flex:1"><button class="btn line sm" data-a="adm-uq">جستجو</button></div>` + pager('users', U, u => `<tr><td dir="ltr">${/^android/.test(u.client || '') ? APP_BADGE : ''}${esc(u.phone || 'مهمان')}</td><td>${(u.labels || '').split(',').filter(Boolean).map(l => `<span class="tag ${dupl[l] > 1 && !+u.fake ? 'warn' : ''}">${esc(l)}</span>`).join(' ') || '—'}</td><td>${+u.fake ? 'آزمایشی' : 'واقعی'}${u.phone && +u.profiles && !+u.fake ? ` <button class="link" data-a="adm-fake5" data-v="${esc(u.phone)}">+۵ همسایه</button>` : ''}</td><td><button class="icon-btn sm danger" data-a="adm-udel" data-id="${esc(u.id)}" data-v="${esc(u.phone || 'مهمان')}" aria-label="حذف کاربر">${ic('close')}</button></td></tr>`, x => `<table class="utab"><tr><th>شماره</th><th>مسیرک‌ها</th><th>نوع</th><th></th></tr>${x}</table>`); })()}
+      return `<div class="row wrap" style="margin-bottom:8px"><input id="adm-uq" placeholder="جستجوی شماره یا نام مسیرک" value="${esc(ui.uq || '')}" style="flex:1"><button class="btn line sm" data-a="adm-uq">جستجو</button></div>` + pager('users', U, u => `<tr><td dir="ltr">${/^android/.test(u.client || '') ? APP_BADGE : ''}${esc(u.phone || 'مهمان')} <button class="link" data-a="jr-open" data-v="${esc(u.id)}" dir="rtl">مسیر</button></td><td>${(u.labels || '').split(',').filter(Boolean).map(l => `<span class="tag ${dupl[l] > 1 && !+u.fake ? 'warn' : ''}">${esc(l)}</span>`).join(' ') || '—'}</td><td>${+u.fake ? 'آزمایشی' : 'واقعی'}${u.phone && +u.profiles && !+u.fake ? ` <button class="link" data-a="adm-fake5" data-v="${esc(u.phone)}">+۵ همسایه</button>` : ''}</td><td><button class="icon-btn sm danger" data-a="adm-udel" data-id="${esc(u.id)}" data-v="${esc(u.phone || 'مهمان')}" aria-label="حذف کاربر">${ic('close')}</button></td></tr>`, x => `<table class="utab"><tr><th>شماره</th><th>مسیرک‌ها</th><th>نوع</th><th></th></tr>${x}</table>`); })()}
       <p class="muted small">نام‌های زرد در بیش از یک حساب تکرار شده‌اند (احتمالاً یک خانواده چند بار ثبت‌نام کرده). حذف کاربر همه‌ی مسیرک‌ها، تیم‌ها و نشست‌هایش را پاک می‌کند.</p></section>`;
 }
 function admSms(A) {
@@ -1872,6 +2008,14 @@ async function notify(title, body, at) {
   if (at) return; return notifyWeb(title, body);
 }
 function haptic(k) { try { if (NATIVE && NP.Haptics) NP.Haptics.impact({ style: k === 'heavy' ? 'HEAVY' : k === 'medium' ? 'MEDIUM' : 'LIGHT' }); else if (navigator.vibrate && k && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(k === 'heavy' ? [40, 60, 40] : 18); } catch (e) {} }
+/** Web Push from our own server (VAPID). Browser/PWA only; the Android WebView has no PushManager. */
+async function wpSub(force) {
+  try { if (NATIVE || !S.token || !CFG.vapid || !('PushManager' in window) || !('serviceWorker' in navigator) || Notification.permission !== 'granted') return false;
+    if (!force && ui.wpDone) return true; const reg = await navigator.serviceWorker.ready; const key = Uint8Array.from(atob(CFG.vapid.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - CFG.vapid.length % 4) % 4)), c => c.charCodeAt(0));
+    let sub = await reg.pushManager.getSubscription();
+    if (sub && sub.options && sub.options.applicationServerKey && btoa(String.fromCharCode(...new Uint8Array(sub.options.applicationServerKey))) !== btoa(String.fromCharCode(...key))) { await sub.unsubscribe(); sub = null; }
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    await api('wp_sub', sub.toJSON()); ui.wpDone = true; return true; } catch (e) { return false; } }
 async function notifyWeb(title, body) { try { if ('Notification' in window && Notification.permission === 'granted') { const reg = await navigator.serviceWorker?.getRegistration(); if (reg) reg.showNotification(title, { body, icon: 'assets/icon-192.png', lang: 'fa', dir: 'rtl' }); } } catch (e) {} }
 let tt; function toast(m) { const el = $('#toast'); el.textContent = m; el.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('show'), 4200); }
 async function copyText(t) { try { await navigator.clipboard.writeText(t); return true; } catch (e) { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e2) {} a.remove(); return ok; } }
@@ -2034,7 +2178,7 @@ async function act(a, el) {
       return toast(ok ? `متن و لینک کپی شد؛ در ${nm} گروه یا کانال را باز کنید و بچسبانید.` : `${nm} باز شد؛ لینک را از کادر پایین بردارید.`); }
     case 'share': { const t = ui.caption; try { const blob = await posterPng(); const file = new File([blob], 'residim.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) return navigator.share({ files: [file], text: t }).catch(() => {}); if (navigator.share) return navigator.share({ text: t }).catch(() => {}); } catch (e) {} return copyText(t).then(() => toast('متن و لینک کپی شد.')); }
     case 'img': { const b = await posterPng(); const u = URL.createObjectURL(b); const l = document.createElement('a'); l.href = u; l.download = `residim-${active().place.code}.png`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); return toast('عکس‌نوشت ذخیره شد.'); }
-    case 'notify': if (!('Notification' in window)) return toast('این مرورگر نوتیف ندارد؛ خبرها در «دعوت‌ها و پیام‌ها» می‌آید.'); return Notification.requestPermission().then(r => toast(r === 'granted' ? 'نوتیف روشن شد.' : 'نوتیف روشن نشد؛ از تنظیمات مرورگر روشنش کنید.'));
+    case 'notify': if (!('Notification' in window)) return toast('این مرورگر نوتیف ندارد؛ خبرها در «دعوت‌ها و پیام‌ها» می‌آید.'); return Notification.requestPermission().then(async r => { if (r !== 'granted') return toast('نوتیف روشن نشد؛ از تنظیمات مرورگر روشنش کنید.'); const ok = await wpSub(true); toast(ok ? 'اعلان روشن شد؛ خبرهای مهم حتی با صفحه‌ی بسته می‌رسد.' : 'نوتیف روشن شد (تا وقتی صفحه باز است).'); });
     case 'radio': closeLayer(); return radioSheet();
     case 'guide': closeLayer(); return guideSheet();
     case 'install': closeLayer(); return installApp();
@@ -2165,7 +2309,7 @@ async function act(a, el) {
     case 'launch-flag': try { await api('admin_flag', { k: el.dataset.k, v: +el.dataset.v }, true); ui.launch = null; if (ui.adm && ui.adm.ov.flags) ui.adm.ov.flags[el.dataset.k] = !!+el.dataset.v; renderMain(); toast('انجام شد.'); } catch (e) { fail(e); } return;
     case 'adm-uq': ui.uq = $('#adm-uq').value.trim(); ui.pg = { ...(ui.pg || {}), users: 0 }; return renderMain();
     case 'adm-udel': if (!confirm(`کاربر ${el.dataset.v} و همه‌ی مسیرک‌هایش حذف شود؟ برگشت ندارد.`)) return; try { await api('admin_user_delete', { id: el.dataset.id }, true); ui.adm.users = ui.adm.users.filter(u => u.id !== el.dataset.id); renderMain(); toast('حذف شد.'); } catch (e) { fail(e); } return;
-    case 'adm-push-test': try { const r = await api('admin_push_test', { phone: prompt('شماره‌ی کاربر (که اپ را نصب کرده):') || '' }, true); toast(`فرستاده شد به ${fa(r.n)} گوشی.`); } catch (e) { fail(e); } return;
+    case 'adm-push-test': try { const r = await api('admin_push_test', { phone: prompt('شماره‌ی کاربری که اعلان را روشن کرده:') || '' }, true); toast(r.n ? `فرستاده شد به ${fa(r.n)} دستگاه.` : `${fa(r.subs || 0)} دستگاه ثبت است اما سرویس پوش نپذیرفت؛ دوباره اعلان را روشن کند.`); } catch (e) { fail(e); } return;
     case 'ci-run': { const C = ui.cimp; C.city = $('#ci-city').value; C.n = +$('#ci-n').value; const [la0, lo0] = CITY_C[C.city], terms = ['دبستان', 'دبیرستان', 'هنرستان', 'پیش دبستانی', 'مهد کودک', 'دانشگاه', 'آموزشگاه'];
       if (!confirm(`حدود ${C.n * C.n * terms.length} جستجو در نشان برای ${C.city} انجام شود؟`)) return; C.busy = true; let made = 0, seen = 0, k = 0; renderMain();
       const dLa = C.step / 110570, dLo = C.step / (111320 * Math.cos(la0 * Math.PI / 180)), h = (C.n - 1) / 2;
@@ -2180,6 +2324,15 @@ async function act(a, el) {
     case 'am-save': try { const r = await api('admin_amb_save', { name: $('#am-n').value, phone: en($('#am-p').value), note: $('#am-note').value, rate_profile: +en($('#am-rp').value).replace(/\D/g, ''), rate_team: +en($('#am-rt').value).replace(/\D/g, '') }, true); ui.adm.amb = null; renderMain(); try { await navigator.clipboard.writeText(`${SITE}/#amb/${r.token}`); } catch (e) {} toast('سفیر ساخته شد؛ لینک مخفی‌اش کپی شد.'); } catch (e) { fail(e); } return;
     case 'am-paid': if (!confirm('همه‌ی مانده‌ی این سفیر پرداخت‌شده ثبت شود؟')) return; try { await api('admin_amb_paid', { id: el.dataset.id }, true); ui.adm.amb = null; renderMain(); } catch (e) { fail(e); } return;
     case 'am-off': { const a = ui.adm.amb.find(x => x.id === el.dataset.id); try { await api('admin_amb_save', { id: a.id, name: a.name, phone: a.phone, note: a.note, rate_profile: a.rate_profile, rate_team: a.rate_team, off: +el.dataset.v }, true); ui.adm.amb = null; renderMain(); } catch (e) { fail(e); } return; }
+    case 'jr-search': ui.jrQ = ($('#jr-q') || {}).value || ''; try { const r = await api('admin_journey', { q: ui.jrQ }, true); ui.jrList = r.list; if (r.list.length === 1) return act('jr-open', { dataset: { v: r.list[0].id } }); renderMain(); } catch (e) { fail(e); } return;
+    case 'jr-open': try { const id = el.dataset.v; ui.jr = await api('admin_journey', { uid: id }, true); ui.jrList = null; ui.admTab = 'journey'; ui.jrId = id; ui.jrP = 0; ui.jrT = 0; renderMain(); scrollTo(0, 0); } catch (e) { fail(e); } return;
+    case 'jr-reload': return act('jr-open', { dataset: { v: ui.jrId } });
+    case 'jr-demo': try { const r = await api('admin_demo_journey', {}, true); toast('یک خانواده‌ی آزمایشی با تیم و سفر ساخته شد.'); return act('jr-open', { dataset: { v: r.uid } }); } catch (e) { fail(e); } return;
+    case 'jr-prof': ui.jrP = +el.dataset.v; ui.jrT = 0; renderMain(); return;
+    case 'jr-trip': ui.jrT = +el.dataset.v; renderMain(); return;
+    case 'jr-print': { let r = $('#print-root'); if (!r) { r = document.createElement('div'); r.id = 'print-root'; document.body.appendChild(r); } const src = $('#main .jr'); if (!src) return;
+      r.className = 'jr-print'; r.innerHTML = src.outerHTML; const mq = matchMedia('print'), f = e => { if (e.matches) jrWire(r.querySelector('.jr')); }; mq.addEventListener('change', f);
+      setTimeout(() => { window.print(); setTimeout(() => { mq.removeEventListener('change', f); r.className = ''; r.innerHTML = ''; }, 500); }, 80); return; }
     case 'adm-tab': ui.admTab = el.dataset.v; renderMain(); scrollTo(0, 0); if (el.dataset.v === 'msgs' && ui.adm && ui.adm.ov.counts.unseen) { api('admin_seen', {}, true).then(() => { ui.adm.ov.counts.unseen = 0; ui.admSeenN = 0; }).catch(() => {}); } return;
     case 'pg': ui.pg = ui.pg || {}; ui.pg[el.dataset.k] = el.dataset.v === 'all' ? 'all' : +el.dataset.v; return renderMain();
     case 'adm-tclose': try { await api('admin_ticket_close', { id: el.dataset.id, open: +el.dataset.v }, true); const t = ui.adm.tickets.find(x => x.id === el.dataset.id); if (t) t.status = +el.dataset.v ? 'open' : 'closed'; renderMain(); } catch (e) { fail(e); } return;
@@ -2312,23 +2465,12 @@ function dockFun() {
   document.body.appendChild(el); snd(k === 'smoke' ? 'whoosh' : k === 'honk' ? 'honk' : 'step'); if (k === 'kids') setTimeout(() => snd('ok'), 900); if (k === 'hop') setTimeout(() => snd('honk'), 1500);
   setTimeout(() => el.remove(), 6200);
 }
-/** «بسم‌الله» as a soft toast once per launch, after the first screen has settled (flag bismillah). A tap hides it at once. */
-/** «بسم‌الله» emblem once per launch, centred on the screen, after the first screen settles (flag bismillah).
- *  In: old-TV switch-on (flag bism_tv, default) or bounce-in; a shimmer sweeps it while shown. Out: TV switch-off or bounce-out-up. A tap = out at once. */
-function bism() {
-  if (S.bism === false || ui.bismDone) return; ui.bismDone = 1;
-  const fx = S.bismTv === false ? 'bnc' : 'tv';
-  const el = document.createElement('div'); el.className = 'bism-t ' + fx; el.setAttribute('role', 'img'); el.setAttribute('aria-label', 'بسم الله الرحمن الرحیم');
-  el.innerHTML = '<span class="bi"><img src="assets/bism.png?v=23" alt="" width="434" height="355" decoding="async"><i class="shim"></i></span>';
-  const go = fast => { if (!el.isConnected || el.classList.contains('out')) return; el.classList.add('out'); if (fast) el.classList.add('now'); setTimeout(() => el.remove(), fast ? 420 : 900); };
-  el.addEventListener('pointerdown', () => go(true)); document.body.appendChild(el); setTimeout(() => go(false), 2600);
-}
 function splash(force) {
   let el = $('#splash');
-  if (S.bism !== false) { const im = new Image(); im.src = 'assets/bism.png?v=23'; }
+  if (S.bism === false) { const b = $('#s-bism'); if (b) b.remove(); }
   if (!el && force) { location.reload(); return; }
-  if (!el) { setTimeout(bism, 900); return; }
-  const end = () => { if (!el.isConnected) return; el.classList.add('out'); setTimeout(() => el.remove(), 360); setTimeout(bism, 900); };
+  if (!el) return;
+  const end = () => { if (!el.isConnected) return; el.classList.add('out'); setTimeout(() => el.remove(), 360); };
   el.addEventListener('click', end); el.addEventListener('keydown', e => { if (['Enter', ' ', 'Escape'].includes(e.key)) end(); });
   el.focus();
   setTimeout(end, matchMedia('(prefers-reduced-motion: reduce)').matches ? 1400 : 4400);
@@ -2350,6 +2492,7 @@ document.addEventListener('keydown', e => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('#title[data-a="switcher"]')) { e.preventDefault(); switcher(); }
   if (e.key === 'Enter' && ui.wiz && e.target.matches('.wiz input:not([type=checkbox])') && !ui.wiz.busy) { e.preventDefault(); wizNext(); }
   if (e.key === 'Enter' && e.target.id === 'code') act('go-code');
+  if (e.key === 'Enter' && e.target.id === 'jr-q') act('jr-search');
   if (e.key === 'Enter' && e.target.id === 'chat-in') { e.preventDefault(); act('chat-send', e.target); }
   if (e.key === 'Escape' && document.body.classList.contains('map-full')) act('map-full');
 });
@@ -2398,8 +2541,8 @@ async function nativeInit() { if (!NATIVE) return; document.body.classList.add('
 (async function boot() {
   setTimeout(loadApk, 1200); nativeInit();
   splash();
-  try { const r = await fetch(API + 'cfg', { cache: 'no-store' }); const j = await r.json(); if (j.ok) { CFG = j; if (j.jyear) JY = j.jyear; const bm = !(j.flags && j.flags.bismillah === false), tv = !(j.flags && j.flags.bism_tv === false); if (S.bism !== bm || S.bismTv !== tv) { S.bism = bm; S.bismTv = tv; persist(); } } } catch (e) {}
-  await refreshMe();
+  try { const r = await fetch(API + 'cfg', { cache: 'no-store' }); const j = await r.json(); if (j.ok) { CFG = j; if (j.jyear) JY = j.jyear; const bm = !(j.flags && j.flags.bismillah === false); if (S.bism !== bm) { S.bism = bm; persist(); } } } catch (e) {}
+  await refreshMe(); setTimeout(() => wpSub(), 3000);
   const code = (location.pathname.match(/\/([A-Z2-9]{8})\/?$/) || [])[1] || (location.hash.match(/^#\/c\/([A-Z2-9]{8})/) || [])[1];
   if (location.hash === '#admin') ui.admin = true;
   { const fm = location.hash.match(/^#fam\/([A-Za-z0-9]{6,12})/); if (fm) ui.famCode = fm[1]; const tm = location.hash.match(/^#trust\/([A-Za-z0-9]{6,12})/); if (tm) ui.trustCode = tm[1]; }

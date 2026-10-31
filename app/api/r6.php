@@ -72,8 +72,8 @@ function db6(): PDO {
 function schema(PDO $p): void {
     $v = 0;
     try { $v = (int)$p->query("SELECT v FROM settings WHERE k='schema'")->fetchColumn(); } catch (Throwable $e) {}
-    if ($v >= 12) return;
-    if ($v >= 9) { if ($v < 10) schema10($p); if ($v < 11) schema11($p); schema12($p); return; }
+    if ($v >= 13) return;
+    if ($v >= 9) { if ($v < 10) schema10($p); if ($v < 11) schema11($p); if ($v < 12) schema12($p); schema13($p); return; }
     $K = 'VARCHAR(40)';
     $sql = [
         "CREATE TABLE IF NOT EXISTS settings (k VARCHAR(40) PRIMARY KEY, v TEXT)",
@@ -118,7 +118,7 @@ function schema(PDO $p): void {
     try { $p->exec('CREATE TABLE IF NOT EXISTS fb_likes (fb_id VARCHAR(40), voter VARCHAR(40), created INT, PRIMARY KEY(fb_id, voter))'); } catch (Throwable $e) {}
     try { $p->exec('CREATE TABLE IF NOT EXISTS amb (id VARCHAR(40) PRIMARY KEY, token VARCHAR(40) UNIQUE, code VARCHAR(12) UNIQUE, name VARCHAR(80), phone VARCHAR(20), rate_profile INT, rate_team INT, note VARCHAR(255), active INT DEFAULT 1, created INT)' . $my); } catch (Throwable $e) {}
     try { $p->exec('CREATE TABLE IF NOT EXISTS referrals (id VARCHAR(40) PRIMARY KEY, amb_id VARCHAR(40), user_id VARCHAR(40), profile_id VARCHAR(40), place_id VARCHAR(40), kind VARCHAR(10), amount INT, paid INT DEFAULT 0, created INT)' . $my); } catch (Throwable $e) {}
-    setv('schema', '9', $p); schema10($p); schema11($p); schema12($p);
+    setv('schema', '9', $p); schema10($p); schema11($p); schema12($p); schema13($p);
     foreach (['sms_invite' => '1', 'sms_arrive' => '0', 'auto_arrive' => '1', 'test_tools' => '1', 'signup_open' => '1', 'otp_dev' => '0', 'sms_direct' => '1', 'sms_provider' => 'kavenegar', 'otp_bale' => '0', 'pay_gateway' => '0', 'pay_env' => 'test', 'league_on' => '0', 'paid_mode' => '0', 'station_on' => '1', 'map_provider' => 'neshan', 'sub_price' => '297000', 'free_permanent' => '1', 'free_temp_month' => '2'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
 }
 function schema10(PDO $p): void { // v17: family link, pact, push tokens; league off for launch
@@ -135,6 +135,47 @@ function schema11(PDO $p): void { // v18: get-to-know messages before a team, te
         "CREATE TABLE IF NOT EXISTS trust_inv (code VARCHAR(12) PRIMARY KEY, team_id $K, by_profile $K, name VARCHAR(80), note VARCHAR(200), seats INT, accepted TEXT, user_id $K, profile_id $K, created INT)",
         'ALTER TABLE teams ADD COLUMN agree TEXT', 'ALTER TABLE places ADD COLUMN trusted INT DEFAULT 0'] as $sql) { try { $p->exec($sql); } catch (Throwable $e) {} }
     setv('schema', '11', $p);
+}
+/* ───────── admin: one user's whole journey (swimlane + trips + diagnosis) ───────── */
+function jr_find(string $q): array { $q = trim($q); $out = [];
+    if ($q === '') return rows('SELECT id,phone,fake,created,seen FROM users ORDER BY COALESCE(seen,created) DESC LIMIT 12');
+    $dg = preg_replace('/\D/', '', strtr($q, ['۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4','۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9']));
+    $ids = array_column(rows('SELECT id FROM users WHERE id=?' . (strlen($dg) >= 4 ? ' OR phone LIKE ?' : ''), strlen($dg) >= 4 ? [$q, '%' . $dg . '%'] : [$q]), 'id');
+    foreach (rows('SELECT id,user_id,data,label FROM profiles ORDER BY updated DESC LIMIT 6000') as $r) { $f = (string)(pdata($r)['family'] ?? ''); if (($f !== '' && mb_strpos($f, $q) !== false) || $r['id'] === $q || mb_strpos((string)$r['label'], $q) !== false) $ids[] = $r['user_id']; }
+    $ids = array_slice(array_values(array_unique(array_filter($ids))), 0, 20); if (!$ids) return [];
+    return rows('SELECT id,phone,fake,created,seen FROM users WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')', $ids); }
+function jr_fams(string $uid): array { return array_values(array_unique(array_filter(array_map(fn($r) => (string)(pdata($r)['family'] ?? ''), rows('SELECT data FROM profiles WHERE user_id=?', [$uid]))))); }
+function jr_member(array $m, string $me): array { $d = pdata($m); $u = row('SELECT phone,fake,seen FROM users WHERE id=?', [$m['user_id']]) ?: [];
+    return ['id' => $m['id'], 'family' => (string)($d['family'] ?? ''), 'role' => (string)($d['role'] ?? ''), 'me' => $m['id'] === $me, 'daily' => !empty($d['daily']), 'seats' => (int)($d['seats'] ?? 0), 'days' => array_values((array)($d['days'] ?? [])),
+        'kids' => array_map(fn($k) => ['first' => (string)($k['first'] ?? ''), 'g' => (string)($k['g'] ?? '')], (array)($d['kids'] ?? [])), 'trusted' => !empty($d['trusted']), 'phone' => (string)($u['phone'] ?? ''), 'fake' => (int)($u['fake'] ?? 0), 'seen' => (int)($u['seen'] ?? 0)]; }
+function jr_profile(array $p): array { $d = pdata($p); $pl = $p['place_id'] ? row('SELECT id,code,name,city,kind,gender,trusted,lat,lng FROM places WHERE id=?', [$p['place_id']]) : null;
+    $fam = fn($pid) => (string)(pdata(row('SELECT data FROM profiles WHERE id=?', [$pid]) ?? ['data' => '{}'])['family'] ?? '—');
+    $inv = fn($col, $other) => array_map(fn($i) => ['with' => $fam($i[$other]), 'status' => $i['status'], 'at' => (int)$i['created'], 'resp' => (int)($i['responded'] ?? 0)], rows("SELECT * FROM invites WHERE $col=? ORDER BY created DESC LIMIT 20", [$p['id']]));
+    $out = ['id' => $p['id'], 'label' => (string)$p['label'], 'kind' => (string)$p['kind'], 'complete' => (int)$p['complete'], 'step' => (int)$p['step'], 'created' => (int)$p['created'], 'updated' => (int)$p['updated'],
+        'place' => $pl ? ['code' => $pl['code'], 'name' => $pl['name'], 'city' => $pl['city'], 'kind' => $pl['kind'], 'gender' => $pl['gender'], 'trusted' => (int)($pl['trusted'] ?? 0)] : null,
+        'd' => ['family' => (string)($d['family'] ?? ''), 'role' => (string)($d['role'] ?? ''), 'seats' => (int)($d['seats'] ?? 0), 'days' => array_values((array)($d['days'] ?? [])), 'job' => (string)($d['job'] ?? ''), 'relig' => !empty($d['relig']), 'daily' => !empty($d['daily']),
+            'hood' => (string)($d['hood'] ?? ''), 'contact' => (string)($d['contact'] ?? ''), 'rel' => (string)($d['rel'] ?? ''), 'kids' => array_map(fn($k) => ['first' => (string)($k['first'] ?? ''), 'g' => (string)($k['g'] ?? ''), 'age' => isset($k['by']) ? max(0, jyear() - (int)$k['by']) : null], (array)($d['kids'] ?? [])),
+            'needs' => $d['needs'] ?? null, 'rules' => !empty($d['rules_at']), 'located' => isset($d['lat'])],
+        'peers' => $pl ? (int)q('SELECT COUNT(*) FROM profiles WHERE place_id=? AND id<>? AND complete=1', [$pl['id'], $p['id']])->fetchColumn() : 0,
+        'inv_out' => $inv('from_p', 'to_p'), 'inv_in' => $inv('to_p', 'from_p'),
+        'unread' => (int)q('SELECT COUNT(*) FROM notes WHERE profile_id=? AND rd=0', [$p['id']])->fetchColumn(), 'team' => null];
+    if ($p['team_id'] && ($t = row('SELECT * FROM teams WHERE id=?', [$p['team_id']]))) {
+        $ms = rows('SELECT * FROM profiles WHERE team_id=? ORDER BY created', [$t['id']]); $names = []; foreach ($ms as $m) $names[$m['id']] = (string)(pdata($m)['family'] ?? '');
+        $trips = array_map(function ($r) use ($names) { $ev = json_decode((string)($r['ev'] ?? ''), true) ?: []; $arr = json_decode((string)($r['arr'] ?? ''), true) ?: [];
+            return ['wk' => $r['wk'], 'slot' => $r['slot'], 'status' => $r['status'], 'exec' => $names[$r['exec']] ?? '', 'exec_id' => $r['exec'], 'start' => (int)($ev['start'] ?? 0), 'depart' => (int)($ev['depart'] ?? 0), 'arrive' => (int)($ev['arrive'] ?? 0),
+                'bp' => array_map('intval', (array)($ev['bp'] ?? [])), 'arr' => count($arr), 'board' => count((array)($ev['board'] ?? [])), 'empty' => (int)$r['empty'], 'thanks' => (int)$r['thanks'], 'at' => (int)$r['updated']]; },
+            rows('SELECT * FROM trips WHERE team_id=? ORDER BY updated DESC LIMIT 24', [$t['id']]));
+        $bal = 0; foreach (rows('SELECT d FROM ledger WHERE team_id=?', [$t['id']]) as $l) $bal += (int)((json_decode((string)$l['d'], true) ?: [])[$p['id']] ?? 0);
+        $mc = []; foreach (rows('SELECT profile_id, COUNT(*) n, MAX(created) last, SUM(urgent) u FROM msgs WHERE team_id=? GROUP BY profile_id', [$t['id']]) as $r) $mc[$r['profile_id']] = ['n' => (int)$r['n'], 'last' => (int)$r['last'], 'u' => (int)$r['u']];
+        $out['team'] = ['no' => (int)$t['no'], 'hood' => (string)$t['hood'], 'color' => (int)$t['color'], 'created' => (int)$t['created'], 'price' => (int)$t['price'], 'premium' => (int)$t['premium'],
+            'pact' => trim((string)($t['pact'] ?? '')) !== '', 'pact_at' => (int)($t['pact_at'] ?? 0), 'agree' => json_decode((string)($t['agree'] ?? '[]'), true) ?: [],
+            'members' => array_map(fn($m) => jr_member($m, $p['id']) + ['msgs' => $mc[$m['id']] ?? ['n' => 0, 'last' => 0, 'u' => 0]], $ms), 'sys_msgs' => $mc['system']['n'] ?? 0,
+            'trips' => $trips, 'balance' => $bal, 'wk' => week_key(), 'live' => (int)(row('SELECT at FROM live WHERE team_id=?', [$t['id']])['at'] ?? 0)];
+    }
+    return $out; }
+function schema13(PDO $p): void { // v24
+    try { $p->exec("CREATE TABLE IF NOT EXISTS webpush (id VARCHAR(40) PRIMARY KEY, user_id VARCHAR(40), endpoint TEXT, p256dh VARCHAR(140), auth VARCHAR(60), ua VARCHAR(60), created INT, ok INT DEFAULT 0, fail INT DEFAULT 0)"); } catch (Throwable $e) {}
+    setv('schema', '13', $p);
 }
 function schema12(PDO $p): void { // v20
     $K = 'VARCHAR(40)';
@@ -485,10 +526,50 @@ function team_leave(array $p): string {
     return 'left';
 }
 function note(string $pid, string $text, string $kind = 'info', ?string $ref = null): void { q('INSERT INTO notes(id,profile_id,text,kind,ref,rd,created) VALUES(?,?,?,?,?,0,?)', [uid(), $pid, mb_substr($text, 0, 250), $kind, $ref, time()]);
-    if (in_array($kind, ['trip', 'invite', 'team', 'near', 'urgent'], true)) push_queue(fam_users($pid), 'رسیدیم', $text); }
-/* ───────── push (Firebase Cloud Messaging v1). Optional: works only when the admin pasted a service-account JSON and the app was built with google-services.json ───────── */
-function push_queue(array $uids, string $title, string $body): void { static $reg = false; if (!$uids || !C('fcm_service_json')) return; $GLOBALS['PUSHQ'][] = [$uids, $title, $body];
-    if (!$reg) { $reg = true; register_shutdown_function(function () { if (function_exists('fastcgi_finish_request')) @fastcgi_finish_request(); foreach ($GLOBALS['PUSHQ'] ?? [] as [$u, $t, $b]) push_send($u, $t, $b); }); } }
+    if (in_array($kind, ['trip', 'invite', 'team', 'near', 'urgent'], true)) push_queue(fam_users($pid), $kind === 'urgent' ? 'رسیدیم · فوری ⚡' : 'رسیدیم', $text, $kind); }
+/* ───────── push. 1) Web Push from our own PHP (VAPID + RFC 8291 aes128gcm): no Firebase project, no Google key.
+   The browser's own push service carries it (Chrome → Google's, Firefox → Mozilla's, Safari → Apple's).
+   2) FCM v1 stays optional for the Android app, only if an admin ever pastes a service-account JSON. ───────── */
+function push_queue(array $uids, string $title, string $body, string $kind = 'info'): void { static $reg = false; if (!$uids) return; $GLOBALS['PUSHQ'][] = [$uids, $title, $body, $kind];
+    if (!$reg) { $reg = true; register_shutdown_function(function () { if (function_exists('fastcgi_finish_request')) @fastcgi_finish_request(); foreach ($GLOBALS['PUSHQ'] ?? [] as [$u, $t, $b, $k]) { try { wp_send($u, $t, $b, $k); } catch (Throwable $e) {} if (C('fcm_service_json')) push_send($u, $t, $b); } }); } }
+function b64u(string $x): string { return rtrim(strtr(base64_encode($x), '+/', '-_'), '='); }
+function b64ud(string $x): string { return (string)base64_decode(strtr($x, '-_', '+/') . str_repeat('=', (4 - strlen($x) % 4) % 4)); }
+/** VAPID key pair, made once on our host and kept in the settings table (never in git). */
+function vapid(): ?array { $pem = (string)getv('vapid_priv', '');
+    if ($pem === '') { $k = @openssl_pkey_new(['curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC]); if (!$k || !openssl_pkey_export($k, $pem)) return null; setv('vapid_priv', $pem); }
+    $k = openssl_pkey_get_private($pem); if (!$k) return null; $d = openssl_pkey_get_details($k)['ec'] ?? null; if (!$d) return null;
+    return ['key' => $k, 'pub' => "\x04" . str_pad($d['x'], 32, "\0", STR_PAD_LEFT) . str_pad($d['y'], 32, "\0", STR_PAD_LEFT)]; }
+function hkdf_(string $salt, string $ikm, string $info, int $len): string { return substr(hash_hmac('sha256', $info . "\x01", hash_hmac('sha256', $ikm, $salt, true), true), 0, $len); }
+/** DER ECDSA signature → raw r||s (JWS ES256). */
+function der2raw(string $der): string { $o = 3; $rl = ord($der[$o]); $r = substr($der, $o + 1, $rl); $o += 1 + $rl + 1; $sl = ord($der[$o]); $sv = substr($der, $o + 1, $sl);
+    return str_pad(ltrim($r, "\0"), 32, "\0", STR_PAD_LEFT) . str_pad(ltrim($sv, "\0"), 32, "\0", STR_PAD_LEFT); }
+/** RFC 8291 payload encryption (aes128gcm, one record). */
+function wp_encrypt(string $payload, string $uaPub, string $auth): ?string {
+    $eph = openssl_pkey_new(['curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC]); if (!$eph) return null; $d = openssl_pkey_get_details($eph)['ec'];
+    $asPub = "\x04" . str_pad($d['x'], 32, "\0", STR_PAD_LEFT) . str_pad($d['y'], 32, "\0", STR_PAD_LEFT);
+    $der = hex2bin('3059301306072a8648ce3d020106082a8648ce3d030107034200') . $uaPub;
+    $peer = openssl_pkey_get_public("-----BEGIN PUBLIC KEY-----\n" . chunk_split(base64_encode($der), 64, "\n") . "-----END PUBLIC KEY-----\n"); if (!$peer) return null;
+    $shared = openssl_pkey_derive($peer, $eph, 32); if ($shared === false) return null;
+    $ikm = hkdf_($auth, $shared, "WebPush: info\0" . $uaPub . $asPub, 32); $salt = random_bytes(16);
+    $cek = hkdf_($salt, $ikm, "Content-Encoding: aes128gcm\0", 16); $nonce = hkdf_($salt, $ikm, "Content-Encoding: nonce\0", 12);
+    $ct = openssl_encrypt($payload . "\x02", 'aes-128-gcm', $cek, OPENSSL_RAW_DATA, $nonce, $tag); if ($ct === false) return null;
+    return $salt . pack('N', 4096) . chr(65) . $asPub . $ct . $tag; }
+/** Send one Web Push to each subscription of these users. Returns how many the push services accepted. */
+function wp_send(array $uids, string $title, string $body, string $kind = 'info'): int { if (!$uids) return 0; $v = vapid(); if (!$v) return 0; $n = 0;
+    $in = implode(',', array_fill(0, count($uids), '?'));
+    $msg = json_encode(['t' => $title, 'b' => mb_substr($body, 0, 240), 'k' => $kind, 'at' => time()], JSON_UNESCAPED_UNICODE);
+    foreach (rows("SELECT * FROM webpush WHERE user_id IN ($in)", $uids) as $s) {
+        $u = parse_url((string)$s['endpoint']); if (empty($u['scheme']) || $u['scheme'] !== 'https' || empty($u['host'])) continue;
+        $h = b64u(json_encode(['typ' => 'JWT', 'alg' => 'ES256'])) . '.' . b64u(json_encode(['aud' => 'https://' . $u['host'], 'exp' => time() + 12 * 3600, 'sub' => 'mailto:' . (string)C('support_email', 'info@residim.ir')]));
+        if (!openssl_sign($h, $sig, $v['key'], OPENSSL_ALGO_SHA256)) continue; $jwt = $h . '.' . b64u(der2raw($sig));
+        $body8 = wp_encrypt($msg, b64ud((string)$s['p256dh']), b64ud((string)$s['auth'])); if ($body8 === null) continue;
+        $c = curl_init((string)$s['endpoint']); curl_setopt_array($c, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $body8, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 8, CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/octet-stream', 'Content-Encoding: aes128gcm', 'TTL: ' . ($kind === 'urgent' || $kind === 'trip' ? 1800 : 86400), 'Urgency: ' . (in_array($kind, ['urgent', 'trip'], true) ? 'high' : 'normal'), 'Authorization: vapid t=' . $jwt . ', k=' . b64u($v['pub'])]]);
+        curl_exec($c); $code = (int)curl_getinfo($c, CURLINFO_HTTP_CODE); curl_close($c);
+        if ($code >= 200 && $code < 300) { $n++; q('UPDATE webpush SET ok=ok+1 WHERE id=?', [$s['id']]); }
+        elseif ($code === 404 || $code === 410) q('DELETE FROM webpush WHERE id=?', [$s['id']]);
+        else q('UPDATE webpush SET fail=fail+1 WHERE id=?', [$s['id']]); }
+    return $n; }
 function fcm_token(array $sa): ?string {
     $c = json_decode((string)getv('fcm_tok', ''), true); if ($c && $c['exp'] > time() + 60) return $c['t'];
     $b64 = fn($x) => rtrim(strtr(base64_encode($x), '+/', '-_'), '='); $now = time();
@@ -549,8 +630,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' && $a !== 'cfg') NO('روش
 try {
 switch ($a) {
 
-case 'cfg': daily_backup(); YES(['web_key' => getv('map_provider', 'neshan') === 'neshan' ? (string)C('neshan_web_key') : '', 'map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '75000'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'service' => (bool)C('neshan_service_key'), 'sms' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'),
-    'flags' => ['trip_scene' => getv('trip_scene', '1') === '1', 'family_link' => getv('family_link', '1') === '1', 'cand_swipe' => getv('cand_swipe', '0') === '1', 'trip_window' => getv('trip_window', '0') === '1', 'bismillah' => getv('bismillah', '1') === '1', 'bism_tv' => getv('bism_tv', '1') === '1', 'price_poll' => getv('price_poll', '0') === '1', 'trusted_driver' => getv('trusted_driver', '0') === '1', 'sms_direct' => flag('sms_direct'), 'otp_bale' => flag('otp_bale') && (bool)C('bale_client_id'), 'test_tools' => flag('test_tools'), 'auto_arrive' => flag('auto_arrive'), 'sms_arrive' => flag('sms_arrive'), 'signup_open' => flag('signup_open'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')], 'donate' => ['card' => (string)getv('donate_card', ''), 'name' => (string)getv('donate_name', ''), 'gateway' => flag('pay_gateway') && (bool)pp_token(), 'test' => getv('pay_env', 'test') !== 'live'], 'notice' => (string)getv('notice', ''), 'tips' => json_decode((string)getv('tips', ''), true) ?: null, 'app' => ['ver' => (string)getv('app_ver', ''), 'url' => (string)getv('app_url', '')], 'jyear' => jyear(), 'wk' => week_key(), 'radio_votes' => (int)getv('radio_votes', '0')]);
+case 'cfg': daily_backup(); YES(['vapid' => ($vv = vapid()) ? b64u($vv['pub']) : '', 'web_key' => getv('map_provider', 'neshan') === 'neshan' ? (string)C('neshan_web_key') : '', 'map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '75000'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'service' => (bool)C('neshan_service_key'), 'sms' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'),
+    'flags' => ['trip_scene' => getv('trip_scene', '1') === '1', 'family_link' => getv('family_link', '1') === '1', 'cand_swipe' => getv('cand_swipe', '0') === '1', 'trip_window' => getv('trip_window', '0') === '1', 'bismillah' => getv('bismillah', '1') === '1', 'price_poll' => getv('price_poll', '0') === '1', 'trusted_driver' => getv('trusted_driver', '0') === '1', 'sms_direct' => flag('sms_direct'), 'otp_bale' => flag('otp_bale') && (bool)C('bale_client_id'), 'test_tools' => flag('test_tools'), 'auto_arrive' => flag('auto_arrive'), 'sms_arrive' => flag('sms_arrive'), 'signup_open' => flag('signup_open'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')], 'donate' => ['card' => (string)getv('donate_card', ''), 'name' => (string)getv('donate_name', ''), 'gateway' => flag('pay_gateway') && (bool)pp_token(), 'test' => getv('pay_env', 'test') !== 'live'], 'notice' => (string)getv('notice', ''), 'tips' => json_decode((string)getv('tips', ''), true) ?: null, 'app' => ['ver' => (string)getv('app_ver', ''), 'url' => (string)getv('app_url', '')], 'jyear' => jyear(), 'wk' => week_key(), 'radio_votes' => (int)getv('radio_votes', '0')]);
 
 /* auth */
 case 'dup_send': { $u = auth(); $o = row('SELECT p.*, u.phone FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.id=?', [(string)($in['other'] ?? '')]); if (!$o || !$o['phone']) NO('برای این مسیرک کدی لازم نیست.'); $in['phone'] = $o['phone']; $in['channel'] = ''; }
@@ -856,6 +937,13 @@ case 'team_agree': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'
 case 'team_pact': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); if (!$me['team_id']) NO('تیم ندارید.'); $t = mb_substr(trim((string)($in['text'] ?? '')), 0, 600);
     q('UPDATE teams SET pact=?, pact_by=?, pact_at=? WHERE id=?', [$t, $me['id'], time(), $me['team_id']]); $fam = pdata($me)['family'] ?? '';
     foreach (rows('SELECT id FROM profiles WHERE team_id=?', [$me['team_id']]) as $m) if ($m['id'] !== $me['id']) note($m['id'], "خانواده $fam «قرار تیم» را به‌روز کرد؛ در گفتگو ببینید.", 'team'); YES(); }
+case 'wp_sub': { $u = auth(); $ep = trim((string)($in['endpoint'] ?? '')); $k = (array)($in['keys'] ?? []);
+    if (!preg_match('#^https://[^\s]{10,900}$#', $ep) || strlen(b64ud((string)($k['p256dh'] ?? ''))) !== 65 || strlen(b64ud((string)($k['auth'] ?? ''))) < 16) NO('اشتراک اعلان نامعتبر است.');
+    $id = sha1($ep); q('DELETE FROM webpush WHERE id=?', [$id]);
+    q('INSERT INTO webpush(id,user_id,endpoint,p256dh,auth,ua,created) VALUES(?,?,?,?,?,?,?)', [$id, $u['user_id'], $ep, (string)$k['p256dh'], (string)$k['auth'], mb_substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 60), time()]);
+    $all = rows('SELECT id FROM webpush WHERE user_id=? ORDER BY created DESC', [$u['user_id']]); foreach (array_slice($all, 6) as $o) q('DELETE FROM webpush WHERE id=?', [$o['id']]); // max 6 devices
+    YES(); }
+case 'wp_unsub': { $u = auth(); q('DELETE FROM webpush WHERE id=? AND user_id=?', [sha1(trim((string)($in['endpoint'] ?? ''))), $u['user_id']]); YES(); }
 case 'push_reg': { $u = auth(); $t = mb_substr(trim((string)($in['token'] ?? '')), 0, 250); if (strlen($t) < 20) NO('توکن نامعتبر.'); q('DELETE FROM push_tokens WHERE token=?', [$t]); q('INSERT INTO push_tokens(token,user_id,created) VALUES(?,?,?)', [$t, $u['user_id'], time()]); YES(); }
 case 'fam_code': { $u = auth(); if (!fam_on()) NO('این امکان فعلاً خاموش است.'); $p = my_profile($u, (string)($in['profile_id'] ?? '')); if (!$u['phone']) NO('اول شماره‌تان را تأیید کنید.');
     $c = code8(); q('DELETE FROM fam_codes WHERE created<?', [time() - 172800]); q('INSERT INTO fam_codes(code,profile_id,by_user,created) VALUES(?,?,?,?)', [$c, $p['id'], $u['user_id'], time()]); YES(['code' => $c, 'link' => 'https://residim.ir/#fam/' . $c]); }
@@ -1079,12 +1167,12 @@ case 'admin_overview': {
     need_admin(); $c = fn($s, $a = []) => (int)q($s, $a)->fetchColumn();
     YES(['counts' => ['users' => $c('SELECT COUNT(*) FROM users WHERE fake=0'), 'fake' => $c('SELECT COUNT(*) FROM users WHERE fake=1'), 'profiles' => $c('SELECT COUNT(*) FROM profiles WHERE fake=0'), 'complete' => $c('SELECT COUNT(*) FROM profiles WHERE complete=1 AND fake=0'),
         'places' => $c('SELECT COUNT(*) FROM places'), 'teams' => $c('SELECT COUNT(*) FROM teams'), 'invites' => $c("SELECT COUNT(*) FROM invites WHERE status='pending'"), 'tickets' => $c("SELECT COUNT(*) FROM tickets WHERE status='open'"), 'sms_day' => $c('SELECT COUNT(*) FROM sms WHERE created>?', [time() - 86400]), 'unseen' => $c('SELECT COUNT(*) FROM tickets WHERE seen=0 OR seen IS NULL'), 'errors_day' => $c('SELECT COUNT(*) FROM errors WHERE last>?', [time() - 86400]), 'app_users' => $c("SELECT COUNT(*) FROM users WHERE client LIKE 'android%'"), 'fb' => $c('SELECT COUNT(*) FROM feedback'), 'paid' => $c("SELECT COUNT(*) FROM payments WHERE status='paid' AND env='live'")],
-        'flags' => ['trip_scene' => getv('trip_scene', '1') === '1', 'family_link' => getv('family_link', '1') === '1', 'cand_swipe' => getv('cand_swipe', '0') === '1', 'trip_window' => getv('trip_window', '0') === '1', 'bismillah' => getv('bismillah', '1') === '1', 'bism_tv' => getv('bism_tv', '1') === '1', 'price_poll' => getv('price_poll', '0') === '1', 'trusted_driver' => getv('trusted_driver', '0') === '1', 'sms_invite' => flag('sms_invite'), 'sms_arrive' => flag('sms_arrive'), 'auto_arrive' => flag('auto_arrive'), 'test_tools' => flag('test_tools'), 'signup_open' => flag('signup_open'), 'otp_dev' => flag('otp_dev'), 'sms_direct' => flag('sms_direct'), 'otp_bale' => flag('otp_bale'), 'pay_gateway' => flag('pay_gateway'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')],
+        'flags' => ['trip_scene' => getv('trip_scene', '1') === '1', 'family_link' => getv('family_link', '1') === '1', 'cand_swipe' => getv('cand_swipe', '0') === '1', 'trip_window' => getv('trip_window', '0') === '1', 'bismillah' => getv('bismillah', '1') === '1', 'price_poll' => getv('price_poll', '0') === '1', 'trusted_driver' => getv('trusted_driver', '0') === '1', 'sms_invite' => flag('sms_invite'), 'sms_arrive' => flag('sms_arrive'), 'auto_arrive' => flag('auto_arrive'), 'test_tools' => flag('test_tools'), 'signup_open' => flag('signup_open'), 'otp_dev' => flag('otp_dev'), 'sms_direct' => flag('sms_direct'), 'otp_bale' => flag('otp_bale'), 'pay_gateway' => flag('pay_gateway'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')],
         'settings' => ['map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '75000'), 'free_permanent' => (int)getv('free_permanent', '1'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'sub_interest' => (int)getv('sub_interest', '0'), 'kave_sender' => (string)getv('kave_sender', ''), 'kave_sender_auto' => (string)getv('kave_sender_auto', ''), 'donate_card' => (string)getv('donate_card', ''), 'donate_name' => (string)getv('donate_name', ''), 'engine' => db_engine(), 'sms_provider' => getv('sms_provider', 'kavenegar'), 'pay_env' => getv('pay_env', 'test'), 'notice' => (string)getv('notice', ''), 'tips' => (string)getv('tips', ''), 'app_ver' => (string)getv('app_ver', ''), 'app_url' => (string)getv('app_url', '')],
         'services' => ['db' => db_engine(), 'php' => PHP_VERSION, 'sms_provider' => getv('sms_provider', 'kavenegar'), 'smsir' => (bool)C('smsir_api_key'), 'payping' => (bool)(C('payping_token_live') || C('payping_token_test')), 'kavenegar' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'), 'neshan_service' => (bool)C('neshan_service_key'), 'neshan_web' => (bool)C('neshan_web_key'), 'curl' => function_exists('curl_init'), 'tpl_login' => C('kavenegar_template', 'residim-login'), 'tpl_invite' => C('kavenegar_tpl_invite'), 'tpl_arrived' => C('kavenegar_tpl_arrived')],
         'default_pass' => C('admin_pass') === 'mot']);
 }
-case 'admin_flag': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_array($k, ['sms_invite', 'sms_arrive', 'auto_arrive', 'test_tools', 'signup_open', 'otp_dev', 'sms_direct', 'otp_bale', 'pay_gateway', 'league_on', 'paid_mode', 'station_on', 'trip_scene', 'family_link', 'cand_swipe', 'trip_window', 'trusted_driver', 'bismillah', 'bism_tv', 'price_poll'], true)) NO('کلید نامعتبر.'); setv($k, !empty($in['v']) ? '1' : '0'); YES(); }
+case 'admin_flag': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_array($k, ['sms_invite', 'sms_arrive', 'auto_arrive', 'test_tools', 'signup_open', 'otp_dev', 'sms_direct', 'otp_bale', 'pay_gateway', 'league_on', 'paid_mode', 'station_on', 'trip_scene', 'family_link', 'cand_swipe', 'trip_window', 'trusted_driver', 'bismillah', 'price_poll'], true)) NO('کلید نامعتبر.'); setv($k, !empty($in['v']) ? '1' : '0'); YES(); }
 case 'sub_interest': { $u = auth(); $k = 'subi_' . $u['user_id']; if (getv($k) === null) { setv($k, (string)time()); setv('sub_interest', (string)((int)getv('sub_interest', '0') + 1)); } YES(); }
 case 'admin_seen': { need_admin(); q('UPDATE tickets SET seen=1 WHERE seen=0 OR seen IS NULL'); YES(); }
 case 'admin_ticket_close': { need_admin(); q("UPDATE tickets SET status=?, updated=? WHERE id=?", [!empty($in['open']) ? 'open' : 'closed', time(), (string)($in['id'] ?? '')]); YES(); }
@@ -1187,8 +1275,10 @@ case 'admin_teams': { need_admin(); $l = []; foreach (rows('SELECT t.*, p.name p
 case 'admin_team': { need_admin(); q('UPDATE teams SET premium=? WHERE id=?', [!empty($in['premium']) ? 1 : 0, (string)($in['id'] ?? '')]); YES(); }
 case 'admin_tickets': { need_admin(); YES(['list' => rows('SELECT t.id,t.no,t.cat,t.text,t.status,t.reply,t.created,t.name,t.contact,t.seen,u.phone FROM tickets t LEFT JOIN users u ON u.id=t.user_id ORDER BY t.created DESC LIMIT 200')]); }
 case 'admin_ticket': { need_admin(); q('UPDATE tickets SET reply=?, status=?, updated=? WHERE id=?', [mb_substr((string)($in['reply'] ?? ''), 0, 2000), in_array($in['status'] ?? '', ['open', 'answered', 'closed'], true) ? $in['status'] : 'answered', time(), (string)($in['id'] ?? '')]); YES(); }
-case 'admin_push_test': { need_admin(); if (!C('fcm_service_json')) NO('اول JSON حساب سرویس فایربیس را ذخیره کنید.'); $u0 = row('SELECT id FROM users WHERE phone=?', [phone_norm((string)($in['phone'] ?? '')) ?: '-']); if (!$u0) NO('کاربری با این شماره نیست.');
-    if (!row('SELECT 1 FROM push_tokens WHERE user_id=?', [$u0['id']])) NO('این کاربر هنوز اپ با اعلان سرور را باز نکرده است.'); YES(['n' => push_send([$u0['id']], 'رسیدیم 🚗', 'اعلان آزمایشی: اگر این را می‌بینید، خبرهای مهم حتی با اپ بسته می‌رسد.')]); }
+case 'admin_push_test': { need_admin(); $u0 = row('SELECT id FROM users WHERE phone=?', [phone_norm((string)($in['phone'] ?? '')) ?: '-']); if (!$u0) NO('کاربری با این شماره نیست.');
+    $w = (int)q('SELECT COUNT(*) FROM webpush WHERE user_id=?', [$u0['id']])->fetchColumn(); $f = C('fcm_service_json') && row('SELECT 1 FROM push_tokens WHERE user_id=?', [$u0['id']]);
+    if (!$w && !$f) NO('این کاربر هنوز اعلان را روشن نکرده است (منو ← تنظیمات ← اعلان‌ها، در مرورگر یا نسخه‌ی نصب‌شده‌ی سایت).');
+    $t = 'رسیدیم 🚗'; $b = 'اعلان آزمایشی: اگر این را می‌بینید، خبرهای مهم حتی با برنامه‌ی بسته می‌رسد.'; YES(['n' => wp_send([$u0['id']], $t, $b, 'info') + ($f ? push_send([$u0['id']], $t, $b) : 0), 'subs' => $w]); }
 case 'admin_user_delete': { need_admin(); $id = (string)($in['id'] ?? ''); $u0 = row('SELECT * FROM users WHERE id=?', [$id]); if (!$u0) NO('کاربر پیدا نشد.');
     foreach (rows('SELECT id FROM profiles WHERE user_id=?', [$id]) as $p) wipe_profile($p['id']); foreach (['tokens', 'fam_links', 'push_tokens'] as $tb) { try { q("DELETE FROM $tb WHERE user_id=?", [$id]); } catch (Throwable $e) {} } q('DELETE FROM users WHERE id=?', [$id]); YES(); }
 case 'admin_events': { need_admin(); $after = (int)($in['after'] ?? 0);
@@ -1204,9 +1294,48 @@ case 'admin_launch': { need_admin(); $c = fn($sql, $a = []) => (int)q($sql, $a)-
     YES(['auto' => [
         'pass' => (string)C('admin_pass', 'mot') !== 'mot', 'sms' => sms_ready(), 'sms_ok' => $smsOk > 0, 'otp_dev' => !$ok('otp_dev'), 'test_tools' => !$ok('test_tools'),
         'fake' => $c('SELECT COUNT(*) FROM users WHERE fake=1') === 0, 'trip_window' => $ok('trip_window'), 'league' => !$ok('league_on'), 'backup' => count($bk) > 0,
-        'neshan' => (bool)C('neshan_service_key'), 'app' => is_file(__DIR__ . '/../android.json'), 'fcm' => (bool)C('fcm_service_json'), 'mysql' => db_engine() === 'mysql',
+        'neshan' => (bool)C('neshan_service_key'), 'app' => is_file(__DIR__ . '/../android.json'), 'fcm' => (bool)C('fcm_service_json') || (int)q('SELECT COUNT(*) FROM webpush')->fetchColumn() > 0, 'mysql' => db_engine() === 'mysql',
         'signup' => $ok('signup_open'), 'places' => $c('SELECT COUNT(*) FROM places WHERE nv=1') > 50], 'manual' => json_decode((string)getv('launch_chk', '{}'), true) ?: (object)[]]); }
 case 'admin_launch_set': { need_admin(); $m = json_decode((string)getv('launch_chk', '{}'), true) ?: []; $k = preg_replace('/[^a-z_]/', '', (string)($in['k'] ?? '')); if ($k === '') NO('کلید نامعتبر.'); $m[$k] = !empty($in['v']); setv('launch_chk', json_encode($m)); YES(); }
+case 'admin_journey': { need_admin(); $uid = (string)($in['uid'] ?? '');
+    if ($uid === '') YES(['list' => array_map(fn($u) => $u + ['fams' => jr_fams($u['id'])], jr_find((string)($in['q'] ?? '')))]);
+    $u = row('SELECT * FROM users WHERE id=?', [$uid]); if (!$u) NO('کاربر پیدا نشد.');
+    $ph = (string)($u['phone'] ?? '');
+    YES(['user' => ['id' => $u['id'], 'phone' => $ph, 'fake' => (int)$u['fake'], 'created' => (int)$u['created'], 'seen' => (int)($u['seen'] ?? 0), 'client' => (string)($u['client'] ?? ''), 'premium_until' => (int)($u['premium_until'] ?? 0)],
+        'otp' => $ph ? row('SELECT sent,tries,hour_count FROM otps WHERE phone=?', [$ph]) : null,
+        'sms' => $ph ? rows('SELECT tpl,status,created FROM sms WHERE phone=? ORDER BY created DESC LIMIT 8', [$ph]) : [],
+        'push' => ['web' => (int)q('SELECT COUNT(*) FROM webpush WHERE user_id=?', [$uid])->fetchColumn(), 'fcm' => (int)q('SELECT COUNT(*) FROM push_tokens WHERE user_id=?', [$uid])->fetchColumn()],
+        'tickets' => rows('SELECT no,cat,status,text,created FROM tickets WHERE user_id=? ORDER BY created DESC LIMIT 5', [$uid]),
+        'feedback' => (int)q('SELECT COUNT(*) FROM feedback WHERE user_id=?', [$uid])->fetchColumn(), 'price' => row('SELECT fair,high FROM price_poll WHERE user_id=?', [$uid]),
+        'watch' => array_map(fn($f) => ['family' => (string)(pdata(row('SELECT data FROM profiles WHERE id=?', [$f['profile_id']]) ?? ['data' => '{}'])['family'] ?? ''), 'role' => $f['role']], rows('SELECT * FROM fam_links WHERE user_id=?', [$uid])),
+        'profiles' => array_map('jr_profile', rows('SELECT * FROM profiles WHERE user_id=? ORDER BY created', [$uid])), 'now' => time()]); }
+/* a ready-made test family with a real-looking story: two neighbours, a team, a pact, finished, running and missed trips */
+case 'admin_demo_journey': { need_admin();
+    $pl = row("SELECT * FROM places WHERE name=? AND fake=1", ['دبستان نمونه‌ی رسیدیم']);
+    if (!$pl) { $pid0 = uid(); q('INSERT INTO places(id,code,kind,name,city,gender,shift,lat,lng,t_in,t_out,days,created_by,verified,fake,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,1,1,?)', [$pid0, strtoupper(substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZ23456789'), 0, 8)), 'school', 'دبستان نمونه‌ی رسیدیم', 'قم', 'f', '', 34.6401, 50.8764, '07:30', '13:30', '0,1,2,3,4', null, time()]); $pl = row('SELECT * FROM places WHERE id=?', [$pid0]); }
+    $uidv = uid(); q('INSERT INTO users(id,phone,fake,created,seen,client) VALUES(?,?,1,?,?,?)', [$uidv, '0900' . str_pad((string)random_int(0, 9999999), 7, '0', STR_PAD_LEFT), time() - 9 * 86400, time() - 3600, 'web']);
+    $fam = FAMS[array_rand(FAMS)]; $now = time();
+    $data = ['family' => $fam, 'pg' => 'm', 'rel' => 'father', 'kids' => [['id' => uid(8), 'first' => GIRLS[array_rand(GIRLS)], 'g' => 'f', 'by' => jyear() - 9], ['id' => uid(8), 'first' => GIRLS[array_rand(GIRLS)], 'g' => 'f', 'by' => jyear() - 7]],
+        'hood' => 'صفاشهر', 'lat' => 34.6448, 'lng' => 50.8812, 'needs' => ['out' => true, 'back' => true], 'role' => 'both', 'days' => [0, 2, 4], 'seats' => 2, 'snapp' => 110000, 'job' => 'teacher', 'rules_at' => $now - 8 * 86400, 'contact' => 'app'];
+    $me = uid(); q('INSERT INTO profiles(id,user_id,place_id,label,kind,color,data,step,complete,team_id,fake,created,updated) VALUES(?,?,?,?,?,?,?,99,1,NULL,1,?,?)', [$me, $uidv, $pl['id'], $pl['name'], 'school', 0, json_encode($data, JSON_UNESCAPED_UNICODE), $now - 9 * 86400, $now - 86400]);
+    $meP = row('SELECT * FROM profiles WHERE id=?', [$me]); $m1 = make_fake($meP, $pl, true); $m2 = make_fake($meP, $pl, false); $m3 = make_fake($meP, $pl, true);
+    q('INSERT INTO invites(id,from_p,to_p,status,created,responded) VALUES(?,?,?,?,?,?)', [uid(), $me, $m1, 'accepted', $now - 7 * 86400, $now - 7 * 86400 + 5400]);
+    q('INSERT INTO invites(id,from_p,to_p,status,created,responded) VALUES(?,?,?,?,?,?)', [uid(), $m2, $me, 'accepted', $now - 6 * 86400, $now - 6 * 86400 + 900]);
+    q('INSERT INTO invites(id,from_p,to_p,status,created,responded) VALUES(?,?,?,?,?,NULL)', [uid(), $m3, $me, 'pending', $now - 2 * 86400]);
+    $t = team_create($pl, [row('SELECT * FROM profiles WHERE id=?', [$me]), row('SELECT * FROM profiles WHERE id=?', [$m1])]); team_join($t, row('SELECT * FROM profiles WHERE id=?', [$m2]));
+    q('UPDATE teams SET created=?, pact=?, pact_by=?, pact_at=?, agree=? WHERE id=?', [$now - 7 * 86400, 'رأس ساعت دم در؛ تأخیر بیش از ۵ دقیقه با پیام فوری خبر می‌دهیم.', $me, $now - 6 * 86400, json_encode([$me, $m1]), $t['id']]);
+    foreach ([[$me, 'سلام! خوشحالیم هم‌مسیر شدیم 🌸', 6.9], ['system', 'خانواده ' . $fam . ' «توافق کردیم» را زد.', 6.0], [$m1, 'فردا من می‌برم؛ ساعت ۷:۱۰ دم در باشید.', 1.2], [$me, 'چشم، ممنون', 1.1]] as [$who, $tx, $ago])
+        q('INSERT INTO msgs(id,team_id,profile_id,text,created,urgent) VALUES(?,?,?,?,?,0)', [uid(), $t['id'], $who, $tx, $now - (int)($ago * 86400)]);
+    $wk = week_key(); $dw = ((int)date('w') + 1) % 7; $mk = function ($slot, $status, $exec, $ago, $boardAll, $arr) use ($t, $wk, $me, $m1, $m2, $now) { $st = $now - (int)($ago * 3600);
+        $ev = ['start' => $st, 'depart' => $st + 180, 'board' => [], 'bp' => $boardAll ? [$me => $st + 400, $m1 => $st + 60, $m2 => $st + 700] : [$exec => $st + 60, $me => $st + 420]] + ($arr ? ['arrive' => $st + 1500] : []);
+        q('INSERT INTO trips(id,team_id,wk,slot,status,exec,arr,`empty`,thanks,updated,ev) VALUES(?,?,?,?,?,?,?,?,?,?,?)', [$t['id'] . '|' . $wk . '|' . $slot, $t['id'], $wk, $slot, $status, $exec, $arr ? json_encode(['a' => $st + 1500, 'b' => $st + 1500]) : '{}', $arr ? 1 : 0, $status === 'done' ? 1 : 0, $st + 1600, json_encode($ev)]); };
+    $d1 = max(0, $dw - 1);
+    if ($dw >= 1) { $mk($d1 . '-out', 'done', $m1, 26, true, true); $mk($d1 . '-back', 'done', $me, 20, true, true); }
+    $mk($dw . '-out', 'started', $me, 0.4, false, false);
+    q('INSERT INTO ledger(id,team_id,kind,ref,text,d,created) VALUES(?,?,?,?,?,?,?)', [uid(), $t['id'], 'trip', $wk . '|x', 'سفر · خانواده نمونه', json_encode([$m1 => 40000, $me => -20000, $m2 => -20000]), $now - 86400]);
+    q('INSERT INTO sms(id,phone,tpl,status,by_user,created) VALUES(?,?,?,?,?,?)', [uid(), row('SELECT phone FROM users WHERE id=?', [$uidv])['phone'], 'residim-login', 'خطا 418 (اعتبار کافی نیست)', null, $now - 9 * 86400]);
+    q('INSERT INTO sms(id,phone,tpl,status,by_user,created) VALUES(?,?,?,?,?,?)', [uid(), row('SELECT phone FROM users WHERE id=?', [$uidv])['phone'], 'residim-login', '200 ok', null, $now - 9 * 86400 + 120]);
+    YES(['uid' => $uidv]); }
 case 'admin_users': { need_admin(); YES(['list' => rows('SELECT u.id,u.phone,u.fake,u.created,u.client,u.seen,(SELECT GROUP_CONCAT(p.label) FROM profiles p WHERE p.user_id=u.id) labels,(SELECT COUNT(*) FROM profiles p WHERE p.user_id=u.id) profiles FROM users u ORDER BY u.created DESC LIMIT 200')]); }
 case 'admin_sms': { need_admin(); YES(['list' => rows('SELECT phone,tpl,status,created FROM sms ORDER BY created DESC LIMIT 100')]); }
 case 'admin_sms_test': {
