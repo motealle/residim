@@ -1186,9 +1186,6 @@ body.px-open{overflow:hidden}
 .maplibregl-ctrl-attrib{background:color-mix(in srgb,var(--surface) 80%,transparent)!important;color:var(--muted)}.maplibregl-ctrl-attrib a{color:var(--muted)!important}
 
 /* ═════════ v20 ═════════ */
-.bism{margin:0 0 6px;font:700 clamp(1.05rem,4.6vw,1.45rem)/1.9 "Vazirmatn",serif;color:#04140B;letter-spacing:0;opacity:0;animation:bism 1.1s ease .15s forwards;text-shadow:0 1px 0 #ffffff55}
-@keyframes bism{from{opacity:0;transform:translateY(6px);filter:blur(3px)}to{opacity:.92;transform:none;filter:none}}
-@media (prefers-reduced-motion:reduce){.bism{animation:none;opacity:.92}}
 .c-tags .tag-d{background:#ECFDF3;color:#166534;border-radius:999px;padding:2px 10px;font-size:.72rem;font-weight:800}
 .check.daily{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:14px;border:1.5px solid #86EFAC;background:#F0FDF4;margin:8px 0}
 .check.daily b{display:block}.check.daily small{display:block;color:var(--muted);font-size:.78rem;line-height:1.8}
@@ -1215,3 +1212,66 @@ body.px-open{overflow:hidden}
 .side .dr-head [data-a="close"]{display:none!important}
 .hero-sl .sl-track{height:100%}.hero-sl .sl:first-child{display:flex;flex-direction:column;justify-content:center}
 @media (min-width:760px) and (max-width:1099px){#main>.stack,#main>.split:not(.peers){max-width:760px;margin-inline:auto}}
+
+/* ═════════ v21: animated aerial-map wallpaper (chat + the page's empty areas) ═════════ */
+.mapbg{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;contain:strict}
+.mapbg::before{content:"";position:absolute;left:-960px;top:-960px;width:calc(100% + 960px);height:calc(100% + 960px);background:url(mapbg.svg?v=21) 0 0/960px 960px repeat;opacity:.62;animation:mbpan 150s linear infinite;will-change:transform}
+:root[data-theme="dark"] .mapbg::before{background-image:url(mapbg-dark.svg?v=21);opacity:.9}
+@keyframes mbpan{to{transform:translate3d(960px,960px,0)}} /* camera drifts south-east → north-west */
+@media (prefers-reduced-motion:reduce){.mapbg::before{animation:none}}
+.page-bg{position:fixed;z-index:-1;display:none}
+.page-bg::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,var(--bg) 0,transparent 55%),linear-gradient(transparent 70%,color-mix(in srgb,var(--bg) 70%,transparent))}
+@media (min-width:760px){.page-bg{display:block}body{background:var(--bg)}}
+body.chat-open .page-bg,body.map-full .page-bg{visibility:hidden}
+.top{background:color-mix(in srgb,var(--bg) 86%,transparent)}
+/* chat wallpaper */
+.chatx>*:not(.mapbg){position:relative;z-index:1}
+.cx-list{background:transparent}
+.cx-quick{background:transparent}
+.cx-foot{background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.cx-sys{position:relative}
+
+/* ═════════ v21: bismillah toast (after the first screen; tap = gone) ═════════ */
+.bism-t{position:fixed;z-index:80;top:calc(72px + env(safe-area-inset-top));left:50%;translate:-50% 0;padding:6px 22px;border-radius:99px;
+  background:color-mix(in srgb,var(--surface) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);
+  box-shadow:0 14px 30px -18px #0B3D2466;font:700 1.08rem/1.95 "Vazirmatn",serif;color:var(--ink);letter-spacing:0;white-space:nowrap;cursor:pointer;
+  animation:bismIn .6s cubic-bezier(.2,.7,.2,1) both}
+.bism-t.out{animation:bismOut .7s ease forwards}.bism-t.out.now{animation-duration:.18s}
+@keyframes bismIn{from{opacity:0;transform:translateY(-6px);filter:blur(2px)}to{opacity:1;transform:none;filter:none}}
+@keyframes bismOut{to{opacity:0;transform:translateY(-4px)}}
+@media (min-width:1100px){.bism-t{left:calc((100% - 300px) / 2)}}
+@media (prefers-reduced-motion:reduce){.bism-t,.bism-t.out{animation-duration:.01s}}
+
+/* ═════════ v21: desktop home = a composed page; cards keep their natural shape ═════════ */
+.h-map{display:flex;flex-direction:column}
+@media (min-width:760px){
+  .home-grid>.hero-sl{grid-area:hero;container:hero/inline-size}.home-grid>.h-map{grid-area:map}.home-grid>.school-main{grid-area:school}
+  .home-grid>.h-code{grid-area:code}.home-grid>.h-chips{grid-area:chips}.home-grid>.h-how{grid-area:how}
+  @container hero (max-width:540px){.hero-g svg.deco{width:112px;left:-12px;bottom:-16px}}
+  @container hero (max-width:440px){.hero-g svg.deco{display:none}}
+  .home-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"hero hero" "school map" "code chips" "how how";align-items:stretch;max-width:980px;margin-inline:auto}
+  .home-grid>.card{align-content:start}
+  .hero-sl{min-height:0}
+  .school-main{display:flex!important;flex-direction:column;align-items:stretch}.school-main .sm-cta{margin-top:auto!important}
+  .h-map .city{flex:1;aspect-ratio:auto;min-height:150px}
+  .h-chips{align-content:start}.h-chips .chips{flex:1;align-content:center}
+  .h-how .steps3{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  .h-how .steps3 li{flex-direction:column;gap:8px;font-size:.92rem;line-height:1.9}
+}
+@media (min-width:1100px){
+  .home-grid{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);grid-template-areas:"hero school" "code map" "chips map" "how how";max-width:1120px;gap:16px}
+  .hero-sl{padding:30px 30px 34px!important}
+  .hero-sl .sl:first-child h1{font-size:clamp(2.2rem,3.4vw,3rem)}
+  .home-grid>.school-main{padding:24px 22px}
+}
+/* the footer: compact, one tidy row on wide screens; no dock gap when the dock is hidden */
+.app:has(#dock.hide){padding-bottom:0}
+.app:has(#dock.hide) .trust{padding-bottom:max(26px,env(safe-area-inset-bottom))}
+.trust{padding-top:22px;gap:4px}
+.trust .enamad img{max-width:84px}
+@media (min-width:760px){.trust{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 16px;padding:26px 16px 28px}.trust .enamad img{max-width:64px}.trust p{margin:0}}
+.side .trust-slot{padding:0;margin:4px 0 0}.side .trust-slot img{max-width:76px}
+.side .ver-box{margin-top:6px}
+.chatx .mapbg::before{opacity:.5}:root[data-theme="dark"] .chatx .mapbg::before{opacity:.75}
+:root[data-theme="dark"] .cx-pact{background:#2A2410}
+:root[data-theme="dark"] .rep-btn{border-color:#5A4E2A;background:linear-gradient(135deg,#1E1B10,#2A2410)}
