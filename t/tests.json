@@ -481,5 +481,36 @@
       "radio.json": "f66283bfaed30624763716902e299d7f48b1aad5ff9773d29ebd089ad495b501",
       "sw.js": "db0161163f1f15e3b348d5e5c6cf358c26ba42d85ba50bafdc92ff3d57881529"
     }
+  },
+  {
+    "id": 20,
+    "folder": "20",
+    "title": "رخدادهای زنده، چک‌لیست لانچ، پیام فوری",
+    "direction": "گزارش لحظه‌ای ثبت‌نام، پیام فوری، شغل در هم‌خوانی، رانندهٔ هرروزه، نظرسنجی قیمت، بسم‌الله",
+    "files": {
+      "assets/MAPLIBRE-LICENSE.txt": "ee5fc05a0677eaf69601d2c7db0d9ecd6cc27c3abc1d0733bc9ed34707cf8ef2",
+      "assets/QRCODE-LICENSE.txt": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c",
+      "assets/RTL-TEXT-LICENSE.txt": "40db8a001607f887537cbac2cf8b76ae997b7ba14cd278535a5eae337e31bccf",
+      "assets/VAZIRMATN-LICENSE.txt": "17e355067c8284f47743a1ee3b1ef7ff684ff0601eda357f9353b10b3016ab31",
+      "assets/app.css": "689693adaa2ef5f8e0fa07b72c4527012f14c81275a2f514ea02631e771c2ec7",
+      "assets/app.js": "c15d7a5ef326a7fee35ea6483975753637f7e95bdecd348a9b99a953f236abed",
+      "assets/html2canvas.min.js": "e87e550794322e574a1fda0c1549a3c70dae5a93d9113417a429016838eab8cb",
+      "assets/icon-192.png": "85c13beb4d19a25568e8dbbc09485ebbd85002adc2e243f8f1fe07898c0e4856",
+      "assets/icon-512.png": "86afeb01c1de08ab11f9d9d70309c4b41744dae3abbb66626d03c338d63fe727",
+      "assets/icon.svg": "3e5ef4d6f5a3ffeed967d922f30875731000f0591b1a906f49b9cf2da2c54c8d",
+      "assets/jspdf.umd.min.js": "98ccf17aa10c20bb1301762618fcc9b6ab3a4e7f26b6071d64d0b41154df3875",
+      "assets/map-style-dark.json": "7f206755fd0807bda56c70c8c76647f922c7001161f45ea97ed477fbdf85df50",
+      "assets/map-style.json": "9caca7c0e89450547e878fd2af78bb2173af8673c16dbd89e16e8d8d6a2028a1",
+      "assets/maplibre-gl.css": "792ac997dcf6ae6f643eb4e2dee4630c85e7056526bd8fb85ffe83c67d6c41b4",
+      "assets/maplibre-gl.js": "07e6ca71a5b6d835a7c3803fb484f0a6e5f0dcbfa131407666edb9e9316564f9",
+      "assets/og.png": "75b0f6b274d07f2c9930f1d25a25f0bd67f4b3b0c9d00d14697b1efd8200673a",
+      "assets/qrcode.js": "79ec86f82856005b1c887905cfccfcfbec3821ca61c7fd5a952faa5f778f791c",
+      "assets/rtl-text.js": "d1c69035295613baaf83fe23fd9266b0eaed7e5e472e9632b0b5438afc3f589e",
+      "assets/vazirmatn.woff2": "e382101336c6eb32cfb31381c027d02d2e0354bad08f6a395d4088beb3db3d91",
+      "index.html": "0b4806cad02971a3d83cd39defcb28c4a243b9eaefe98e4a3a0813320913d85c",
+      "manifest.webmanifest": "845a76baa6e1ea86899dd0eff044ca476a05b171419dd7b162b679e4c9010fc4",
+      "radio.json": "f66283bfaed30624763716902e299d7f48b1aad5ff9773d29ebd089ad495b501",
+      "sw.js": "d90530643e6fba3e3da9dd34e2ecf1ed3fe0cbadf28f589e82e791e7fe63a4f6"
+    }
   }
 ]

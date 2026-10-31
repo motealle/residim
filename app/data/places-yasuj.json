@@ -1,0 +1,216 @@
+{
+"city": "یاسوج",
+"source": "© OpenStreetMap contributors (ODbL), via Overpass, 2026-10-31",
+"items": [
+{
+"title": "مدرسه شهید شهریار علی پور دولت آباد",
+"lat": 30.676858,
+"lng": 51.573401,
+"amenity": "school",
+"address": "شهید دلداریان"
+},
+{
+"title": "مدرسه ام ابیها",
+"lat": 30.663906,
+"lng": 51.576135,
+"amenity": "school",
+"address": "سی متری امام حسین"
+},
+{
+"title": "دبیرستان نه دی",
+"lat": 30.663876,
+"lng": 51.576795,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه مصلی نژاد دولت آباد",
+"lat": 30.679283,
+"lng": 51.573542,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان دخترانه پوینده",
+"lat": 30.66181,
+"lng": 51.594357,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مدرسه سماء یاسوج",
+"lat": 30.650462,
+"lng": 51.608111,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبستان غیر دولتی فارابی",
+"lat": 30.674471,
+"lng": 51.572817,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبستان غيردولتي كنكاش",
+"lat": 30.630076,
+"lng": 51.595312,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشگاه علوم پزشکی یاسوج",
+"lat": 30.678192,
+"lng": 51.588821,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "دانشگاه آزاد یاسوج",
+"lat": 30.710277,
+"lng": 51.555943,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "دانشگاه علوم پزشکی یاسوج",
+"lat": 30.645876,
+"lng": 51.614907,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "مدرسه ابتدایی توحید شرف آباد علیاء",
+"lat": 30.68544,
+"lng": 51.557705,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشکده کشاورزی",
+"lat": 30.654183,
+"lng": 51.58906,
+"amenity": "college",
+"address": ""
+},
+{
+"title": "دانشگاه یاسوج",
+"lat": 30.652683,
+"lng": 51.591294,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "دانشکده منابع طبیعی و محیط زیست",
+"lat": 30.65174,
+"lng": 51.589792,
+"amenity": "college",
+"address": ""
+},
+{
+"title": "دانشکده علوم پایه",
+"lat": 30.653482,
+"lng": 51.589758,
+"amenity": "college",
+"address": ""
+},
+{
+"title": "دانشکده ادبیات و علوم انسانی",
+"lat": 30.652599,
+"lng": 51.590735,
+"amenity": "college",
+"address": ""
+},
+{
+"title": "مدرسه نمونه دولتی یادگار امام",
+"lat": 30.683751,
+"lng": 51.573032,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشکده سما",
+"lat": 30.712527,
+"lng": 51.548969,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "دانشگاه آزاد (مدیریت)",
+"lat": 30.711741,
+"lng": 51.551309,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "دبیرستان حضرت مریم",
+"lat": 30.668256,
+"lng": 51.592663,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دبیرستان دخترانه زینبیه",
+"lat": 30.67091,
+"lng": 51.598501,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "مهد کودک",
+"lat": 30.676787,
+"lng": 51.593647,
+"amenity": "kindergarten",
+"address": ""
+},
+{
+"title": "دانشگاه علمی کاربردی",
+"lat": 30.68027,
+"lng": 51.58882,
+"amenity": "college",
+"address": ""
+},
+{
+"title": "مدرسه مهدیه اکبرآباد",
+"lat": 30.639143,
+"lng": 51.597022,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشکده دندانپزشکی",
+"lat": 30.676242,
+"lng": 51.591655,
+"amenity": "college",
+"address": ""
+},
+{
+"title": "مدرسه توحیدی",
+"lat": 30.672544,
+"lng": 51.602272,
+"amenity": "school",
+"address": ""
+},
+{
+"title": "دانشگاه فرهنگیان شهید ایزد پناه",
+"lat": 30.651934,
+"lng": 51.608051,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "ساختمان مرکزی دانشگاه",
+"lat": 30.657666,
+"lng": 51.593055,
+"amenity": "university",
+"address": ""
+},
+{
+"title": "دانشکده فنی و حرفه ای خواهران",
+"lat": 30.684179,
+"lng": 51.575283,
+"amenity": "university",
+"address": ""
+}
+]
+}
