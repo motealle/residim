@@ -1215,8 +1215,8 @@ body.px-open{overflow:hidden}
 
 /* ═════════ v21: animated aerial-map wallpaper (chat + the page's empty areas) ═════════ */
 .mapbg{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;contain:strict}
-.mapbg::before{content:"";position:absolute;left:-960px;top:-960px;width:calc(100% + 960px);height:calc(100% + 960px);background:url(mapbg.svg?v=21) 0 0/960px 960px repeat;opacity:.62;animation:mbpan 150s linear infinite;will-change:transform}
-:root[data-theme="dark"] .mapbg::before{background-image:url(mapbg-dark.svg?v=21);opacity:.9}
+.mapbg::before{content:"";position:absolute;left:-960px;top:-960px;width:calc(100% + 960px);height:calc(100% + 960px);background:url(mapbg.svg?v=22) 0 0/960px 960px repeat;opacity:.62;animation:mbpan 150s linear infinite;will-change:transform}
+:root[data-theme="dark"] .mapbg::before{background-image:url(mapbg-dark.svg?v=22);opacity:.9}
 @keyframes mbpan{to{transform:translate3d(960px,960px,0)}} /* camera drifts south-east → north-west */
 @media (prefers-reduced-motion:reduce){.mapbg::before{animation:none}}
 .page-bg{position:fixed;z-index:-1;display:none}
@@ -1232,14 +1232,12 @@ body.chat-open .page-bg,body.map-full .page-bg{visibility:hidden}
 .cx-sys{position:relative}
 
 /* ═════════ v21: bismillah toast (after the first screen; tap = gone) ═════════ */
-.bism-t{position:fixed;z-index:80;top:calc(72px + env(safe-area-inset-top));left:50%;translate:-50% 0;padding:6px 22px;border-radius:99px;
-  background:color-mix(in srgb,var(--surface) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);
-  box-shadow:0 14px 30px -18px #0B3D2466;font:700 1.08rem/1.95 "Vazirmatn",serif;color:var(--ink);letter-spacing:0;white-space:nowrap;cursor:pointer;
-  animation:bismIn .6s cubic-bezier(.2,.7,.2,1) both}
+.bism-t{position:fixed;z-index:80;top:50%;left:50%;translate:-50% -50%;width:min(52vw,52vh,230px);aspect-ratio:1;border-radius:50%;cursor:pointer;
+  filter:drop-shadow(0 18px 28px rgba(6,60,32,.30)) drop-shadow(0 3px 6px rgba(6,60,32,.18));animation:bismIn .6s cubic-bezier(.2,.7,.2,1) both}
+.bism-t img{display:block;width:100%;height:100%;object-fit:contain;-webkit-user-drag:none;user-select:none}
 .bism-t.out{animation:bismOut .7s ease forwards}.bism-t.out.now{animation-duration:.18s}
-@keyframes bismIn{from{opacity:0;transform:translateY(-6px);filter:blur(2px)}to{opacity:1;transform:none;filter:none}}
-@keyframes bismOut{to{opacity:0;transform:translateY(-4px)}}
-@media (min-width:1100px){.bism-t{left:calc((100% - 300px) / 2)}}
+@keyframes bismIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+@keyframes bismOut{to{opacity:0;transform:scale(.97)}}
 @media (prefers-reduced-motion:reduce){.bism-t,.bism-t.out{animation-duration:.01s}}
 
 /* ═════════ v21: desktop home = a composed page; cards keep their natural shape ═════════ */
