@@ -1215,8 +1215,8 @@ body.px-open{overflow:hidden}
 
 /* ═════════ v21: animated aerial-map wallpaper (chat + the page's empty areas) ═════════ */
 .mapbg{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;contain:strict}
-.mapbg::before{content:"";position:absolute;left:-960px;top:-960px;width:calc(100% + 960px);height:calc(100% + 960px);background:url(mapbg.svg?v=26) 0 0/960px 960px repeat;opacity:.62;animation:mbpan 150s linear infinite;will-change:transform}
-:root[data-theme="dark"] .mapbg::before{background-image:url(mapbg-dark.svg?v=26);opacity:.9}
+.mapbg::before{content:"";position:absolute;left:-960px;top:-960px;width:calc(100% + 960px);height:calc(100% + 960px);background:url(mapbg.svg?v=27) 0 0/960px 960px repeat;opacity:.62;animation:mbpan 150s linear infinite;will-change:transform}
+:root[data-theme="dark"] .mapbg::before{background-image:url(mapbg-dark.svg?v=27);opacity:.9}
 @keyframes mbpan{to{transform:translate3d(960px,960px,0)}} /* camera drifts south-east → north-west */
 @media (prefers-reduced-motion:reduce){.mapbg::before{animation:none}}
 .page-bg{position:fixed;z-index:-1;display:none}
@@ -1235,7 +1235,7 @@ body.chat-open .page-bg,body.map-full .page-bg{visibility:hidden}
 .s-bism{opacity:0;animation:bismCloud 4.2s ease-in-out .35s both}
 .s-bism-in{animation:bismDrift 4.6s linear .35s both}
 @keyframes bismCloud{0%{opacity:0}18%{opacity:1}78%{opacity:1}100%{opacity:0}}
-@keyframes bismDrift{from{transform:translateX(14px)}to{transform:translateX(-16px)}}
+@keyframes bismDrift{from{transform:translateX(46px)}to{transform:translateX(-14px)}}
 @media (prefers-reduced-motion:reduce){.s-bism{animation:none;opacity:1}.s-bism-in{animation:none}}
 
 /* ═════════ v21: desktop home = a composed page; cards keep their natural shape ═════════ */
@@ -1452,3 +1452,9 @@ body.chat-open .page-bg,body.map-full .page-bg{visibility:hidden}
 .q-mark{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--surface);font:inherit;font-size:.7rem;font-weight:900;line-height:1;cursor:pointer;margin-inline-start:4px;color:var(--muted);padding:0}
 .safety{justify-content:space-between;border-top:1px dashed var(--line);padding-top:8px}.safety .link{display:inline-flex;align-items:center;gap:4px;font-size:.8rem;color:var(--muted)}.safety svg{width:16px;height:16px}
 .splash .bism-sky{position:absolute;top:calc(env(safe-area-inset-top) + 12.5vh);left:50%;translate:-50% -50%;width:min(210px,54vw);height:auto;overflow:visible;pointer-events:none}
+
+/* v27: «رسیدیم برای مدارس» in the menu */
+.mi.schools-mi{margin:6px 0;min-height:60px;border-radius:16px;background:linear-gradient(110deg,#E8F8F0,#D3F3E3)!important;color:#0B3D24;text-decoration:none}
+.mi.schools-mi b{display:block;font-weight:900}.mi.schools-mi small{display:block;font-size:.74rem;opacity:.85;line-height:1.6}
+.mi.schools-mi .dong-ic{background:#1DBF73;color:#04140B}.mi.schools-mi>svg:last-child{transform:none;opacity:.6}
+:root[data-theme="dark"] .mi.schools-mi{background:linear-gradient(110deg,#0F2A1B,#123524)!important;color:#CFF5E0}
