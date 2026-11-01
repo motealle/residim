@@ -1,0 +1,26 @@
+===== بخش ۱: در کادر Style instructions بچسبان =====
+
+Language: Persian (Farsi), natural spoken Tehrani accent. A 60-second honest conversation that answers a worried mother. Two speakers:
+Madar = a protective, sceptical mother; firm at first, then asking sharp questions, finally softening with a small smile.
+Ravi = a calm, respectful narrator who takes her worry seriously; gentle, slow, reassuring, never defensive.
+Arc: firm objection, a respectful pause, then clear and calm answers, a small warm laugh of discovery, and a soft confident ending.
+Respect pause tags and diacritics. Keep it close to 60 seconds.
+
+===== بخش ۲: در کادر متن (Script) بچسبان =====
+
+Madar: بَچّه‌مو بِدَم دَستِ یه غَریبه؟ عُمراً!
+Ravi: حَق دارین. ما هم بودیم، هَمینو می‌گُفتیم.
+Ravi: تو «رِسیدیم» کَسی رو به شُما نِمی‌اَندازیم. خودِتون می‌بینین، خودِتون اِنتِخاب می‌کُنین.
+Madar: نِشونیِ خونه‌م چی؟
+Ravi: رویِ نَقشه فَقَط حُدودی؛ حُدودِ صَد و پَنجاه مِتر. نُقطه‌یِ دَقیق، فَقَط تویِ تیمِ خودِتون.
+Madar: شُماره‌م؟
+Ravi: فَقَط با رِضایَتِ خودِتون.
+Madar: دُخترِ مَن کِنارِ پِسَرایِ بُزرگ‌تَر؟
+Ravi: نه. دُخترایِ بالایِ هَشت سال و پِسَرایِ بالایِ دَوازده سال، هیچ‌وَقت تویِ یه سِرویس نیستَن.
+Ravi: هر سَفَر هم: کی بُرد، کی رِسید؛ با یه لَمس.
+Madar: «رِسیدیم»... [short pause] [laughing] پَس اِسمِش از این‌جاست!
+Ravi: رَدیابیِ دائِمی نیست. فَقَط خَبَرِ لازِم، سَرِ وَقت.
+Ravi: اَوَّل فَقَط نِگاه کُنین کُدوم خانواده‌ها هَم‌مَسیرِتونَن. رایگان، بی‌تَعَهُّد.
+Madar: باشه... یه نِگاهی می‌اَندازَم.
+Ravi: رِسیدیم دات آی آر.
+Ravi: [short pause] رِسیدیم؛ نُوبَت‌ها روشَن، خیال‌ها جَمع.

@@ -1,0 +1,28 @@
+===== بخش ۱: در کادر Style instructions بچسبان =====
+
+Language: Persian (Farsi), natural spoken Tehrani accent. A 60-second comic-warm scene between a married couple on a hectic school morning. Two speakers:
+Madar = the mother; quick, funny, a little stressed, then excited when she discovers the idea.
+Baba = the father; easy-going, sleepy at first, dry humour, then won over.
+Arc: chaotic and fast at the start, a sudden thoughtful beat at «راستی...», growing excitement while explaining, a light laugh, and a confident warm ending.
+Make it sound like a real couple talking, not an advert. Respect pause tags and diacritics. Keep it close to 60 seconds.
+
+===== بخش ۲: در کادر متن (Script) بچسبان =====
+
+Madar: [shouting] بَچّه‌ها! کَفش! کیف! دیر شُد!
+Baba: [sigh] مَنَم ساعَتِ هَشت جَلَسه دارَم...
+Madar: تو بِبَر، مَن بَرمی‌گَردونَم... نه، اِمروز مَنَم گیرَم.
+Baba: پَس کی؟
+Madar: [medium pause] راستی... بَچّه‌یِ خانُمِ هَمسایه هم هَمین مَدرِسه‌ست.
+Baba: هر روزَم دَرست هَمین موقَع راه می‌اُفته!
+Madar: پَس چِرا هر کُدوم جُدا می‌ریم؟
+Baba: چون هیشکی هَمدیگه رو پِیدا نِمی‌کُنه.
+Madar: «رِسیدیم» پِیدا می‌کُنه! خانواده‌هایِ هَم‌مَدرِسه، رویِ نَقشه، نَزدیکِ خونه‌یِ خودِمون.
+Baba: بَعد چَند تا خانواده یه تیم می‌شیم. یه روز مَن می‌بَرَم، یه روز اونا.
+Madar: نُوبَتا روشَن، سَهمِ بَنزین مُنصِفانه.
+Baba: نِشونیِ دَقیقِ خونه چی؟
+Madar: فَقَط هَم‌تیمیا می‌بینَن. دُخترا و پِسَرایِ بُزرگ‌تَرَم با هم قاطی نِمی‌شَن.
+Baba: [laughing] یَعنی مَن هَفته‌ای سه روز صُبحونه‌مو با آرامِش می‌خورَم؟
+Madar: مَنَم به جَلَسه‌م می‌رِسَم.
+Madar: ثَبت‌نامِ خانواده‌ها رایگانه. دو دَقیقه کار داره.
+Baba: لینکِشو بِفرِست تو گُروهِ کِلاس. هر چی خانواده‌ها بیشتَر، تیم نَزدیک‌تَر.
+Madar: [short pause] رِسیدیم؛ نُوبَت‌ها روشَن، خیال‌ها جَمع.

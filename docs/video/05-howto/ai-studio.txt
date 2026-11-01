@@ -1,0 +1,24 @@
+===== بخش ۱: در کادر Style instructions بچسبان =====
+
+Language: Persian (Farsi), natural spoken Tehrani accent. A 60-second friendly walkthrough. Two speakers:
+Darya = an upbeat, patient guide; clear and rhythmic when counting the steps (یک، دو، سه، چهار), smiling voice.
+Baran = a doubtful newcomer; expects paperwork, then surprised and delighted.
+Arc: doubtful start, a cheerful laugh, crisp numbered steps with small pauses between them, a hushed moment of anticipation at «حالا نگاه کن...», a bright reveal, and a happy ending.
+Respect pause tags and diacritics. Keep it close to 60 seconds.
+
+===== بخش ۲: در کادر متن (Script) بچسبان =====
+
+Baran: ثَبت‌نام؟ حَتماً کُلّی فُرم و مَدرَک می‌خواد...
+Darya: [laughing] دو دَقیقه. با مَن بیا.
+Darya: یک: شُماره‌یِ موبایل و کُدِ پیامَک. رَمز نِمی‌خواد.
+Darya: دو: مَدرِسه یا مَحَلِّ کارو اِنتِخاب کُن؛ اگه نیست، خودِت اِضافه‌ش کُن.
+Darya: سه: خونه‌تو رویِ نَقشه بِذار؛ بَقیّه فَقَط حُدودِشو می‌بینَن.
+Darya: چَهار: بِگو چه روزایی می‌تونی بِبَری، یا فَقَط سَهم می‌دی.
+Baran: هَمین؟
+Darya: [short pause] [whispering] حالا نِگاه کُن...
+Darya: اینا خانواده‌هایِ هَم‌مَسیرِ تواَن. یه دُکمه: «هَم‌مَسیر شَویم؟»
+Baran: وَقتی قَبول کَردَن؟
+Darya: تیم ساخته می‌شه: نُوبَتا، هَفته، سَهما... هَمه آماده.
+Baran: [laughing] فِکر می‌کَردَم سَخت‌تَر باشه!
+Darya: هَمین اَلان اِمتِحانِش کُن: رِسیدیم دات آی آر.
+Darya: [short pause] رِسیدیم؛ نُوبَت‌ها روشَن، خیال‌ها جَمع.

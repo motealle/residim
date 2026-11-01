@@ -1,0 +1,25 @@
+===== بخش ۱: در کادر Style instructions بچسبان =====
+
+Language: Persian (Farsi), natural spoken Tehrani accent. A 60-second promo for daily commuters (office workers and university students). Two speakers:
+Baran = a young employee stuck in traffic; tired and ironic at first, then curious and amused.
+Darya = a bright, witty colleague who has the solution; quick, warm, confident.
+Arc: weary and slow in traffic, a playful laugh about the empty seats, a thoughtful pause at «حالا فکر کن», then lively and clear for the solution, ending upbeat.
+Respect pause tags and diacritics. Keep it close to 60 seconds.
+
+===== بخش ۲: در کادر متن (Script) بچسبان =====
+
+Baran: [sigh] یه ساعت و ده دَقیقه. تویِ تِرافیک. تَنها.
+Darya: با سه تا صَندَلیِ خالی پُشتِ سَرِت... که هر روز باهات میان و هیچ کاری نِمی‌کُنَن! [laughing]
+Baran: بَنزین، اِستِهلاک، پارکینگ... حِسابِشو نَکُن.
+Darya: [medium pause] حالا فِکر کُن: هَمکارِ طَبَقه‌یِ بالا، دَقیقاً از مَحَلّه‌یِ تو میاد.
+Darya: «رِسیدیم» هَم‌مَسیرایِ مَحَلِّ کار یا دانِشگاهِتو رویِ نَقشه نِشونِت می‌ده.
+Baran: یَعنی هَم‌سِرویسِ بُزرگ‌ترا؟
+Darya: دَقیقاً.
+Darya: ماشین داری؟ جایِ خالیتو بِده، سَهمِ بَنزین بِگیر. نَداری؟ با هَم‌مَسیرا بُرو، سَهمِ مُنصِفانه بِده.
+Baran: اگه یه روز نَتونِستَم چی؟
+Darya: نُوبَتا روشَنه؛ تیم خَبَردار می‌شه.
+Baran: پَس تِرافیک کوتاه‌تَر نِمی‌شه... ولی خوش‌تَر می‌گذَره!
+Darya: شَهرَم چَند تا ماشین سَبُک‌تَر.
+Darya: ساختَنِ تیم رایگانه. مَحَلِّ کارِتو ثَبت کُن؛ اَوَّلین نَفَر باش.
+Baran: رِسیدیم دات آی آر. لینکِشو بِفرِست تو گُروهِ هَمکارا.
+Darya: [short pause] رِسیدیم؛ نُوبَت‌ها روشَن، خیال‌ها جَمع.

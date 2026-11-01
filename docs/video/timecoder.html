@@ -2,102 +2,133 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap">
 <style>
-/* Layout: one working column — audio deck on top, plan list as a vertical timeline, export at the bottom */
+/* Layout: one working column. Video picker, audio deck, a big cue card that tells you when to tap, music, plan timeline, export */
 :root{
   --bg:#f3f8f5; --card:#ffffff; --ink:#14261d; --mute:#5d7268; --line:#d5e4dc;
-  --brand:#1DBF73; --brand-ink:#0d7a46; --soft:#e2f6ec; --warn:#c77700; --now:#fff6d6;
+  --brand:#1DBF73; --brand-ink:#0d7a46; --soft:#e2f6ec; --warn:#c77700; --warn-soft:#fff1d6; --auto:#2a7fd4; --now:#fff6d6; --on-brand:#06301b;
   --f:'Vazirmatn',Tahoma,'Segoe UI',sans-serif; --mono:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0e1713; --card:#16231d; --ink:#e3efe8; --mute:#93a89d; --line:#26382f;
-  --brand:#2bd486; --brand-ink:#7ff0b8; --soft:#183a2a; --warn:#f0a73a; --now:#3a3216; color-scheme:dark}}
+  --brand:#2bd486; --brand-ink:#7ff0b8; --soft:#183a2a; --warn:#f0a73a; --warn-soft:#3a2c12; --auto:#6ab0f5; --now:#3a3216; --on-brand:#06301b; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0e1713; --card:#16231d; --ink:#e3efe8; --mute:#93a89d; --line:#26382f;
-  --brand:#2bd486; --brand-ink:#7ff0b8; --soft:#183a2a; --warn:#f0a73a; --now:#3a3216; color-scheme:dark}
+  --brand:#2bd486; --brand-ink:#7ff0b8; --soft:#183a2a; --warn:#f0a73a; --warn-soft:#3a2c12; --auto:#6ab0f5; --now:#3a3216; --on-brand:#06301b; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.75;direction:rtl}
-.wrap{max-width:860px;margin:0 auto;padding-block:20px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+.wrap{max-width:880px;margin:0 auto;padding-block:20px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
 h1{font-size:1.6rem;font-weight:800;margin:0;text-wrap:balance}
 h2{font-size:1.05rem;margin:0}
 p{margin:0}
 .mute{color:var(--mute);font-size:.88rem}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px;min-width:0}
-.steps{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.88rem;color:var(--mute)}
-.steps b{color:var(--ink)}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-button,.file{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 12px;cursor:pointer;min-height:40px}
+.between{justify-content:space-between}
+button,.file,select{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 12px;cursor:pointer;min-height:40px}
 button:hover,.file:hover{border-color:var(--brand)}
-button:focus-visible,.file:focus-within,textarea:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
-.pri{background:var(--brand);border-color:var(--brand);color:#06301b;font-weight:800}
+button:focus-visible,.file:focus-within,textarea:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+button:disabled{opacity:.45;cursor:default}
+.pri{background:var(--brand);border-color:var(--brand);color:var(--on-brand);font-weight:800}
 .file input{position:absolute;opacity:0;width:1px;height:1px}
 .file{position:relative;display:inline-flex;align-items:center;gap:6px}
-.mark{width:100%;min-height:72px;font-size:1.15rem;font-weight:800;background:var(--brand);color:#06301b;border:0;border-radius:14px}
-.mark small{display:block;font-weight:600;font-size:.85rem}
-.mark:disabled{opacity:.45;cursor:default}
-.drop{border:2px dashed var(--line);border-radius:14px;padding:14px;text-align:center}
+.vids{display:flex;flex-wrap:wrap;gap:8px}
+.vids button[aria-pressed="true"]{background:var(--soft);border-color:var(--brand);font-weight:800}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:12px;text-align:center}
 .drop.on{border-color:var(--brand);background:var(--soft)}
 canvas{width:100%;height:84px;display:block;border-radius:10px;background:var(--soft);cursor:pointer}
 .clock{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:1.3rem;direction:ltr}
 kbd{font-family:var(--mono);font-size:.8rem;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--bg)}
+.cue{border:2px solid var(--line);border-radius:16px;padding:14px;display:grid;gap:10px;transition:border-color .2s,background .2s}
+.cue[data-s="ready"]{border-color:var(--warn);background:var(--warn-soft)}
+.cue[data-s="now"]{border-color:var(--brand);background:var(--soft)}
+.pill{display:inline-block;border-radius:99px;padding:2px 12px;font-weight:800;font-size:.9rem;background:var(--line);color:var(--ink)}
+.cue[data-s="ready"] .pill{background:var(--warn);color:var(--on-brand)}
+.cue[data-s="now"] .pill{background:var(--brand);color:var(--on-brand)}
+.say{font-size:1.15rem;line-height:2}
+.say .w{transition:color .15s}
+.say .w.past{color:var(--mute)}
+.say .w.cur{color:var(--brand-ink);font-weight:800}
+.say .sp{font-size:.8rem;color:var(--mute);margin-inline-end:6px}
+.bar{height:8px;border-radius:9px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--warn)}
+.cue[data-s="now"] .bar i{background:var(--brand)}
+.hint2{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:.92rem}
+.hint2 b{color:var(--mute);font-weight:600}
+.mark{width:100%;min-height:72px;font-size:1.15rem;font-weight:800;background:var(--brand);color:var(--on-brand);border:0;border-radius:14px}
+.mark small{display:block;font-weight:600;font-size:.85rem}
 ol.plans{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .pl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
 .pl.next{border-color:var(--brand);box-shadow:0 0 0 2px var(--soft)}
 .pl.now{background:var(--now)}
 .pl .tc{grid-row:span 2;display:grid;gap:4px;justify-items:center;align-content:start}
 .tcv{font-family:var(--mono);font-variant-numeric:tabular-nums;direction:ltr;font-weight:700}
-.tcv.est{color:var(--warn)}
+.tcv.est{color:var(--warn)} .tcv.auto{color:var(--auto)}
 .tc .row{gap:4px}
 .tc button{min-height:30px;padding:2px 8px;font-size:.85rem}
-.pl b{font-size:.95rem}
 .pl .tx{color:var(--mute);font-size:.9rem;min-width:0}
+.mood{font-size:.75rem;border:1px solid var(--line);border-radius:99px;padding:0 8px;margin-inline-start:6px;color:var(--mute);font-weight:400}
 textarea{width:100%;min-height:160px;font:inherit;font-size:.9rem;line-height:1.8;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg);color:var(--ink);resize:vertical}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--mute)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:4px;vertical-align:middle}
+input[type=range]{accent-color:var(--brand);width:140px}
 details summary{cursor:pointer;font-weight:600}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
 <div class="wrap">
-  <header style="display:grid;gap:6px">
+  <header style="display:grid;gap:8px">
     <h1>تایم‌کدزن رسیدیم</h1>
-    <p class="mute">برای ویدیوی یک‌دقیقه‌ای مدارس. فایل صوتی را بگذار، پخش کن، و هر بار که پلان بعدی شروع شد یک کلید بزن.</p>
-    <div class="steps"><span><b>۱.</b> فایل صوت را انتخاب کن</span><span><b>۲.</b> <kbd>Space</kbd> یا دکمه‌ی سبز سر شروع هر پلان</span><span><b>۳.</b> با ± ریزتنظیم کن</span><span><b>۴.</b> متن نهایی را کپی کن و برگردان</span></div>
+    <p class="mute">صدای گوینده را بگذار و پخش کن. کادر «حالا بزن» از روی پایانِ جمله‌ها خبرت می‌کند کی <kbd>Space</kbd> را بزنی. موسیقی هم روی همین تایم‌کدها کنار صدا پخش می‌شود.</p>
+    <div class="vids" id="vids" role="group" aria-label="انتخاب ویدیو"></div>
   </header>
 
   <section class="card" aria-label="صوت">
     <div class="drop" id="drop">
-      <label class="file"><input type="file" id="f" accept="audio/*,video/*">انتخاب فایل صوت</label>
-      <p class="mute" id="fname" style="margin-top:6px">یا فایل را اینجا رها کن (mp3، m4a، wav، ogg)</p>
+      <label class="file"><input type="file" id="f" accept="audio/*,video/*">انتخاب فایل صدای گوینده</label>
+      <p class="mute" id="fname" style="margin-top:6px">یا فایل را اینجا رها کن. بدون فایل، پیش‌نمایش موسیقی با زمان‌های تخمینی پخش می‌شود.</p>
     </div>
-    <audio id="au" preload="auto"></audio>
     <canvas id="wave" aria-label="موج صوت؛ برای پرش کلیک کن"></canvas>
-    <div class="legend"><span><i style="background:var(--brand)"></i>تایم‌کد زده‌شده</span><span><i style="background:var(--warn)"></i>تخمینی</span><span>کلیک روی موج = پرش</span></div>
-    <div class="row" style="justify-content:space-between">
+    <div class="legend"><span><i style="background:var(--brand)"></i>زده‌شده</span><span><i style="background:var(--auto)"></i>خودکار از مکث‌ها</span><span><i style="background:var(--warn)"></i>تخمینی</span></div>
+    <div class="row between">
       <div class="row">
-        <button id="play" class="pri" disabled>پخش</button>
-        <button id="back2" disabled title="دو ثانیه عقب">۲ث عقب</button>
-        <button id="restart" disabled>از اول بزنیم</button>
-        <button id="undo" disabled>برگرداندن آخری</button>
+        <button id="play" class="pri">پخش</button>
+        <button id="back2" title="دو ثانیه عقب">۲ث عقب</button>
+        <button id="restart">از اول بزنیم</button>
+        <button id="undo">برگرداندن آخری</button>
+        <button id="auto" disabled title="مرزها را روی نزدیک‌ترین مکث صدا می‌گذارد">تشخیص خودکار از مکث‌ها</button>
         <label class="mute">سرعت <select id="rate"><option value="1">۱×</option><option value="0.85">۰٫۸۵×</option><option value="0.7">۰٫۷×</option></select></label>
       </div>
       <span class="clock" id="clock">00:00.0</span>
     </div>
-    <button class="mark" id="mark" disabled>تایم‌کد بزن<small id="markl">اول فایل صوت را بگذار</small></button>
-    <p class="mute">میان‌برها: <kbd>Space</kbd> تایم‌کد – <kbd>P</kbd> پخش/توقف – <kbd>Backspace</kbd> برگرداندن آخری – <kbd>←</kbd> <kbd>→</kbd> دو ثانیه جابه‌جا</p>
+
+    <div class="cue" id="cue" data-s="wait" aria-live="polite">
+      <div class="row between"><span class="pill" id="pill">گوش بده</span><span class="mute" id="cueN"></span></div>
+      <div class="say" id="say"></div>
+      <div class="bar"><i id="barI"></i></div>
+      <div class="hint2"><b>منتظرِ پایانِ</b><span id="endW">–</span><b>بزن سرِ</b><span id="startW">–</span></div>
+    </div>
+    <button class="mark" id="mark">تایم‌کد بزن<small id="markl"></small></button>
+    <p class="mute">میان‌برها: <kbd>Space</kbd> تایم‌کد – <kbd>P</kbd> پخش/توقف – <kbd>Backspace</kbd> برگرداندن آخری – <kbd>←</kbd> <kbd>→</kbd> دو ثانیه</p>
+  </section>
+
+  <section class="card" aria-label="موسیقی">
+    <div class="row between"><h2>موسیقی متن</h2>
+      <div class="row"><label class="row" style="gap:6px"><input type="checkbox" id="mOn" checked> پخش موسیقی</label><label class="row mute" style="gap:6px">بلندی <input type="range" id="mVol" min="0" max="1" step="0.05" value="0.55"></label></div></div>
+    <p class="mute">موسیقی برای هر پلان حال‌وهوای خودش را دارد: تنش، درد، تأمل، اوج‌گرفتن، شادی، گرما و امضای صوتی «رِ-سی-دیم» در پایان. با جابه‌جا شدن تایم‌کدها خودش را هماهنگ می‌کند. در سرعت کمتر از ۱× بی‌صدا می‌شود.</p>
   </section>
 
   <section class="card" aria-label="پلان‌ها">
-    <div class="row" style="justify-content:space-between"><h2>پلان‌ها و تایم‌کدها</h2><span class="mute" id="cnt"></span></div>
+    <div class="row between"><h2>پلان‌ها و تایم‌کدها</h2><span class="mute" id="cnt"></span></div>
     <ol class="plans" id="list"></ol>
   </section>
 
   <section class="card" aria-label="خروجی">
-    <div class="row" style="justify-content:space-between"><h2>متن تایم‌کددار برای برگرداندن</h2><button id="copy" class="pri">کپی متن</button></div>
+    <div class="row between"><h2>متن تایم‌کددار برای برگرداندن</h2><button id="copy" class="pri">کپی متن</button></div>
     <textarea id="out" readonly aria-label="متن خروجی"></textarea>
     <p class="mute" id="copied" aria-live="polite">همین متن را در گفتگو بفرست تا انیمیشن روی صدا ساخته شود.</p>
     <details>
-      <summary>متن را عوض کرده‌ای؟ نسخه‌ی تازه را اینجا بچسبان</summary>
-      <p class="mute" style="margin-block:8px">هر پاراگراف یک پلان. خط‌هایی که با [00:00.0] شروع می‌شوند هم پذیرفته می‌شوند.</p>
+      <summary>متن را در AI Studio عوض کرده‌ای؟ نسخه‌ی تازه را اینجا بچسبان</summary>
+      <p class="mute" style="margin-block:8px">هر پاراگراف یک پلان؛ خط‌ها به شکل <span dir="ltr">Madar: …</span>. سرخط‌های تایم‌کد هم پذیرفته می‌شوند.</p>
       <textarea id="src" aria-label="متن تازه"></textarea>
       <div class="row" style="margin-top:8px"><button id="apply">جایگزینی پلان‌ها</button><button id="reset">برگشت به متن اصلی</button></div>
     </details>
@@ -105,87 +136,264 @@ details summary{cursor:pointer;font-weight:600}
 </div>
 
 <script>
-const BASE = {"plans": [{"t": 0.0, "title": "قلاب", "text": "ساعت هفت و ربع صبح. جلوی در مدرسه‌ی شما: سی ماشین، سی بوق، سی پدر و مادرِ دیرشده."}, {"t": 6.5, "title": "درد", "text": "و راستش؟ بیشترشان هم‌محله‌اند؛ هر کدام تنها، با یک بچه، هر روز."}, {"t": 11.3, "title": "هزینه و دلشوره", "text": "سرویس گران، دلشوره سنگین، صبح‌ها یک مسابقه."}, {"t": 14.5, "title": "چرخش", "text": "حالا فکر کنید این سی خانواده، همدیگر را پیدا کنند."}, {"t": 18.5, "title": "راه‌حل", "text": "رسیدیم، خانواده‌های هم‌مدرسه و هم‌محله را روی نقشه کنار هم می‌گذارد تا «هم‌سرویس» شوند. هر روز یک نفر می‌برد؛ بقیه نفس می‌کشند."}, {"t": 26.5, "title": "اعتماد", "text": "نوبت‌ها روشن؛ معلوم است فردا با کیست. سهم هزینه خودکار و منصفانه. نشانی خانه‌ها هم پیش خود تیم می‌ماند."}, {"t": 33.5, "title": "سهم مدرسه", "text": "سهم مدرسه؟ فقط یک لینک و یک پوستر. بقیه را خانواده‌ها خودشان می‌چینند."}, {"t": 39.0, "title": "نتیجه", "text": "نتیجه؟ در مدرسه خلوت‌تر، تأخیر کمتر، و والدینی که می‌گویند: این مدرسه حواسش به ما هست."}, {"t": 45.0, "title": "پیشنهاد", "text": "پیشنهاد ما: راه‌اندازی برای مدرسه‌ی شما رایگان است و رایگان می‌ماند. اولین مدرسه‌های هر محله هم «مدرسه‌ی پیشگام» می‌شوند."}, {"t": 52.5, "title": "دعوت و ارسال", "text": "مدیر هستید؟ رسیدیم دات آی آر. پدر یا مادرید؟ این ویدیو را برای مدیر مدرسه بفرستید."}, {"t": 58.5, "title": "امضا", "text": "رسیدیم؛ نوبت‌ها روشن، خیال‌ها جمع."}], "end": 61.0};
-const $ = s => document.querySelector(s), au = $('#au'), cv = $('#wave');
+/* ═════════ music engine: score (events) → realtime / offline WebAudio, and MIDI ═════════ */
+const MUS = (() => {
+  const BPM = 96, B = 60 / BPM;
+  const CH = { Am: [57, 60, 64], F: [53, 57, 60], E: [52, 56, 59], Dm: [50, 53, 57], C: [48, 52, 55], G: [55, 59, 62], Fmaj7: [53, 57, 60, 64], Cadd9: [48, 55, 60, 62] };
+  const MOOD = {
+    tension: { ch: ['Am', 'F', 'Am', 'E'], pad: [700, .15], bass: 8, tick: 1 },
+    pain: { ch: ['Dm', 'Am', 'F', 'E'], pad: [900, .19], ep: 'whole' },
+    still: { ch: ['Fmaj7', 'Fmaj7', 'Cadd9', 'Cadd9'], pad: [1500, .21], bell: 1 },
+    lift: { ch: ['C', 'G', 'Am', 'F'], pad: [2200, .13], ep: 'arp', bass: 4, kick: [0, 2], motif: 1 },
+    joy: { ch: ['C', 'G', 'Am', 'F'], pad: [2600, .11], ep: 'arp', bass: 4, kick: [0, 1, 2, 3], hat: 1 },
+    warm: { ch: ['F', 'C', 'G', 'C'], pad: [1800, .16], ep: 'half', bass: 2, kick: [0] },
+    build: { ch: ['F', 'G', 'Am', 'G'], pad: [2400, .13], ep: 'arp', bass: 8, kick: [0, 1, 2, 3], roll: 1 },
+    peak: { ch: ['C', 'G', 'Am', 'F'], pad: [3200, .12], ep: 'arp', bass: 8, kick: [0, 1, 2, 3], hat: 1, motif: 1 },
+    resolve: { ch: ['Fmaj7', 'Cadd9', 'Cadd9', 'Cadd9'], pad: [2000, .19], sting: 1 }
+  };
+  const MOTIF = [[76, 0, .5], [79, .5, .5], [84, 1, 1.5]];
+  function score(moods, marks, end) {
+    const ev = [], st = moods.map((_, i) => Math.max(0, Math.round(marks[i] / B))), push = (i, t, d, n, v, x) => ev.push(Object.assign({ i, t, d, n, v }, x || {}));
+    moods.forEach((mo, s) => {
+      const m = MOOD[mo] || MOOD.warm, b0 = st[s], b1 = s + 1 < moods.length ? Math.max(b0 + 1, st[s + 1]) : Math.ceil(end / B) + (m.sting ? 7 : 2);
+      for (let b = b0; b < b1; b++) {
+        const k = b - b0, bar = Math.floor(k / 4), bt = k % 4, t = b * B, ch = CH[m.ch[bar % 4]];
+        let root = ch[0] - 12; if (root > 47) root -= 12;
+        if (bt === 0 || b === b0) push('pad', t, Math.min(4 - bt, b1 - b) * B + .4, ch, m.pad[1], { cut: m.pad[0] });
+        if (m.bass === 8) { push('bass', t, B * .4, [root], .5); push('bass', t + B / 2, B * .4, [root], .38); }
+        else if (m.bass === 4) push('bass', t, B * .85, [root], .5);
+        else if (m.bass === 2 && bt % 2 === 0) push('bass', t, B * 1.8, [root], .45);
+        if (m.ep === 'whole' && bt === 0) push('ep', t, 4 * B, ch.map(n => n + 12), .16);
+        if (m.ep === 'half' && bt % 2 === 0) push('ep', t, 2 * B, ch.map(n => n + 12), .17);
+        if (m.ep === 'arp') { const a = [...ch.map(n => n + 12), ch[1] + 24]; push('ep', t, B * .9, [a[(bt * 2) % a.length]], .2); push('ep', t + B / 2, B * .9, [a[(bt * 2 + 1) % a.length]], .15); }
+        if (m.kick && m.kick.includes(bt)) push('kick', t, .4, [36], bt === 0 ? .9 : .7);
+        if (m.hat) push('hat', t + B / 2, .05, [42], .35);
+        if (m.tick) { push('tick', t, .03, [37], .45); push('tick', t + B / 2, .03, [37], .25); }
+        if (m.bell && bt === 0) push('bell', t, 3 * B, [[76, 72, 79, 74][bar % 4]], .22);
+        if (m.bell && bt === 2 && bar % 2) push('bell', t, 2 * B, [[84, 81][bar % 2]], .14);
+        if (m.roll && b1 - b <= 4) for (let r = 0; r < 4; r++) push('snare', t + r * B / 4, .1, [38], .12 + .5 * (1 - (b1 - b - r / 4) / 4));
+      }
+      if (m.motif || m.sting) MOTIF.forEach(([n, o, d]) => { push('bell', b0 * B + o * B + (m.sting ? B : 0), d * B + 1, [n], .3); push('ep', b0 * B + o * B + (m.sting ? B : 0), d * B, [n - 12], .14); });
+      if (m.sting) push('pad', (b0 + 3) * B, 6 * B, [48, 55, 60, 64, 67], .2, { cut: 2600 });
+      const nx = moods[s + 1]; if (nx && ['lift', 'peak', 'joy'].includes(nx) && mo !== nx) push('riser', Math.max(b0, b1 - 4) * B, (b1 - Math.max(b0, b1 - 4)) * B, [0], .14);
+    });
+    return ev.sort((a, b) => a.t - b.t);
+  }
+  const hz = n => 440 * Math.pow(2, (n - 69) / 12);
+  function bus(ctx, out) {
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 3; comp.attack.value = .01; comp.release.value = .25;
+    const master = ctx.createGain(); master.gain.value = .6; comp.connect(master); master.connect(out);
+    const len = ctx.sampleRate * 3.2, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); let s = 1234 + c * 77; for (let i = 0; i < len; i++) { s = (s * 16807) % 2147483647; d[i] = ((s / 2147483647) * 2 - 1) * Math.pow(1 - i / len, 3.2); } }
+    const rev = ctx.createConvolver(); rev.buffer = ir; const rg = ctx.createGain(); rg.gain.value = .55; rev.connect(rg); rg.connect(comp);
+    const dl = ctx.createDelay(1); dl.delayTime.value = B * .75; const fb = ctx.createGain(); fb.gain.value = .28; const lp = ctx.createBiquadFilter(); lp.frequency.value = 2500;
+    dl.connect(lp); lp.connect(fb); fb.connect(dl); const dg = ctx.createGain(); dg.gain.value = .35; lp.connect(dg); dg.connect(comp);
+    const nb = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), nd = nb.getChannelData(0); let s = 99; for (let i = 0; i < nd.length; i++) { s = (s * 16807) % 2147483647; nd[i] = (s / 2147483647) * 2 - 1; }
+    return { ctx, dry: comp, rev, del: dl, noise: nb, master };
+  }
+  function voice(bs, e, at, dur) {
+    const c = bs.ctx, o = [], g = c.createGain(), send = (node, dry, rv, dl) => { const a = c.createGain(); a.gain.value = dry; node.connect(a); a.connect(bs.dry); if (rv) { const r = c.createGain(); r.gain.value = rv; node.connect(r); r.connect(bs.rev); } if (dl) { const q = c.createGain(); q.gain.value = dl; node.connect(q); q.connect(bs.del); } };
+    const env = (a, peak, decay, sus, rel) => { g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(peak, at + a); g.gain.setTargetAtTime(peak * sus, at + a, decay); g.gain.setTargetAtTime(0, at + dur, rel); };
+    const osc = (type, f, det) => { const x = c.createOscillator(); x.type = type; x.frequency.value = f; if (det) x.detune.value = det; o.push(x); return x; };
+    const noise = () => { const x = c.createBufferSource(); x.buffer = bs.noise; x.loop = true; o.push(x); return x; };
+    let tail = 1.2;
+    if (e.i === 'pad') { const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(e.cut * .6, at); f.frequency.linearRampToValueAtTime(e.cut, at + Math.min(dur, 2.5)); f.Q.value = .8; f.connect(g);
+      e.n.forEach(n => { [-8, 8].forEach(d => osc('sawtooth', hz(n), d).connect(f)); osc('triangle', hz(n - 12)).connect(f); }); env(.7, e.v / e.n.length, .8, .85, .5); send(g, .5, .6); tail = 2.5; }
+    else if (e.i === 'ep' || e.i === 'bell') { const r = e.i === 'bell' ? 3.5 : 1, ix = e.i === 'bell' ? 3.2 : 1.8;
+      e.n.forEach(n => { const m = osc('sine', hz(n) * r), mg = c.createGain(); mg.gain.setValueAtTime(hz(n) * ix, at); mg.gain.setTargetAtTime(hz(n) * ix * .12, at, e.i === 'bell' ? .5 : .25); m.connect(mg); const cr = osc('sine', hz(n)); mg.connect(cr.frequency); cr.connect(g); });
+      env(.006, e.v / Math.sqrt(e.n.length), e.i === 'bell' ? 1.1 : .7, .25, .35); send(g, .6, e.i === 'bell' ? .8 : .35, e.i === 'ep' ? .5 : .2); tail = 2.5; }
+    else if (e.i === 'bass') { const f = c.createBiquadFilter(); f.frequency.value = 420; f.connect(g); osc('triangle', hz(e.n[0])).connect(f); osc('sine', hz(e.n[0])).connect(f); env(.01, e.v, .3, .6, .06); send(g, 1, .05); tail = .4; }
+    else if (e.i === 'kick') { const x = osc('sine', 110); x.frequency.setValueAtTime(120, at); x.frequency.exponentialRampToValueAtTime(42, at + .12); x.connect(g); g.gain.setValueAtTime(e.v * .9, at); g.gain.exponentialRampToValueAtTime(.001, at + .38); send(g, 1, .04); tail = .45; dur = 0; }
+    else { const x = noise(), f = c.createBiquadFilter(); x.connect(f); f.connect(g);
+      if (e.i === 'hat') { f.type = 'highpass'; f.frequency.value = 7500; g.gain.setValueAtTime(e.v * .25, at); g.gain.exponentialRampToValueAtTime(.001, at + .05); tail = .1; dur = 0; send(g, 1, .15); }
+      else if (e.i === 'tick') { f.type = 'bandpass'; f.frequency.value = 3200; f.Q.value = 6; g.gain.setValueAtTime(e.v * .6, at); g.gain.exponentialRampToValueAtTime(.001, at + .03); tail = .08; dur = 0; send(g, 1, .2); }
+      else if (e.i === 'snare') { f.type = 'bandpass'; f.frequency.value = 1900; f.Q.value = .9; g.gain.setValueAtTime(e.v * .7, at); g.gain.exponentialRampToValueAtTime(.001, at + .12); tail = .2; dur = 0; send(g, 1, .3); }
+      else { f.type = 'bandpass'; f.Q.value = 2.5; f.frequency.setValueAtTime(400, at); f.frequency.exponentialRampToValueAtTime(5200, at + dur); g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(e.v, at + dur); g.gain.linearRampToValueAtTime(0, at + dur + .05); tail = .1; send(g, .8, .5); } }
+    o.forEach(x => { x.start(at); x.stop(at + dur + tail); });
+    return { stop: t => { try { g.gain.cancelScheduledValues(t); g.gain.setTargetAtTime(0, t, .05); o.forEach(x => x.stop(t + .3)); } catch (err) {} } };
+  }
+  /* realtime: schedule events from "from" (seconds on the voice timeline) with a lookahead loop */
+  let RT = null;
+  function start(ev, from, vol) {
+    stop(); const ctx = (MUS.ctx = MUS.ctx || new (window.AudioContext || window.webkitAudioContext)()); ctx.resume && ctx.resume();
+    const out = ctx.createGain(); out.gain.value = vol; out.connect(ctx.destination); const bs = bus(ctx, out), t0 = ctx.currentTime + .06, live = [];
+    let k = 0; for (const e of ev) { if (e.t >= from) break; if (e.t + e.d > from && (e.i === 'pad' || e.i === 'bell')) live.push(voice(bs, e, t0, e.d - (from - e.t))); k++; }
+    const tick = () => { const now = ctx.currentTime - t0 + from + .35; while (k < ev.length && ev[k].t < now) { const e = ev[k++]; live.push(voice(bs, e, t0 + e.t - from, e.d)); if (live.length > 300) live.splice(0, 100); } };
+    tick(); RT = { ctx, out, live, iv: setInterval(tick, 60) };
+  }
+  function stop() { if (!RT) return; clearInterval(RT.iv); const t = RT.ctx.currentTime; RT.live.forEach(v => v.stop(t)); RT.out.gain.setTargetAtTime(0, t, .05); const o = RT.out; setTimeout(() => o.disconnect(), 600); RT = null; }
+  function setVol(v) { if (RT) RT.out.gain.setTargetAtTime(v, RT.ctx.currentTime, .05); }
+  async function render(ev, end, sr = 44100) {
+    const ctx = new OfflineAudioContext(2, Math.ceil(sr * (end + 5)), sr), out = ctx.createGain(); out.gain.value = .9; out.connect(ctx.destination);
+    const bs = bus(ctx, out); ev.forEach(e => voice(bs, e, e.t + .05, e.d)); return ctx.startRendering();
+  }
+  function wav(buf) {
+    const n = buf.length, ch = buf.numberOfChannels, dv = new DataView(new ArrayBuffer(44 + n * ch * 2)), W = (o, s) => [...s].forEach((c, i) => dv.setUint8(o + i, c.charCodeAt(0)));
+    W(0, 'RIFF'); dv.setUint32(4, 36 + n * ch * 2, true); W(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, ch, true); dv.setUint32(24, buf.sampleRate, true); dv.setUint32(28, buf.sampleRate * ch * 2, true); dv.setUint16(32, ch * 2, true); dv.setUint16(34, 16, true); W(36, 'data'); dv.setUint32(40, n * ch * 2, true);
+    const d = [...Array(ch)].map((_, c) => buf.getChannelData(c)); let o = 44; for (let i = 0; i < n; i++) for (let c = 0; c < ch; c++) { dv.setInt16(o, Math.max(-1, Math.min(1, d[c][i])) * 32767, true); o += 2; }
+    return dv.buffer;
+  }
+  function midi(ev) {
+    const PPQ = 480, tk = s => Math.round(s / B * PPQ), TR = { pad: [0, 89], ep: [1, 4], bell: [2, 11], bass: [3, 33], kick: [9], hat: [9], tick: [9], snare: [9] };
+    const vlq = v => { const b = [v & 127]; while ((v >>= 7)) b.unshift((v & 127) | 128); return b; }, chunk = (id, d) => [...id].map(c => c.charCodeAt(0)).concat([d.length >>> 24, (d.length >> 16) & 255, (d.length >> 8) & 255, d.length & 255], d);
+    const names = ['pad', 'ep', 'bell', 'bass', 'drums'], tracks = names.map(nm => {
+      const mine = ev.filter(e => nm === 'drums' ? TR[e.i] && TR[e.i][0] === 9 : e.i === nm), list = [];
+      mine.forEach(e => e.n.forEach(n => { const ch = TR[e.i][0]; list.push([tk(e.t), 0x90 | ch, n, Math.max(1, Math.min(127, Math.round(e.v * (e.i === 'pad' ? 300 : 160))))]); list.push([tk(e.t + (ch === 9 ? .1 : e.d)), 0x80 | ch, n, 0]); }));
+      list.sort((a, b) => a[0] - b[0] || (a[1] & 0xf0) - (b[1] & 0xf0)); let last = 0, d = [];
+      if (nm === 'pad') d.push(0, 0xff, 0x51, 3, ...[Math.round(B * 1e6)].flatMap(x => [x >> 16, (x >> 8) & 255, x & 255]));
+      if (nm !== 'drums') d.push(0, 0xc0 | TR[nm][0], TR[nm][1]);
+      list.forEach(([t, s, n, v]) => { d.push(...vlq(t - last), s, n, v); last = t; }); d.push(0, 0xff, 0x2f, 0); return chunk('MTrk', d); });
+    return new Uint8Array([...chunk('MThd', [0, 1, 0, tracks.length, PPQ >> 8, PPQ & 255]), ...tracks.flat()]);
+  }
+  return { score, start, stop, setVol, render, wav, midi, MOOD };
+})();
+window.MUS = MUS;
+
+/* ═════════ timecoder ═════════ */
+const VIDS = [{"slug": "01-schools", "title": "رسیدیم برای مدارس", "spk": {"Madar": "مادر", "Ravi": "راوی"}, "end": 64.6, "plans": [{"t": 0.0, "title": "قلاب", "mood": "tension", "lines": [{"s": "Madar", "x": "[sigh] ساعَتِ هفت و رُبعِ صُبح. جِلوی دَرِ مَدرِسه... سی تا ماشین، سی تا بوق، و من، باز دیرَم شُد."}]}, {"t": 8.8, "title": "درد", "mood": "pain", "lines": [{"s": "Ravi", "x": "بیشترِ این سی تا خانواده هَم‌مَحَلّه‌اَن. هر کُدوم تَنها، با یه بَچّه، هر روز."}]}, {"t": 14.5, "title": "هزینه و دلشوره", "mood": "pain", "lines": [{"s": "Madar", "x": "سِرویس گِرون، دِلشوره سَنگین... صُبحا شُده مُسابِقه."}]}, {"t": 18.1, "title": "چرخش", "mood": "still", "lines": [{"s": "Ravi", "x": "[medium pause] حالا فِکر کُنین این سی تا خانواده، هَمدیگه رو پِیدا کُنَن."}]}, {"t": 23.1, "title": "راه‌حل", "mood": "lift", "lines": [{"s": "Ravi", "x": "«رِسیدیم» هَم‌مَدرِسه‌ایایِ هَم‌مَحَلّه رو پِیدا می‌کُنه تا هَم‌سِرویس بِشَن. هر روز یه نَفَر می‌بَره..."}, {"s": "Madar", "x": "[laughing] بَقیّه نَفَس می‌کِشَن!"}]}, {"t": 31.6, "title": "اعتماد", "mood": "warm", "lines": [{"s": "Ravi", "x": "نُوبَتا روشَنه؛ مَعلومه فَردا با کیه. سَهمِ هَزینه مُنصِفانه. نِشونیِ خونه‌ها فَقَط تویِ تیم می‌مونه."}]}, {"t": 37.9, "title": "سهم مدرسه", "mood": "warm", "lines": [{"s": "Madar", "x": "مَدرِسه باید چی‌کار کُنه؟"}, {"s": "Ravi", "x": "فَقَط یه لینک و یه پوستِر. بَقیّه‌ش با خانواده‌ها."}]}, {"t": 43.5, "title": "نتیجه", "mood": "build", "lines": [{"s": "Ravi", "x": "نَتیجه؟ دَرِ مَدرِسه خَلوَت‌تَر، تَأخیر کَمتَر..."}, {"s": "Madar", "x": "و ما می‌گیم: این مَدرِسه حَواسِش به ما هَست."}]}, {"t": 50.4, "title": "پیشنهاد", "mood": "peak", "lines": [{"s": "Ravi", "x": "پیشنَهادِ ما: راه‌اندازی برایِ مَدرِسه‌یِ شُما رایگانه؛ و رایگان می‌مونه."}]}, {"t": 54.7, "title": "دعوت و ارسال", "mood": "peak", "lines": [{"s": "Ravi", "x": "مُدیرِ مَدرِسه‌این؟ رِسیدیم دات آی آر."}, {"s": "Madar", "x": "پِدَر یا مادَرین؟ این ویدیو رو بِفرِستین برایِ مُدیرِ مَدرِسه!"}]}, {"t": 61.6, "title": "امضا", "mood": "resolve", "lines": [{"s": "Ravi", "x": "[short pause] رِسیدیم؛ نُوبَت‌ها روشَن، خیال‌ها جَمع."}]}]}, {"slug": "02-parents", "title": "صبح‌های مدرسه", "spk": {"Madar": "مادر", "Baba": "پدر"}, "end": 58.7, "plans": [{"t": 0.0, "title": "هرج و مرج", "mood": "tension", "lines": [{"s": "Madar", "x": "[shouting] بَچّه‌ها! کَفش! کیف! دیر شُد!"}, {"s": "Baba", "x": "[sigh] مَنَم ساعَتِ هَشت جَلَسه دارَم..."}]}, {"t": 5.9, "title": "گره", "mood": "pain", "lines": [{"s": "Madar", "x": "تو بِبَر، مَن بَرمی‌گَردونَم... نه، اِمروز مَنَم گیرَم."}, {"s": "Baba", "x": "پَس کی؟"}]}, {"t": 10.8, "title": "کشف", "mood": "still", "lines": [{"s": "Madar", "x": "[medium pause] راستی... بَچّه‌یِ خانُمِ هَمسایه هم هَمین مَدرِسه‌ست."}, {"s": "Baba", "x": "هر روزَم دَرست هَمین موقَع راه می‌اُفته!"}]}, {"t": 17.8, "title": "پرسش", "mood": "still", "lines": [{"s": "Madar", "x": "پَس چِرا هر کُدوم جُدا می‌ریم؟"}, {"s": "Baba", "x": "چون هیشکی هَمدیگه رو پِیدا نِمی‌کُنه."}]}, {"t": 23.0, "title": "رسیدیم", "mood": "lift", "lines": [{"s": "Madar", "x": "«رِسیدیم» پِیدا می‌کُنه! خانواده‌هایِ هَم‌مَدرِسه، رویِ نَقشه، نَزدیکِ خونه‌یِ خودِمون."}]}, {"t": 27.3, "title": "هم‌سرویس", "mood": "joy", "lines": [{"s": "Baba", "x": "بَعد چَند تا خانواده یه تیم می‌شیم. یه روز مَن می‌بَرَم، یه روز اونا."}, {"s": "Madar", "x": "نُوبَتا روشَن، سَهمِ بَنزین مُنصِفانه."}]}, {"t": 35.1, "title": "خیال راحت", "mood": "warm", "lines": [{"s": "Baba", "x": "نِشونیِ دَقیقِ خونه چی؟"}, {"s": "Madar", "x": "فَقَط هَم‌تیمیا می‌بینَن. دُخترا و پِسَرایِ بُزرگ‌تَرَم با هم قاطی نِمی‌شَن."}]}, {"t": 41.5, "title": "خنده", "mood": "build", "lines": [{"s": "Baba", "x": "[laughing] یَعنی مَن هَفته‌ای سه روز صُبحونه‌مو با آرامِش می‌خورَم؟"}, {"s": "Madar", "x": "مَنَم به جَلَسه‌م می‌رِسَم."}]}, {"t": 48.0, "title": "پیشنهاد", "mood": "peak", "lines": [{"s": "Madar", "x": "ثَبت‌نامِ خانواده‌ها رایگانه. دو دَقیقه کار داره."}]}, {"t": 51.1, "title": "پخش در گروه", "mood": "peak", "lines": [{"s": "Baba", "x": "لینکِشو بِفرِست تو گُروهِ کِلاس. هر چی خانواده‌ها بیشتَر، تیم نَزدیک‌تَر."}]}, {"t": 55.7, "title": "امضا", "mood": "resolve", "lines": [{"s": "Madar", "x": "[short pause] رِسیدیم؛ نُوبَت‌ها روشَن، خیال‌ها جَمع."}]}]}, {"slug": "03-commute", "title": "صندلی‌های خالی", "spk": {"Baran": "باران", "Darya": "دریا"}, "end": 54.0, "plans": [{"t": 0.0, "title": "ترافیک", "mood": "tension", "lines": [{"s": "Baran", "x": "[sigh] یه ساعت و ده دَقیقه. تویِ تِرافیک. تَنها."}]}, {"t": 4.3, "title": "صندلی خالی", "mood": "pain", "lines": [{"s": "Darya", "x": "با سه تا صَندَلیِ خالی پُشتِ سَرِت... که هر روز باهات میان و هیچ کاری نِمی‌کُنَن! [laughing]"}]}, {"t": 12.1, "title": "هزینه", "mood": "pain", "lines": [{"s": "Baran", "x": "بَنزین، اِستِهلاک، پارکینگ... حِسابِشو نَکُن."}]}, {"t": 14.9, "title": "کشف", "mood": "still", "lines": [{"s": "Darya", "x": "[medium pause] حالا فِکر کُن: هَمکارِ طَبَقه‌یِ بالا، دَقیقاً از مَحَلّه‌یِ تو میاد."}]}, {"t": 20.0, "title": "رسیدیم", "mood": "lift", "lines": [{"s": "Darya", "x": "«رِسیدیم» هَم‌مَسیرایِ مَحَلِّ کار یا دانِشگاهِتو رویِ نَقشه نِشونِت می‌ده."}, {"s": "Baran", "x": "یَعنی هَم‌سِرویسِ بُزرگ‌ترا؟"}, {"s": "Darya", "x": "دَقیقاً."}]}, {"t": 26.3, "title": "دو راه", "mood": "joy", "lines": [{"s": "Darya", "x": "ماشین داری؟ جایِ خالیتو بِده، سَهمِ بَنزین بِگیر. نَداری؟ با هَم‌مَسیرا بُرو، سَهمِ مُنصِفانه بِده."}]}, {"t": 32.5, "title": "نوبت", "mood": "warm", "lines": [{"s": "Baran", "x": "اگه یه روز نَتونِستَم چی؟"}, {"s": "Darya", "x": "نُوبَتا روشَنه؛ تیم خَبَردار می‌شه."}]}, {"t": 37.0, "title": "حال خوب", "mood": "build", "lines": [{"s": "Baran", "x": "پَس تِرافیک کوتاه‌تَر نِمی‌شه... ولی خوش‌تَر می‌گذَره!"}, {"s": "Darya", "x": "شَهرَم چَند تا ماشین سَبُک‌تَر."}]}, {"t": 42.8, "title": "پیشنهاد", "mood": "peak", "lines": [{"s": "Darya", "x": "ساختَنِ تیم رایگانه. مَحَلِّ کارِتو ثَبت کُن؛ اَوَّلین نَفَر باش."}]}, {"t": 47.1, "title": "پخش", "mood": "peak", "lines": [{"s": "Baran", "x": "رِسیدیم دات آی آر. لینکِشو بِفرِست تو گُروهِ هَمکارا."}]}, {"t": 51.0, "title": "امضا", "mood": "resolve", "lines": [{"s": "Darya", "x": "[short pause] رِسیدیم؛ نُوبَت‌ها روشَن، خیال‌ها جَمع."}]}]}, {"slug": "04-trust", "title": "به غریبه نمی‌سپارم", "spk": {"Madar": "مادر", "Ravi": "راوی"}, "end": 52.1, "plans": [{"t": 0.0, "title": "اعتراض", "mood": "tension", "lines": [{"s": "Madar", "x": "بَچّه‌مو بِدَم دَستِ یه غَریبه؟ عُمراً!"}]}, {"t": 2.8, "title": "همدلی", "mood": "still", "lines": [{"s": "Ravi", "x": "حَق دارین. ما هم بودیم، هَمینو می‌گُفتیم."}]}, {"t": 5.9, "title": "انتخاب", "mood": "warm", "lines": [{"s": "Ravi", "x": "تو «رِسیدیم» کَسی رو به شُما نِمی‌اَندازیم. خودِتون می‌بینین، خودِتون اِنتِخاب می‌کُنین."}]}, {"t": 10.8, "title": "نشانی", "mood": "warm", "lines": [{"s": "Madar", "x": "نِشونیِ خونه‌م چی؟"}, {"s": "Ravi", "x": "رویِ نَقشه فَقَط حُدودی؛ حُدودِ صَد و پَنجاه مِتر. نُقطه‌یِ دَقیق، فَقَط تویِ تیمِ خودِتون."}]}, {"t": 18.4, "title": "شماره", "mood": "warm", "lines": [{"s": "Madar", "x": "شُماره‌م؟"}, {"s": "Ravi", "x": "فَقَط با رِضایَتِ خودِتون."}]}, {"t": 21.0, "title": "قانون", "mood": "build", "lines": [{"s": "Madar", "x": "دُخترِ مَن کِنارِ پِسَرایِ بُزرگ‌تَر؟"}, {"s": "Ravi", "x": "نه. دُخترایِ بالایِ هَشت سال و پِسَرایِ بالایِ دَوازده سال، هیچ‌وَقت تویِ یه سِرویس نیستَن."}]}, {"t": 29.3, "title": "رسیدیم", "mood": "lift", "lines": [{"s": "Ravi", "x": "هر سَفَر هم: کی بُرد، کی رِسید؛ با یه لَمس."}, {"s": "Madar", "x": "«رِسیدیم»... [short pause] [laughing] پَس اِسمِش از این‌جاست!"}]}, {"t": 37.4, "title": "بی‌ردیابی", "mood": "warm", "lines": [{"s": "Ravi", "x": "رَدیابیِ دائِمی نیست. فَقَط خَبَرِ لازِم، سَرِ وَقت."}]}, {"t": 40.9, "title": "پیشنهاد", "mood": "peak", "lines": [{"s": "Ravi", "x": "اَوَّل فَقَط نِگاه کُنین کُدوم خانواده‌ها هَم‌مَسیرِتونَن. رایگان، بی‌تَعَهُّد."}]}, {"t": 44.8, "title": "نرم شدن", "mood": "peak", "lines": [{"s": "Madar", "x": "باشه... یه نِگاهی می‌اَندازَم."}, {"s": "Ravi", "x": "رِسیدیم دات آی آر."}]}, {"t": 49.0, "title": "امضا", "mood": "resolve", "lines": [{"s": "Ravi", "x": "[short pause] رِسیدیم؛ نُوبَت‌ها روشَن، خیال‌ها جَمع."}]}]}, {"slug": "05-howto", "title": "دو دقیقه تا هم‌سرویس", "spk": {"Darya": "دریا", "Baran": "باران"}, "end": 44.8, "plans": [{"t": 0.0, "title": "تردید", "mood": "tension", "lines": [{"s": "Baran", "x": "ثَبت‌نام؟ حَتماً کُلّی فُرم و مَدرَک می‌خواد..."}]}, {"t": 3.6, "title": "دعوت", "mood": "lift", "lines": [{"s": "Darya", "x": "[laughing] دو دَقیقه. با مَن بیا."}]}, {"t": 6.9, "title": "قدم ۱", "mood": "joy", "lines": [{"s": "Darya", "x": "یک: شُماره‌یِ موبایل و کُدِ پیامَک. رَمز نِمی‌خواد."}]}, {"t": 10.4, "title": "قدم ۲", "mood": "joy", "lines": [{"s": "Darya", "x": "دو: مَدرِسه یا مَحَلِّ کارو اِنتِخاب کُن؛ اگه نیست، خودِت اِضافه‌ش کُن."}]}, {"t": 15.5, "title": "قدم ۳", "mood": "joy", "lines": [{"s": "Darya", "x": "سه: خونه‌تو رویِ نَقشه بِذار؛ بَقیّه فَقَط حُدودِشو می‌بینَن."}]}, {"t": 19.4, "title": "قدم ۴", "mood": "joy", "lines": [{"s": "Darya", "x": "چَهار: بِگو چه روزایی می‌تونی بِبَری، یا فَقَط سَهم می‌دی."}, {"s": "Baran", "x": "هَمین؟"}]}, {"t": 24.3, "title": "انتظار", "mood": "still", "lines": [{"s": "Darya", "x": "[short pause] [whispering] حالا نِگاه کُن..."}]}, {"t": 26.6, "title": "جادو", "mood": "peak", "lines": [{"s": "Darya", "x": "اینا خانواده‌هایِ هَم‌مَسیرِ تواَن. یه دُکمه: «هَم‌مَسیر شَویم؟»"}]}, {"t": 30.2, "title": "تیم", "mood": "warm", "lines": [{"s": "Baran", "x": "وَقتی قَبول کَردَن؟"}, {"s": "Darya", "x": "تیم ساخته می‌شه: نُوبَتا، هَفته، سَهما... هَمه آماده."}]}, {"t": 35.6, "title": "شگفتی", "mood": "peak", "lines": [{"s": "Baran", "x": "[laughing] فِکر می‌کَردَم سَخت‌تَر باشه!"}, {"s": "Darya", "x": "هَمین اَلان اِمتِحانِش کُن: رِسیدیم دات آی آر."}]}, {"t": 41.8, "title": "امضا", "mood": "resolve", "lines": [{"s": "Darya", "x": "[short pause] رِسیدیم؛ نُوبَت‌ها روشَن، خیال‌ها جَمع."}]}]}];
+const $ = s => document.querySelector(s), cv = $('#wave'), au = new Audio(); au.preload = 'auto';
 const faD = s => String(s).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
 const tc = t => { t = Math.max(0, t || 0); const m = Math.floor(t / 60), s = t - m * 60; return String(m).padStart(2, '0') + ':' + s.toFixed(1).padStart(4, '0'); };
-let plans = [], marks = [], set = [], next = 0, peaks = null;
-function load() {
-  let st = null; try { st = JSON.parse(localStorage.getItem('rtc1') || 'null'); } catch (e) {}
-  plans = st && st.plans ? st.plans : BASE.plans.map(p => ({ title: p.title, text: p.text }));
-  marks = st && st.marks && st.marks.length === plans.length + 1 ? st.marks : [...BASE.plans.map(p => p.t), BASE.end];
-  set = st && st.set && st.set.length === marks.length ? st.set : marks.map(() => false);
-  next = Math.max(0, set.lastIndexOf(true) + 1);
-}
-if (!BASE.plans.length) BASE.plans = [{ t: 0, title: '', text: '' }];
-const save = () => { try { localStorage.setItem('rtc1', JSON.stringify({ plans, marks, set })); } catch (e) {} };
-function render() {
-  const cur = curPlan();
-  $('#list').innerHTML = marks.map((t, i) => {
-    const p = plans[i], last = i === plans.length;
-    return `<li class="pl ${i === next ? 'next' : ''} ${i === cur ? 'now' : ''}">
-      <div class="tc"><span class="tcv ${set[i] ? '' : 'est'}">${tc(t)}</span>
-        <div class="row"><button data-n="${i}" data-d="-0.1" aria-label="یک دهم ثانیه زودتر">−</button><button data-n="${i}" data-d="0.1" aria-label="یک دهم ثانیه دیرتر">+</button><button data-p="${i}" aria-label="پخش از اینجا">▶</button></div></div>
-      <b>${last ? 'پایان' : 'پلان ' + faD(i + 1) + (p.title ? ' – ' + esc(p.title) : '')}</b>
-      <span class="tx">${last ? 'آخرین کلمه که تمام شد، یک بار دیگر بزن.' : esc(p.text)}</span></li>`;
-  }).join('');
-  const done = set.filter(Boolean).length;
-  $('#cnt').textContent = `${faD(done)} از ${faD(marks.length)} تایم‌کد زده شده`;
-  const hasA = !!au.src;
-  $('#mark').disabled = !hasA || next > plans.length;
-  $('#markl').textContent = !hasA ? 'اول فایل صوت را بگذار' : next > plans.length ? 'همه زده شد؛ متن پایین آماده است' : next === plans.length ? 'پایان صدا' : `شروع پلان ${faD(next + 1)}: ${plans[next].text.slice(0, 48)}…`;
-  ['#play', '#back2', '#restart', '#undo'].forEach(s => $(s).disabled = !hasA);
-  $('#out').value = marks.map((t, i) => i === plans.length ? `[${tc(t)}] پایان` : `[${tc(t)}] پلان ${faD(i + 1)}${plans[i].title ? ' – ' + plans[i].title : ''}\n${plans[i].text}`).join('\n\n');
-  draw();
-}
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const curPlan = () => { if (!au.src || au.paused) return -1; const t = au.currentTime; let k = -1; marks.forEach((m, i) => { if (i < plans.length && t >= m) k = i; }); return k; };
-function hit() { if (!au.src || next > plans.length) return; marks[next] = +au.currentTime.toFixed(1); set[next] = true;
-  for (let i = next + 1; i < marks.length; i++) if (!set[i] && marks[i] < marks[next]) marks[i] = marks[next]; next++; save(); render(); }
+const clean = x => x.replace(/\[[^\]]+\]/g, '').replace(/\s+/g, ' ').trim();
+const LS = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+let custom = false, V, plans, base, marks, set, auto, next = 0, peaks = null, silences = null, hasVoice = false, silentUrl = '', ev = [];
+const words = p => clean(p.lines.map(l => l.x).join(' ')).split(' ');
+function pick(slug) {
+  V = VIDS.find(v => v.slug === slug) || VIDS[0]; LS.set('rst-vid', V.slug);
+  const st = LS.get('rst2:' + V.slug);
+  custom = !!(st && st.plans); plans = custom ? st.plans : V.plans.map(p => ({ ...p }));
+  base = [...plans.map(p => p.t), V.end];
+  marks = st && st.marks && st.marks.length === plans.length + 1 ? st.marks : base.slice();
+  set = st && st.set && st.set.length === marks.length ? st.set : marks.map(() => false);
+  auto = st && st.auto && st.auto.length === marks.length ? st.auto : marks.map(() => false);
+  next = Math.max(0, set.lastIndexOf(true) + 1);
+  $('#vids').innerHTML = VIDS.map(v => `<button data-v="${v.slug}" aria-pressed="${v === V}">${esc(v.title)}</button>`).join('');
+  if (!hasVoice) useSilent(); else if (peaks) { silences = findSilences(); }
+  rescore(); render();
+}
+const save = () => LS.set('rst2:' + V.slug, { plans: custom ? plans : null, marks, set, auto });
+function rescore() { ev = MUS.score(plans.map(p => p.mood || 'warm'), marks, marks[marks.length - 1]); if (!au.paused) musicSync(); }
+/* silent track so the music preview and the cue card work before any voice file is loaded */
+function useSilent() {
+  const sec = Math.ceil(V.end + 2), sr = 8000, n = sec * sr, dv = new DataView(new ArrayBuffer(44 + n * 2)), W = (o, s) => [...s].forEach((c, i) => dv.setUint8(o + i, c.charCodeAt(0)));
+  W(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); W(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); W(36, 'data'); dv.setUint32(40, n * 2, true);
+  if (silentUrl) URL.revokeObjectURL(silentUrl); silentUrl = URL.createObjectURL(new Blob([dv.buffer], { type: 'audio/wav' })); au.src = silentUrl; peaks = null; silences = null;
+}
+/* the expected time of the next boundary, learning the speaker's real pace from the marks already tapped */
+function expectNext() {
+  if (next > plans.length) return null; if (auto[next] || next === 0) return marks[next];
+  let a = 0, e = 0; for (let i = 0; i < next - 1; i++) if (set[i] && set[i + 1]) { a += marks[i + 1] - marks[i]; e += base[i + 1] - base[i]; }
+  const r = e > 2 ? Math.min(1.6, Math.max(.6, a / e)) : (hasVoice && au.duration ? au.duration / (base[base.length - 1] + 1) : 1);
+  return marks[next - 1] + (base[next] - base[next - 1]) * r;
+}
+function cue() {
+  const t = au.currentTime, E = expectNext(), cueEl = $('#cue');
+  if (E == null) { cueEl.dataset.s = 'wait'; $('#pill').textContent = 'تمام شد'; $('#say').textContent = 'همه‌ی تایم‌کدها زده شد. متن پایین آماده‌ی کپی است.'; $('#endW').textContent = $('#startW').textContent = '–'; $('#barI').style.width = '100%'; $('#cueN').textContent = ''; return; }
+  const cur = next - 1, from = cur >= 0 ? marks[cur] : 0, d = E - t;
+  const s = au.paused ? 'wait' : next === 0 ? 'ready' : Math.abs(d) <= .8 ? 'now' : d > 0 && d <= 2.5 ? 'ready' : d < -.8 ? 'ready' : 'wait';
+  cueEl.dataset.s = s; $('#pill').textContent = au.paused ? 'پخش را بزن' : next === 0 ? 'سرِ اولین کلمه بزن' : s === 'now' ? 'حالا بزن' : d < -.8 ? 'جمله‌ی بعد را بگیر' : s === 'ready' ? 'آماده باش' : 'گوش بده';
+  $('#cueN').textContent = next < plans.length ? `مرزِ پلان ${faD(next + 1)} از ${faD(plans.length)}` : 'مرزِ پایان';
+  if (cur >= 0) { const w = words(plans[cur]), p = Math.max(0, Math.min(1, (t - from) / Math.max(.5, E - from))), k = Math.floor(p * w.length);
+    let i = 0; $('#say').innerHTML = plans[cur].lines.map(l => `<span class="sp">${esc(V.spk[l.s] || l.s)}</span>` + clean(l.x).split(' ').map(x => { const c = i < k ? 'past' : i === k ? 'cur' : ''; i++; return `<span class="w ${c}">${esc(x)}</span>`; }).join(' ')).join('<br>');
+    $('#endW').textContent = '«… ' + w.slice(-4).join(' ') + '»'; $('#barI').style.width = (p * 100).toFixed(0) + '%';
+  } else { $('#say').textContent = 'پلان ۱ هنوز شروع نشده. اولین کلمه را که شنیدی بزن.'; $('#endW').textContent = 'سکوتِ اول'; $('#barI').style.width = Math.max(0, Math.min(100, t / Math.max(.5, E) * 100)) + '%'; }
+  $('#startW').textContent = next < plans.length ? '«' + words(plans[next]).slice(0, 4).join(' ') + ' …»' : 'تمام شدنِ آخرین کلمه';
+}
+function render() {
+  const curP = playingPlan();
+  $('#list').innerHTML = marks.map((t, i) => { const p = plans[i], last = i === plans.length;
+    return `<li class="pl ${i === next ? 'next' : ''} ${i === curP ? 'now' : ''}">
+      <div class="tc"><span class="tcv ${set[i] ? '' : auto[i] ? 'auto' : 'est'}">${tc(t)}</span>
+        <div class="row"><button data-n="${i}" data-d="-0.1" aria-label="یک دهم ثانیه زودتر">−</button><button data-n="${i}" data-d="0.1" aria-label="یک دهم ثانیه دیرتر">+</button><button data-p="${i}" aria-label="پخش از اینجا">▶</button></div></div>
+      <b>${last ? 'پایان' : 'پلان ' + faD(i + 1) + (p.title ? ' – ' + esc(p.title) : '')}${!last && p.mood ? `<span class="mood">${esc(MOODFA[p.mood] || p.mood)}</span>` : ''}</b>
+      <span class="tx">${last ? 'وقتی آخرین کلمه تمام شد، یک بار دیگر بزن.' : p.lines.map(l => `<b>${esc(V.spk[l.s] || l.s)}:</b> ${esc(clean(l.x))}`).join('<br>')}</span></li>`; }).join('');
+  $('#cnt').textContent = `${faD(set.filter(Boolean).length)} از ${faD(marks.length)} تایم‌کد زده شده${auto.some(Boolean) ? ' – آبی‌ها خودکارند؛ با پخش چکشان کن' : ''}`;
+  $('#mark').disabled = next > plans.length;
+  $('#markl').textContent = !hasVoice ? 'بدون صدای گوینده فقط تمرین است' : next > plans.length ? 'همه زده شد' : next === plans.length ? 'پایانِ صدا' : `شروع پلان ${faD(next + 1)}`;
+  $('#auto').disabled = !silences;
+  $('#out').value = marks.map((t, i) => i === plans.length ? `[${tc(t)}] پایان` : `[${tc(t)}] پلان ${faD(i + 1)}${plans[i].title ? ' – ' + plans[i].title : ''}\n${plans[i].lines.map(l => l.s + ': ' + l.x).join('\n')}`).join('\n\n');
+  cue(); draw();
+}
+const MOODFA = { tension: 'تنش', pain: 'درد', still: 'تأمل', lift: 'اوج‌گرفتن', joy: 'شادی', warm: 'گرما', build: 'بالا رفتن', peak: 'اوج', resolve: 'فرود' };
+const playingPlan = () => { if (au.paused) return -1; let k = -1; marks.forEach((m, i) => { if (i < plans.length && au.currentTime >= m) k = i; }); return k; };
+function hit() { if (next > plans.length) return; marks[next] = +au.currentTime.toFixed(1); set[next] = true; auto[next] = false;
+  for (let i = next + 1; i < marks.length; i++) if (!set[i] && marks[i] < marks[next]) marks[i] = marks[next]; next++; save(); rescore(); render(); }
 function undo() { if (next <= 0) return; next--; set[next] = false; save(); render(); }
 function draw() {
   const w = cv.clientWidth, h = cv.clientHeight, r = devicePixelRatio || 1; cv.width = w * r; cv.height = h * r;
   const g = cv.getContext('2d'); g.scale(r, r); g.clearRect(0, 0, w, h);
-  const css = getComputedStyle(document.documentElement), ink = css.getPropertyValue('--mute'), br = css.getPropertyValue('--brand'), wn = css.getPropertyValue('--warn'), fg = css.getPropertyValue('--ink');
-  const dur = au.duration || Math.max(marks[marks.length - 1] + 1, 60), X = t => w - (t / dur) * w;
-  if (peaks) { g.fillStyle = ink; const n = peaks.length; for (let i = 0; i < n; i++) { const v = peaks[i] * (h * .45); g.fillRect(w - (i + 1) * w / n, h / 2 - v, Math.max(1, w / n - .5), v * 2); } }
-  else { g.fillStyle = ink; g.font = '13px Vazirmatn, Tahoma, sans-serif'; g.textAlign = 'center'; g.fillText('موج صدا بعد از انتخاب فایل اینجا دیده می‌شود', w / 2, h / 2 + 4); }
-  marks.forEach((t, i) => { g.fillStyle = set[i] ? br : wn; g.fillRect(X(t) - 1, 0, 2, h); g.font = '11px Vazirmatn, Tahoma, sans-serif'; g.textAlign = 'center'; g.fillText(i === plans.length ? '■' : faD(i + 1), X(t), 11); });
-  if (au.src) { g.fillStyle = fg; g.fillRect(X(au.currentTime) - 1, 0, 2, h); }
+  const css = getComputedStyle(document.documentElement), C = k => css.getPropertyValue(k).trim();
+  const dur = au.duration && isFinite(au.duration) ? au.duration : marks[marks.length - 1] + 1, X = t => w - (t / dur) * w;
+  if (silences) { g.fillStyle = C('--line'); silences.forEach(([a, b]) => g.fillRect(X(b), 0, X(a) - X(b), h)); }
+  if (peaks) { g.fillStyle = C('--mute'); const n = peaks.length; for (let i = 0; i < n; i++) { const v = Math.max(.5, peaks[i] * h * .45); g.fillRect(w - (i + 1) * w / n, h / 2 - v, Math.max(1, w / n - .5), v * 2); } }
+  else { g.fillStyle = C('--mute'); g.font = '13px Vazirmatn, Tahoma, sans-serif'; g.textAlign = 'center'; g.fillText('موج صدای گوینده بعد از انتخاب فایل اینجا دیده می‌شود', w / 2, h / 2 + 4); }
+  marks.forEach((t, i) => { g.fillStyle = set[i] ? C('--brand') : auto[i] ? C('--auto') : C('--warn'); g.fillRect(X(t) - 1, 0, 2, h); g.font = '11px Vazirmatn, Tahoma, sans-serif'; g.textAlign = 'center'; g.fillText(i === plans.length ? '■' : faD(i + 1), X(t), 11); });
+  g.fillStyle = C('--ink'); g.fillRect(X(au.currentTime) - 1, 0, 2, h);
+}
+/* pauses in the voice: frames of 20ms under a threshold, at least 0.22s long */
+let rms = null, fr = .02;
+function findSilences() {
+  if (!rms) return null; const sorted = [...rms].sort((a, b) => a - b), th = Math.max(.004, sorted[Math.floor(sorted.length * .9)] * .12), out = []; let s = -1;
+  rms.forEach((v, i) => { if (v < th) { if (s < 0) s = i; } else { if (s >= 0 && (i - s) * fr >= .22) out.push([s * fr, i * fr]); s = -1; } });
+  if (s >= 0) out.push([s * fr, rms.length * fr]); return out;
+}
+function autoMarks() {
+  if (!silences) return; const sp0 = silences.length && silences[0][0] < .05 ? silences[0][1] : 0, last = silences[silences.length - 1], sp1 = last && last[1] >= rms.length * fr - .05 ? last[0] : rms.length * fr;
+  const W = plans.map(p => words(p).length + p.lines.length * .6), tot = W.reduce((a, b) => a + b, 0); let acc = 0;
+  const used = new Set();
+  marks.forEach((_, i) => { if (set[i]) return;
+    if (i === 0) { marks[0] = +Math.max(0, sp0 - .1).toFixed(1); auto[0] = true; return; }
+    if (i === plans.length) { marks[i] = +Math.min(rms.length * fr, sp1 + .3).toFixed(1); auto[i] = true; return; }
+    acc = W.slice(0, i).reduce((a, b) => a + b, 0); const est = sp0 + (sp1 - sp0) * acc / tot;
+    let best = null, bc = 1e9; silences.forEach(([a, b], j) => { if (used.has(j) || b - a > 3) return; const c = Math.abs(b - est) - .9 * Math.min(1, b - a); if (Math.abs(b - est) < 3.5 && c < bc) { bc = c; best = j; } });
+    if (best != null) { used.add(best); marks[i] = +(silences[best][1] - .08).toFixed(1); auto[i] = true; } else { marks[i] = +est.toFixed(1); auto[i] = false; } });
+  for (let i = 1; i < marks.length; i++) if (marks[i] < marks[i - 1]) marks[i] = marks[i - 1];
+  save(); rescore(); render();
 }
 async function useFile(file) {
-  if (!file) return; au.src = URL.createObjectURL(file); $('#fname').textContent = file.name; au.playbackRate = +$('#rate').value;
-  peaks = null; render();
-  try { const C = window.AudioContext || window.webkitAudioContext, ctx = new C(), buf = await ctx.decodeAudioData(await file.arrayBuffer()), d = buf.getChannelData(0), n = 600, step = Math.floor(d.length / n) || 1;
-    peaks = []; let mx = 0; for (let i = 0; i < n; i++) { let m = 0; for (let j = i * step; j < (i + 1) * step && j < d.length; j += 16) m = Math.max(m, Math.abs(d[j])); peaks.push(m); mx = Math.max(mx, m); }
-    peaks = peaks.map(v => v / (mx || 1)); ctx.close && ctx.close(); draw(); } catch (e) { peaks = null; draw(); }
+  if (!file) return; au.src = URL.createObjectURL(file); hasVoice = true; $('#fname').textContent = file.name; au.playbackRate = +$('#rate').value; peaks = rms = silences = null; render();
+  try { const C = window.AudioContext || window.webkitAudioContext, ctx = new C(), buf = await ctx.decodeAudioData(await file.arrayBuffer()), d = buf.getChannelData(0), sr = buf.sampleRate, n = 600, step = Math.floor(d.length / n) || 1, fs = Math.round(sr * fr);
+    peaks = []; let mx = 0; for (let i = 0; i < n; i++) { let m = 0; for (let j = i * step; j < (i + 1) * step && j < d.length; j += 16) m = Math.max(m, Math.abs(d[j])); peaks.push(m); mx = Math.max(mx, m); } peaks = peaks.map(v => v / (mx || 1));
+    rms = []; for (let i = 0; i + fs <= d.length; i += fs) { let s = 0; for (let j = i; j < i + fs; j += 4) s += d[j] * d[j]; rms.push(Math.sqrt(s / (fs / 4))); }
+    silences = findSilences(); ctx.close && ctx.close(); render(); } catch (e) { render(); }
 }
+/* music follows the voice clock */
+function musicSync() { if (!$('#mOn').checked || au.paused || au.playbackRate !== 1) { MUS.stop(); return; } MUS.start(ev, au.currentTime, +$('#mVol').value); }
 $('#f').onchange = e => useFile(e.target.files[0]);
 const dz = $('#drop'); ['dragenter', 'dragover'].forEach(k => dz.addEventListener(k, e => { e.preventDefault(); dz.classList.add('on'); }));
 ['dragleave', 'drop'].forEach(k => dz.addEventListener(k, e => { e.preventDefault(); dz.classList.remove('on'); }));
 dz.addEventListener('drop', e => useFile(e.dataTransfer.files[0]));
-const toggle = () => { if (!au.src) return; au.paused ? au.play() : au.pause(); };
-$('#play').onclick = toggle; au.onplay = au.onpause = () => { $('#play').textContent = au.paused ? 'پخش' : 'توقف'; render(); };
+const toggle = () => { au.paused ? au.play() : au.pause(); };
+$('#play').onclick = toggle;
+au.onplay = () => { $('#play').textContent = 'توقف'; musicSync(); render(); };
+au.onpause = () => { $('#play').textContent = 'پخش'; MUS.stop(); render(); };
+au.onseeked = () => { if (!au.paused) musicSync(); draw(); cue(); };
+au.onended = () => { MUS.stop(); render(); };
 $('#back2').onclick = () => au.currentTime = Math.max(0, au.currentTime - 2);
 $('#restart').onclick = () => { set = set.map(() => false); next = 0; au.currentTime = 0; save(); render(); au.play(); };
-$('#undo').onclick = undo; $('#mark').onclick = hit;
-$('#rate').onchange = e => au.playbackRate = +e.target.value;
-cv.onclick = e => { if (!au.duration) return; const b = cv.getBoundingClientRect(); au.currentTime = (1 - (e.clientX - b.left) / b.width) * au.duration; draw(); };
+$('#undo').onclick = undo; $('#mark').onclick = hit; $('#auto').onclick = autoMarks;
+$('#rate').onchange = e => { au.playbackRate = +e.target.value; musicSync(); };
+$('#mOn').onchange = musicSync; $('#mVol').oninput = e => MUS.setVol(+e.target.value);
+$('#vids').onclick = e => { const b = e.target.closest('button'); if (!b) return; au.pause(); pick(b.dataset.v); };
+cv.onclick = e => { const dur = au.duration && isFinite(au.duration) ? au.duration : 0; if (!dur) return; const b = cv.getBoundingClientRect(); au.currentTime = (1 - (e.clientX - b.left) / b.width) * dur; };
 $('#list').onclick = e => { const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.n != null) { const i = +b.dataset.n; marks[i] = Math.max(0, +(marks[i] + +b.dataset.d).toFixed(1)); set[i] = true; save(); render(); if (au.src) { au.currentTime = Math.max(0, marks[i] - .3); au.play(); } }
-  if (b.dataset.p != null && au.src) { au.currentTime = marks[+b.dataset.p]; au.play(); } };
-let lastPl = -2; au.ontimeupdate = () => { $('#clock').textContent = tc(au.currentTime); draw(); const c = curPlan(); if (c !== lastPl) { lastPl = c; render(); } };
+  if (b.dataset.n != null) { const i = +b.dataset.n; marks[i] = Math.max(0, +(marks[i] + +b.dataset.d).toFixed(1)); set[i] = true; auto[i] = false; save(); rescore(); render(); au.currentTime = Math.max(0, marks[i] - .3); au.play(); }
+  if (b.dataset.p != null) { au.currentTime = marks[+b.dataset.p]; au.play(); } };
+let lastPl = -2; au.ontimeupdate = () => { $('#clock').textContent = tc(au.currentTime); const c = playingPlan(); if (c !== lastPl) { lastPl = c; render(); } };
+(function loop() { if (!au.paused) { draw(); cue(); $('#clock').textContent = tc(au.currentTime); } requestAnimationFrame(loop); })();
 document.addEventListener('keydown', e => { if (e.target.closest('textarea,select,input')) return;
-  if (e.code === 'Space' || e.code === 'Enter') { if (e.target.closest('button') && e.code === 'Enter') return; e.preventDefault(); hit(); }
+  if (e.code === 'Space' || (e.code === 'Enter' && !e.target.closest('button'))) { e.preventDefault(); hit(); }
   else if (e.code === 'KeyP') toggle(); else if (e.code === 'Backspace') { e.preventDefault(); undo(); }
-  else if (e.code === 'ArrowLeft' && au.src) au.currentTime += 2; else if (e.code === 'ArrowRight' && au.src) au.currentTime = Math.max(0, au.currentTime - 2); });
-$('#copy').onclick = () => { const t = $('#out'); const ok = () => $('#copied').textContent = 'کپی شد. حالا در گفتگو بچسبان و بفرست.';
+  else if (e.code === 'ArrowLeft') au.currentTime += 2; else if (e.code === 'ArrowRight') au.currentTime = Math.max(0, au.currentTime - 2); });
+$('#copy').onclick = () => { const t = $('#out'), ok = () => $('#copied').textContent = 'کپی شد. حالا در گفتگو بچسبان و بفرست.';
   (navigator.clipboard ? navigator.clipboard.writeText(t.value).then(ok) : Promise.reject()).catch(() => { t.focus(); t.select(); $('#copied').textContent = 'متن انتخاب شد؛ با Ctrl+C کپی کن.'; }); };
 $('#apply').onclick = () => { const raw = $('#src').value.trim(); if (!raw) return;
-  const parts = raw.split(/\n\s*\n/).map(x => x.replace(/^\[[\d:.]+\][^\n]*\n?/, '').replace(/^>.*$/gm, '').trim()).filter(x => x && x !== 'پایان');
-  if (!parts.length) return; plans = parts.map(text => ({ title: '', text })); const per = 60 / plans.length;
-  marks = [...plans.map((_, i) => +(i * per).toFixed(1)), 60]; set = marks.map(() => false); next = 0; save(); render(); };
-$('#reset').onclick = () => { try { localStorage.removeItem('rtc1'); } catch (e) {} load(); render(); };
+  const blocks = raw.split(/\n\s*\n|\n(?=\[\d)/).map(b => b.split('\n').filter(l => l.trim() && !/^\[\d/.test(l) && !/^>/.test(l))).filter(b => b.length);
+  if (!blocks.length) return; const old = plans;
+  plans = blocks.map((ls, i) => ({ title: (old[i] || {}).title || '', mood: (old[i] || {}).mood || 'warm', lines: ls.map(l => { const m = l.match(/^\s*([A-Za-z0-9]+)\s*:\s*(.*)$/); return m ? { s: m[1], x: m[2] } : { s: '', x: l.trim() }; }) }));
+  custom = true; const per = V.end / plans.length; base = [...plans.map((_, i) => +(i * per).toFixed(1)), V.end]; marks = base.slice(); set = marks.map(() => false); auto = marks.map(() => false); next = 0; save(); rescore(); render(); };
+$('#reset').onclick = () => { try { localStorage.removeItem('rst2:' + V.slug); } catch (e) {} pick(V.slug); };
 addEventListener('resize', draw);
-load(); render();
+pick(LS.get('rst-vid') || VIDS[0].slug);
 </script>
