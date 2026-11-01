@@ -109,7 +109,7 @@ const SND = { ctx: null };
 const SND_FILE = { arrive: 'arrived', done: 'done', door: 'door', urgent: 'urgent', boarded: 'boarded', start: 'start', invite: 'invite', team: 'team', remind: 'remind', msg: 'msg' };
 const SND_ALT = { door: 'honk', urgent: 'honk', boarded: 'step', start: 'whoosh', invite: 'ok', team: 'done', remind: 'ok', msg: 'tap' };
 function sndLoad(name) { const c = SND.ctx; if (!c) return; SND.buf = SND.buf || {}; if (SND.buf[name] !== undefined) return; SND.buf[name] = null;
-  fetch('assets/snd/' + name + '.mp3?v=28').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
+  fetch('assets/snd/' + name + '.mp3?v=29').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
 function snd(kind) {
   if (S.sound !== false && SND_FILE[kind]) { try { if (!SND.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) SND.ctx = new AC(); }
     const c = SND.ctx; if (c) { if (c.state === 'suspended') c.resume(); const nm = SND_FILE[kind]; sndLoad(nm); Object.values(SND_FILE).forEach(sndLoad); const b = SND.buf[nm];
@@ -233,7 +233,7 @@ async function mapLib() {
     }
     await loadCss('assets/maplibre-gl.css');
     await loadJs('assets/maplibre-gl.js', () => !!window.maplibregl, 12000);
-    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=28', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
+    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=29', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
     return (MapKit.lib = { name: 'libre', G: window.maplibregl });
   })();
   try { return await MapKit.loading; } catch (e) { MapKit.failed = true; MapKit.loading = null; throw e; }
@@ -242,7 +242,7 @@ async function makeMap(el, center, zoom) {
   const L = await mapLib();
   let map;
   if (L.name === 'neshan') map = new L.G.Map({ mapType: (isDark() && L.G.Map.mapTypes.neshanVectorNight) || L.G.Map.mapTypes.neshanVector, container: el, zoom, pitch: 0, center: [center[1], center[0]], minZoom: 4, maxZoom: 19, trackResize: true, mapKey: CFG.web_key, poi: false, traffic: false, mapTypeControllerOptions: { show: false } });
-  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=28' : 'assets/map-style.json?v=28', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=29' : 'assets/map-style.json?v=29', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('map-timeout')), 10000);
     map.on('load', () => { clearTimeout(t); res(); });
@@ -434,12 +434,21 @@ async function mountPicker(slotSel, center, cb) {
   } else { PK.map.resize(); PK.prog = [center[0], center[1]]; PK.map.jumpTo({ center: [center[1], center[0]] }); }
 }
 
+/* ═════════ week coverage: who can drive which weekday (a daily driver covers all) ═════════ */
+const wDays = pl => (pl && pl.days && pl.days.length) ? pl.days.map(Number) : [0, 1, 2, 3, 4];
+const canDays = (m, pl) => !m || m.role === 'pay' || !m.role ? [] : m.daily ? wDays(pl) : (m.days || []).map(Number).filter(d => wDays(pl).includes(d));
+function coverOf(members, pl) { const days = wDays(pl), by = {}; days.forEach(d => by[d] = members.filter(m => canDays(m, pl).includes(d))); return { days, by, gaps: days.filter(d => !by[d].length) }; }
+const dayList = ds => ds.map(d => DAYS[d]).join('، ');
 /* ═════════ matching (client ranking; server validates) ═════════ */
 function score(p, m) {
   const d = p.data, r = []; let s = 0;
   if (m.dist) { s += Math.max(0, 45 * (1 - m.dist.m / 5000)); r.push([`${km1(m.dist.m / 1000)} کیلومتر مسیر – ${mins(m.dist.s)} دقیقه${m.dist.src === 'road' ? '' : ' (تقریبی)'}`, m.dist.m <= 2000]); }
   const dA = d.role === 'drive' || d.role === 'both', dB = m.role === 'drive' || m.role === 'both';
   if (dA && dB) { s += 28; r.push(['هر دو رانندگی می‌کنید', 1]); } else if (dA || dB) { s += 25; r.push([dB ? 'رانندگی می‌کنند' : 'شما رانندگی می‌کنید', 1]); } else r.push(['هر دو هزینه می‌دهید؛ راننده لازم است', 0]);
+  if (dB) { const T = p.team && ui.team && ui.team.members ? ui.team : null, base = T ? T.members : dA ? [{ ...d, id: p.id }] : [];
+    if (base.some(x => x.role && x.role !== 'pay')) { const gaps = coverOf(base, p.place).gaps, fill = gaps.filter(x => canDays(m, p.place).includes(x));
+      if (fill.length) { s += fill.length === gaps.length ? 12 : Math.min(10, 3 * fill.length); r.push([fill.length === gaps.length ? `با ${T ? 'تیم‌تان' : 'شما'} کل هفته پوشش داده می‌شود (${dayList(fill)} با آن‌ها)` : `روزهای خالیِ ${T ? 'تیم' : 'شما'} را پر می‌کنند: ${dayList(fill)}`, 1]); } }
+    else if (m.daily) r.push(['هر روز خودشان می‌برند', 1]); }
   const myG = (d.kids && d.kids[0] && d.kids[0].g) || d.pg;
   if ((d.values || []).includes('samegender') && dB && m.pg !== myG) { s -= 18; r.push(['با ترجیح «راننده هم‌جنس» شما جور نیست', 0]); }
   if ((m.values || []).includes('samegender') && dA && d.pg !== (m.kids[0] || {}).g) { s -= 18; r.push(['با ترجیح «راننده هم‌جنس» ایشان جور نیست', 0]); }
@@ -521,10 +530,11 @@ const teamCap = kids => kids.length && kids.every(k => k.age != null && k.age >=
 const ridersOf = (T, dir) => T.members.filter(m => (m.needs || {})[dir] !== false).flatMap(m => m.kids.map(k => ({ ...k, pid: m.id })));
 const driverOk = (T, m, dir) => (m.role === 'drive' || m.role === 'both') && ridersOf(T, dir).every(k => { const o = T.members.find(x => x.id === k.pid); return !(o.values || []).includes('samegender') || o.id === m.id || m.pg === k.g; });
 function planOf(T) {
-  const c = {}, plan = {}; T.members.forEach(m => c[m.id] = 0);
-  slotsOf(T.place).forEach(x => {
+  const c = {}, plan = {}, sl = slotsOf(T.place), can = (m, d) => !!m.daily || (m.days || []).map(Number).includes(d); T.members.forEach(m => c[m.id] = 0);
+  const nOf = x => T.members.filter(m => driverOk(T, m, x.dir) && can(m, x.d)).length || 99;
+  sl.map((x, i) => [x, i, nOf(x)]).sort((a, b) => (a[2] - b[2]) || (a[1] - b[1])).map(z => z[0]).forEach(x => {
     if (!ridersOf(T, x.dir).length) { plan[x.id] = null; return; }
-    const pool = T.members.filter(m => driverOk(T, m, x.dir)).sort((a, b) => ((b.days || []).includes(x.d) - (a.days || []).includes(x.d)) || ((b.daily ? 1 : 0) - (a.daily ? 1 : 0)) || (c[a.id] - c[b.id]) || ((b.seats || 0) - (a.seats || 0)) || (a.id < b.id ? -1 : 1));
+    const pool = T.members.filter(m => driverOk(T, m, x.dir)).sort((a, b) => (can(b, x.d) - can(a, x.d)) || ((b.daily ? 1 : 0) - (a.daily ? 1 : 0)) || (c[a.id] - c[b.id]) || ((b.seats || 0) - (a.seats || 0)) || (a.id < b.id ? -1 : 1));
     plan[x.id] = pool[0] ? pool[0].id : null; if (pool[0]) c[pool[0].id]++;
   });
   return plan;
@@ -688,8 +698,14 @@ function teamIssues(T) {
   const out = [], dr = T.members.filter(m => m.role !== 'pay'), kids = ridersOf(T, 'out').length;
   if (!dr.length) out.push('این تیم راننده ندارد؛ یک خانواده‌ی راننده دعوت کنید.');
   else if (dr.length === 1 && dr[0].daily) out.push(`✓ ${fam(dr[0])} هر روز خودشان می‌برند؛ عالی است. اگر روزی نتوانستند، یک خانواده‌ی دیگر برای جایگزینی کمک بزرگی است.`);
-  else if (dr.length === 1) out.push(`این تیم فقط یک راننده دارد (${fam(dr[0])}). همه‌ی رفت‌وآمدها و ریسکِ یک روزِ بیماری یا گرفتاری روی دوش اوست؛ البته ان‌شاءالله پول فراوان! 😄 یک خانواده‌ی راننده‌ی دیگر هم دعوت کنید.`);
-  else if (kids > Math.max(...dr.map(m => seatCap(m.seats, T.members.flatMap(x => x.kids || []))))) out.push(`${fa(kids)} مسافر داریم اما بیشترین ظرفیت مجاز ${fa(Math.max(...dr.map(m => seatCap(m.seats, T.members.flatMap(x => x.kids || [])))))} صندلی دارد؛ بعضی روزها دو خودرو لازم است.`);
+  else if (dr.length === 1) { const g = coverOf(dr, T.place).gaps; out.push(`این تیم فقط یک راننده دارد (${fam(dr[0])}). همه‌ی رفت‌وآمدها و ریسکِ یک روزِ بیماری یا گرفتاری روی دوش اوست؛ البته ان‌شاءالله پول فراوان! 😄 ${g.length ? `${dayList(g)} هم راننده‌ای ندارد؛ ` : ''}یک خانواده‌ی راننده‌ی دیگر دعوت کنید تا هفته نصف‌نصف شود.`); }
+  else { const cv = coverOf(dr, T.place);
+    if (cv.gaps.length) out.push(`${dayList(cv.gaps)} هیچ راننده‌ای اعلام آمادگی نکرده. یک راننده‌ی دیگر دعوت کنید، یا یکی از راننده‌ها این ${cv.gaps.length > 1 ? 'روزها' : 'روز'} را به روزهایش اضافه کند.`);
+    else if (!dr.some(m => m.daily)) { const plan = planOf(T), ld = {}; dr.forEach(m => ld[m.id] = 0); Object.values(plan).forEach(id => { if (id in ld) ld[id]++; });
+      const tot = Object.values(ld).reduce((a, b) => a + b, 0), top = dr.reduce((a, m) => ld[m.id] > ld[a.id] ? m : a, dr[0]);
+      if (tot && ld[top.id] / tot > .7) out.push(`کل هفته پوشش دارد، اما ${fa(ld[top.id])} نوبت از ${fa(tot)} با ${fam(top)} است. اگر راننده‌های دیگر روزهای بیشتری اعلام کنند، بار نصف‌نصف می‌شود.`);
+      else if (tot) out.push(`✓ کل هفته پوشش دارد: ${dr.filter(m => ld[m.id]).map(m => `${fam(m)} ${fa(ld[m.id])} نوبت`).join('، ')}.`); } }
+  if (dr.length > 1 && kids > Math.max(...dr.map(m => seatCap(m.seats, T.members.flatMap(x => x.kids || []))))) out.push(`${fa(kids)} مسافر داریم اما بیشترین ظرفیت مجاز ${fa(Math.max(...dr.map(m => seatCap(m.seats, T.members.flatMap(x => x.kids || [])))))} صندلی دارد؛ بعضی روزها دو خودرو لازم است.`);
   return out;
 }
 function absentRow(T, x, r, ex, p, AB) {
@@ -882,9 +898,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=28" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=29" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)} <span class="pchip">${ic('down', '')}</span></b><small>${p.team ? esc(teamName(p.team)) + ' – ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</small></span>`; }
-  else t = `<img src="assets/icon.svg?v=28" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=29" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -962,7 +978,7 @@ function drawer(keep) {
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const grp = (k, i, t, body) => `<div class="grp"><button class="sec-h" data-a="toggle" data-v="${k}" aria-expanded="${!!ui.open[k]}"><span>${ic(i, 'i')} ${t}</span>${ic('down', 'i chev' + (ui.open[k] ? ' open' : ''))}</button><div class="plist ${ui.open[k] ? '' : 'closed'}" style="max-height:${ui.open[k] ? 700 : 0}px">${body}</div></div>`;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=28" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=29" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     <div class="sec-h"><span>مسیرک‌های من <button class="q-mark" data-a="glossary" aria-label="مسیرک یعنی چه؟">؟</button></span><button class="link small" data-a="new-profile">${ic('plus')}تازه</button></div>
     <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${!x.complete && !x.shared ? `<button class="pdel" data-a="prof-del" data-id="${x.id}" aria-label="پاک کردن «${esc(x.label)}»">${ic('close')}</button>` : ''}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیرک را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
     ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیرک دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
@@ -983,7 +999,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۲۸</small></span>` : `<span>نسخه‌ی وب ۲۸${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
+    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۲۹</small></span>` : `<span>نسخه‌ی وب ۲۹${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -1050,7 +1066,7 @@ async function ambView() {
       <div class="row"><input id="amb-pl" dir="ltr" placeholder="WPXJUG5A" maxlength="8" style="flex:1"><button class="btn ac" data-a="amb-make">ساختن</button></div><div id="amb-out"></div></section>
     <section class="card stack"><h2>ایده‌های سریع</h2><ol class="steps3"><li>پوستر A5 را روی تابلوی اعلانات مدرسه (با اجازه‌ی مدرسه) بچسبانید.</li><li>متن آماده و لینک را در گروه کلاس و کانال مدرسه بگذارید؛ صبح‌های شنبه بهترین زمان است.</li><li>از ۲ خانواده‌ی هم‌محله بخواهید با هم ثبت‌نام کنند؛ تیم زودتر شکل می‌گیرد.</li></ol></section>
     ${A.list.length ? `<section class="card"><h2>ثبت‌شده‌ها</h2><table><tr><th>تاریخ</th><th>مکان</th><th>نوع</th><th>مبلغ</th></tr>${A.list.slice(0, 60).map(x => `<tr><td>${jLabel(new Date(x.created * 1000))}</td><td>${esc(x.place || '—')}</td><td>${x.kind === 'team' ? 'تیم شد' : 'ثبت‌نام'}</td><td>${money(x.amount)}${+x.paid ? ' ✓' : ''}</td></tr>`).join('')}</table></section>` : ''}</div>`;
-  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=28" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
+  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=29" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
 }
 function reportHtml(p, T) {
   const H = (ui.hist && ui.hist.trips) || [], done = H.filter(x => x.status === 'done').sort((a, b) => a.date < b.date ? -1 : 1), b = balances(T), now = new Date();
@@ -1084,7 +1100,7 @@ async function saveBlob(blob, name, title, text) {
 }
 /** Render an element (inside #print-root) to a PNG or a paged A4 PDF that never cuts through a row or a line. */
 async function elToFile(el, kind, name, title) {
-  try { await loadJs('assets/html2canvas.min.js?v=28', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=28', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
+  try { await loadJs('assets/html2canvas.min.js?v=29', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=29', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
   try { await document.fonts.ready; } catch (e) {}
   const cv = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }); let blob;
   if (kind === 'png') blob = await new Promise(res => cv.toBlob(res, 'image/png'));
@@ -1271,7 +1287,7 @@ function wizSteps(w) {
     { key: 'role', show: () => true, art: () => ART.wheel, q: w => w.kind === 'station' ? 'ماشین دارید یا دنبال جای خالی هستید؟' : adultW(w) ? 'در مسیر، شما کدامید؟' : 'سهم شما در سرویس؟', help: w => adultW(w) ? 'هر تیم دست‌کم یک ماشین لازم دارد؛ حتی یک روز در هفته رانندگی، همه را به مقصد می‌رساند و سهم بنزین را هم پس می‌گیرد.' : w.kind === 'station' ? 'اگر جا دارید، هم‌سفرهای هم‌مسیر را ببرید؛ رایگان یا با سهم هزینه. اگر ماشین ندارید، جای خالی پیدا می‌کنیم.' : 'تیمی که راننده نداشته باشد راه نمی‌افتد؛ حتی یک روز در هفته رانندگی کمک بزرگی است.',
       body: w => w.kind === 'station' ? tripRole(w) : `<div class="choices">${(adultW(w) ? [['drive', 'wheel', 'ماشین دارم و می‌برم', 'هم‌مسیرها را سر راه سوار می‌کنم'], ['pay', 'coin', 'سوار می‌شوم و سهم می‌دهم', 'ماشین نمی‌آورم؛ سهم بنزین را می‌دهم'], ['both', 'wheel', 'هر دو', 'بعضی روزها ماشین می‌آورم']] : [['drive', 'wheel', 'رانندگی می‌کنم', 'روزهایی که بتوانم می‌برم'], ['pay', 'coin', 'فقط هزینه می‌دهم', 'سهم منصفانه‌ی هر سفر را می‌دهم'], ['both', 'wheel', 'هر دو', 'گاهی می‌برم، گاهی هزینه می‌دهم']]).map(([k, i, t, s]) => `<button class="choice" data-a="w-set" data-k="role" data-v="${k}" aria-pressed="${w.d.role === k}"><span class="emo-pair">${ic(i, 'emo')}${k === 'both' ? ic('coin', 'emo') : ''}</span><span>${t}<small>${s}</small></span></button>`).join('')}</div>
         ${w.d.role === 'drive' ? `<label class="check daily"><input type="checkbox" data-a="w-daily" ${w.d.daily ? 'checked' : ''}><span><b>${adultW(w) ? 'هر روز با ماشین خودم می‌روم' : 'هر روز خودم می‌برم'}</b><small>${adultW(w) ? 'این مسیر را هر روز می‌روم و جای خالی‌ام را به همکاران و هم‌مسیرها می‌دهم.' : 'خانواده‌ام (و شاید همسرم تا محل کارش) را هر روز می‌رسانم و جای خالی‌ام را به هم‌مسیرها می‌دهم.'}</small></span></label>` : ''}
-        ${w.d.role && w.d.role !== 'pay' ? `<span class="lbl">${adultW(w) ? 'کدام روزها ماشین می‌آورید؟' : 'کدام روزها می‌توانید ببرید؟'}</span><div class="chips">${[0, 1, 2, 3, 4, 5].map(d => `<button class="chip" data-a="w-day" data-v="${d}" aria-pressed="${(w.d.days || []).includes(d)}">${DAYS[d]}</button>`).join('')}</div>
+        ${w.d.role && w.d.role !== 'pay' ? `<span class="lbl">${adultW(w) ? 'کدام روزها ماشین می‌آورید؟' : 'کدام روزها می‌توانید ببرید؟'}</span><div class="chips">${[0, 1, 2, 3, 4, 5].map(d => `<button class="chip" data-a="w-day" data-v="${d}" aria-pressed="${(w.d.days || []).includes(d)}">${DAYS[d]}</button>`).join('')}</div>${w.kind !== 'station' && !w.d.daily ? `<p class="note">${ic('team')}بهترین تیم: دو راننده که هر کدام نصف هفته را می‌برند، یا یک نفر که هر روز می‌برد. روزهایی که واقعاً می‌توانید را بزنید؛ رسیدیم بقیه را با هم‌تیمی‌ها پر می‌کند.</p>` : ''}
         <div class="stepper"><span class="lbl grow">صندلی خالی برای ${wChild(w) ? 'بچه‌ها' : 'هم‌مسیرها'}</span><button class="btn line" data-a="w-seats" data-v="-1" aria-label="کمتر">−</button><output>${fa(w.d.seats || 3)}</output><button class="btn line" data-a="w-seats" data-v="1" aria-label="بیشتر">+</button></div>` : ''}`,
       ok: w => !w.d.role ? 'یکی را انتخاب کنید.' : (w.kind !== 'station' && w.d.role !== 'pay' && !(w.d.days || []).length) ? 'دست‌کم یک روز را انتخاب کنید.' : true },
     { key: 'values', show: w => w.kind !== 'station', art: () => ART.heart, q: () => 'چه چیزهایی برایتان مهم است؟', help: () => 'محترم‌اند و دلیل نمی‌خواهند. در پیشنهاد هم‌مسیر و یادآوری به راننده رعایت می‌شوند. اختیاری است.',
@@ -1905,6 +1921,7 @@ function jrDx(J, P) {
     const T = P.team;
     if (T) {
       const drv = T.members.filter(m => m.role !== 'pay'); if (!drv.length) add('bad', '🚫', 'تیم هیچ راننده‌ای ندارد.', 'یک خانواده‌ی راننده یا رانندهٔ مورد اعتماد اضافه شود.'); else if (drv.length === 1 && !drv[0].daily) add('warn', '🧍', 'تیم فقط یک راننده دارد؛ یک روز بیماری یعنی سفر نرفتن.', 'یک راننده‌ی دوم یا جایگزین.');
+      if (drv.length && !drv.some(m => m.daily)) { const g = coverOf(drv, T.place).gaps; if (g.length) add('warn', '📅', `${dayList(g)} راننده ندارد.`, 'راننده‌ی دیگر، یا افزودن این روز به روزهای یکی از راننده‌ها.'); }
       if (!T.pact) add('warn', '📜', 'قرار تیم نوشته نشده.', 'قرار کوتاه (ساعت، تأخیر، لغو) دعوا را کم می‌کند.'); else if (T.agree.length < T.members.length) add('info', '✍️', `${fa(T.agree.length)} از ${fa(T.members.length)} خانواده «توافق کردیم» را زده‌اند.`, '');
       const done = T.trips.filter(t => t.status === 'done');
       if (!done.length && now - T.created > 3 * 86400) add('warn', '🛑', `تیم ${jrAgo(T.created)} ساخته شده و هنوز سفری ثبت نکرده.`, 'شاید بیرون از اپ هماهنگ می‌کنند یا «راه افتادیم» را بلد نیستند؛ یک تماس آموزشی.');
@@ -1942,7 +1959,7 @@ function jrView(J) {
   <section class="card jr-dx"><h3>🩺 تشخیص</h3><ul>${D.map(f => `<li class="is-${f.lv}"><span class="jr-dxi">${f.ic}</span><span><b>${esc(f.t)}</b>${f.fix ? `<small>${esc(f.fix)}</small>` : ''}</span></li>`).join('')}</ul></section>
   ${J.profiles.length > 1 ? `<div class="jr-ptabs no-print">${J.profiles.map((p, i) => `<button data-a="jr-prof" data-v="${i}" aria-pressed="${p === P}">${kindIc(p.kind)}<span>${esc(p.place ? p.place.name : p.label)}</span>${p.team ? '<i>تیم</i>' : ''}</button>`).join('')}</div>` : ''}
   <section class="card jr-swc"><h3>🗺️ مسیر در فرایند رسیدیم ${P && P.place ? `<small>${esc(P.place.name)}${P.place.city ? '، ' + esc(P.place.city) : ''}</small>` : ''}</h3>
-    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=28" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
+    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=29" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
       <div class="jr-grid" style="--n:${S.length}">${[0, 1, 2].map(l => `<i class="jr-lane l${l}" style="grid-column:${l + 2}"></i>`).join('')}<svg class="jr-wires" aria-hidden="true"></svg>
         ${S.map((s, i) => `<span class="jr-no is-${s.st}" style="grid-row:${i + 1}">${fa(i + 1)}</span><div class="jr-node is-${s.st} l${s.lane}" style="grid-row:${i + 1};grid-column:${s.lane + 2};--d:${i}" data-i="${i}">${i === cur ? `<span class="jr-here">${shapeAv(P ? P.id : u.id, 30)}<em>اینجاست</em></span>` : ''}<b><i>${s.ic}</i>${s.t}</b><small>${esc(s.sub || '')}</small>${s.at ? `<time>${jrAgo(s.at)}</time>` : ''}</div>`).join('')}
       </div></div>
