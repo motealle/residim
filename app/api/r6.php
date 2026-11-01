@@ -28,7 +28,7 @@ function C(string $k, $def = null) {
     return $c[$k] ?? $def;
 }
 const SECRET_FILE = __DIR__ . '/../storage/secrets.local.php';
-const SECRET_KEYS = ['fcm_service_json', 'bale_client_id', 'bale_client_secret', 'kavenegar_api_key', 'kavenegar_template', 'kavenegar_tpl_invite', 'kavenegar_tpl_arrived', 'kavenegar_tpl_call', 'smsir_api_key', 'smsir_line', 'smsir_tpl_login', 'smsir_tpl_invite', 'smsir_tpl_arrived', 'payping_token_live', 'payping_token_test', 'neshan_service_key', 'neshan_web_key'];
+const SECRET_KEYS = ['fcm_service_json', 'bale_client_id', 'bale_client_secret', 'kavenegar_api_key', 'kavenegar_template', 'kavenegar_tpl_invite', 'kavenegar_tpl_arrived', 'kavenegar_tpl_call', 'smsir_api_key', 'smsir_line', 'smsir_tpl_login', 'smsir_tpl_invite', 'smsir_tpl_arrived', 'payping_token_live', 'payping_token_test', 'neshan_service_key', 'neshan_web_key', 'sep_terminal_id'];
 const SECRET_HIDDEN = ['fcm_service_json', 'bale_client_secret', 'kavenegar_api_key', 'smsir_api_key', 'payping_token_live', 'payping_token_test', 'neshan_service_key', 'neshan_web_key'];
 /* Files are read as data (not include) so OPcache can never serve a stale copy; the first line stops PHP if requested directly. */
 function guarded_read(string $f): array { if (!is_file($f)) return []; $t = (string)@file_get_contents($f); if (str_starts_with($t, '<?php')) { $i = strpos($t, "\n"); $t = $i === false ? '' : substr($t, $i + 1); } $v = json_decode($t, true); if (!is_array($v) && str_contains($t, 'return ')) { $v = @include $f; } return is_array($v) ? $v : []; }
@@ -451,6 +451,14 @@ function hit(string $k, int $ttl): int { $now = time(); $k = substr($k, 0, 80);
     q('UPDATE hits SET n=n+1 WHERE k=?', [$k]); return (int)$r['n'] + 1; }
 function ip_tag(): string { return substr(hash('sha256', ($_SERVER['REMOTE_ADDR'] ?? '') . 'r6'), 0, 16); }
 const PP_API = 'https://api.payping.ir/v3/';
+/* Saman (SEP) gateway behind the same pay_gateway switch; setting pay_provider picks payping|sep. Amounts are toman here, rial at SEP. */
+const SEP_API = 'https://sep.shaparak.ir/';
+function sep_tid(): string { return preg_replace('/\D/', '', (string)C('sep_terminal_id')); }
+function sep(string $path, array $body): array { [$h, $raw] = http_json('POST', SEP_API . $path, $body, [], 30); $j = json_decode($raw, true); return [$h, is_array($j) ? $j : [], $raw]; }
+function sep_err(array $j, string $raw, int $h): string { $m = (string)($j['errorDesc'] ?? ($j['ResultDescription'] ?? '')); if (isset($j['errorCode'])) $m = 'کد ' . $j['errorCode'] . ': ' . $m; elseif (isset($j['ResultCode'])) $m = 'کد ' . $j['ResultCode'] . ': ' . $m; return $m !== '' ? $m : ('HTTP ' . $h . ' ' . mb_substr($raw, 0, 100)); }
+function sep_token_req(int $rial, string $ref, string $mob = ''): array { $b = ['action' => 'token', 'TerminalId' => sep_tid(), 'Amount' => $rial, 'ResNum' => $ref, 'RedirectUrl' => 'https://residim.ir/app/api/pay.php']; if ($mob) $b['CellNumber'] = $mob; return sep('onlinepg/onlinepg', $b); }
+function pay_provider(): string { return getv('pay_provider', 'payping') === 'sep' ? 'sep' : 'payping'; }
+function pay_ready(): bool { return pay_provider() === 'sep' ? sep_tid() !== '' : (bool)pp_token(); }
 function pp_token(?string $env = null): string { $env = $env ?: getv('pay_env', 'test'); return (string)C($env === 'live' ? 'payping_token_live' : 'payping_token_test'); }
 function pp(string $method, string $path, ?array $body, ?string $env = null): array { [$h, $raw] = http_json($method, PP_API . $path, $body, ['Authorization: Bearer ' . pp_token($env)], 30); $j = json_decode($raw, true); return [$h, is_array($j) ? $j : [], $raw]; }
 function pp_err(array $j, string $raw, int $h): string { $m = $j['metaData']['errors'][0]['message'] ?? ($j['message'] ?? ($j['title'] ?? '')); if (!$m && $j) $m = mb_substr(json_encode($j, JSON_UNESCAPED_UNICODE), 0, 160); return (string)($m ?: ('HTTP ' . $h . ' ' . mb_substr($raw, 0, 100))); }
@@ -1037,11 +1045,15 @@ case 'pay_start': { // donation (and later subscription) through the PayPing gat
     if (!flag('pay_gateway')) NO('پرداخت آنلاین فعلاً خاموش است.'); $u = auth(false);
     $amt = (int)preg_replace('/\D/', '', strtr((string)($in['amount'] ?? ''), ['۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9']));
     if ($amt < 10000) NO('کمترین مبلغ ۱۰ هزار تومان است.'); if ($amt > 200000000) NO('مبلغ بیش از حد مجاز است؛ برای کمک‌های بزرگ از «تماس با ما» هماهنگ کنیم.');
-    if (!pp_token()) NO('درگاه هنوز تنظیم نشده است.'); if (hit('pay_' . ip_tag(), 3600) > 10) NO('چند دقیقه‌ی دیگر دوباره امتحان کنید.', 429);
-    $env = getv('pay_env', 'test'); $ref = 'R' . date('ymd') . strtoupper(bin2hex(random_bytes(4))); $purpose = 'donate'; $nm = mb_substr(trim((string)($in['name'] ?? '')), 0, 80); $mob = phone_norm((string)($in['mobile'] ?? '')) ?: (string)($u['phone'] ?? '');
+    if (!pay_ready()) NO('درگاه هنوز تنظیم نشده است.'); if (hit('pay_' . ip_tag(), 3600) > 10) NO('چند دقیقه‌ی دیگر دوباره امتحان کنید.', 429);
+    $env = pay_provider() === 'sep' ? 'sep' : getv('pay_env', 'test'); $ref = 'R' . date('ymd') . strtoupper(bin2hex(random_bytes(4))); $purpose = 'donate'; $nm = mb_substr(trim((string)($in['name'] ?? '')), 0, 80); $mob = phone_norm((string)($in['mobile'] ?? '')) ?: (string)($u['phone'] ?? '');
     $id = uid(); q('INSERT INTO payments(id,ref,purpose,amount,env,status,code,refid,card,name,mobile,user_id,note,created,updated) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [$id, $ref, $purpose, $amt, $env, 'init', '', '', '', $nm, $mob, $u['user_id'] ?? null, '', time(), time()]);
     $body = ['amount' => $amt, 'returnUrl' => 'https://residim.ir/app/api/pay.php', 'clientRefId' => $ref, 'description' => 'حمایت از رسیدیم (دنگ خیر)', 'payerName' => $nm ?: 'حامی رسیدیم'];
     if ($mob) $body['payerIdentity'] = $mob;
+    if ($env === 'sep') { [$h, $j, $raw] = sep_token_req($amt * 10, $ref, $mob);
+        if ($h !== 200 || (int)($j['status'] ?? 0) !== 1 || empty($j['token'])) { $m = sep_err($j, $raw, $h); q('UPDATE payments SET status=?, note=?, updated=? WHERE id=?', ['failed', mb_substr($m, 0, 250), time(), $id]); log_error('pay', 'sep token: ' . $m); NO('درگاه پاسخ نداد؛ کمی بعد دوباره امتحان کنید.'); }
+        q('UPDATE payments SET status=?, code=?, updated=? WHERE id=?', ['sent', (string)$j['token'], time(), $id]);
+        YES(['url' => SEP_API . 'OnlinePG/SendToken?token=' . rawurlencode((string)$j['token']), 'ref' => $ref, 'test' => false]); }
     [$h, $j, $raw] = pp('POST', 'pay', $body, $env);
     if ($h !== 200 || empty($j['paymentCode'])) { $m = pp_err($j, $raw, $h); q('UPDATE payments SET status=?, note=?, updated=? WHERE id=?', ['failed', mb_substr($m, 0, 250), time(), $id]); log_error('pay', 'create: ' . $m); NO('درگاه پاسخ نداد؛ کمی بعد دوباره امتحان کنید.'); }
     q('UPDATE payments SET status=?, code=?, updated=? WHERE id=?', ['sent', (string)$j['paymentCode'], time(), $id]);
@@ -1051,7 +1063,7 @@ case 'client_error': { // browser errors -> admin (rate-limited, deduplicated)
     if (hit('cerr_' . ip_tag(), 3600) > 30) YES(); log_error('client', mb_substr((string)($in['msg'] ?? ''), 0, 400), (string)($in['url'] ?? '')); YES(); }
 case 'health': { $ok = true; try { db6()->query('SELECT 1'); } catch (Throwable $e) { $ok = false; }
     $who = auth(false); if (!$who || !(int)$who['admin']) YES(['db' => $ok, 'time' => date('c')]);
-    $st = dirname(__DIR__) . '/storage'; YES(['db' => $ok, 'engine' => db_engine(), 'storage_writable' => is_writable($st), 'disk_free_mb' => (int)(@disk_free_space($st) / 1048576), 'sms' => sms_ready(), 'pay' => flag('pay_gateway') && (bool)pp_token(), 'time' => date('c')]); }
+    $st = dirname(__DIR__) . '/storage'; YES(['db' => $ok, 'engine' => db_engine(), 'storage_writable' => is_writable($st), 'disk_free_mb' => (int)(@disk_free_space($st) / 1048576), 'sms' => sms_ready(), 'pay' => flag('pay_gateway') && pay_ready(), 'time' => date('c')]); }
 case 'fb_send': { $u = auth(false); $st = max(0, min(5, (int)($in['stars'] ?? 0))); $tx = trim((string)($in['text'] ?? ''));
     if ($st === 0 && mb_strlen($tx) < 3) NO('ستاره بدهید یا چند کلمه بنویسید.'); if ((string)($in['hp'] ?? '') !== '') YES();
     if (hit('fb_' . ip_tag(), 3600) > 6) NO('ممنون! کمی بعد دوباره بنویسید.', 429);
@@ -1268,8 +1280,8 @@ case 'admin_overview': {
     YES(['sms_credit' => kave_credit(), 'counts' => ['users' => $c('SELECT COUNT(*) FROM users WHERE fake=0'), 'fake' => $c('SELECT COUNT(*) FROM users WHERE fake=1'), 'profiles' => $c('SELECT COUNT(*) FROM profiles WHERE fake=0'), 'complete' => $c('SELECT COUNT(*) FROM profiles WHERE complete=1 AND fake=0'),
         'places' => $c('SELECT COUNT(*) FROM places'), 'teams' => $c('SELECT COUNT(*) FROM teams'), 'invites' => $c("SELECT COUNT(*) FROM invites WHERE status='pending'"), 'tickets' => $c("SELECT COUNT(*) FROM tickets WHERE status='open'"), 'sms_day' => $c('SELECT COUNT(*) FROM sms WHERE created>?', [time() - 86400]), 'unseen' => $c('SELECT COUNT(*) FROM tickets WHERE seen=0 OR seen IS NULL'), 'errors_day' => $c('SELECT COUNT(*) FROM errors WHERE last>?', [time() - 86400]), 'app_users' => $c("SELECT COUNT(*) FROM users WHERE client LIKE 'android%'"), 'fb' => $c('SELECT COUNT(*) FROM feedback'), 'paid' => $c("SELECT COUNT(*) FROM payments WHERE status='paid' AND env='live'")],
         'flags' => ['trip_scene' => getv('trip_scene', '1') === '1', 'family_link' => getv('family_link', '1') === '1', 'cand_swipe' => getv('cand_swipe', '0') === '1', 'trip_window' => getv('trip_window', '0') === '1', 'bismillah' => getv('bismillah', '1') === '1', 'price_poll' => getv('price_poll', '0') === '1', 'trusted_driver' => getv('trusted_driver', '0') === '1', 'sms_invite' => flag('sms_invite'), 'sms_arrive' => flag('sms_arrive'), 'auto_arrive' => flag('auto_arrive'), 'test_tools' => flag('test_tools'), 'signup_open' => flag('signup_open'), 'otp_dev' => flag('otp_dev'), 'sms_direct' => flag('sms_direct'), 'otp_bale' => flag('otp_bale'), 'pay_gateway' => flag('pay_gateway'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')],
-        'settings' => ['map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '75000'), 'free_permanent' => (int)getv('free_permanent', '1'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'sub_interest' => (int)getv('sub_interest', '0'), 'kave_sender' => (string)getv('kave_sender', ''), 'kave_sender_auto' => (string)getv('kave_sender_auto', ''), 'donate_card' => (string)getv('donate_card', ''), 'donate_name' => (string)getv('donate_name', ''), 'engine' => db_engine(), 'sms_provider' => getv('sms_provider', 'kavenegar'), 'pay_env' => getv('pay_env', 'test'), 'notice' => (string)getv('notice', ''), 'tips' => (string)getv('tips', ''), 'app_ver' => (string)getv('app_ver', ''), 'app_url' => (string)getv('app_url', '')],
-        'services' => ['db' => db_engine(), 'php' => PHP_VERSION, 'sms_provider' => getv('sms_provider', 'kavenegar'), 'smsir' => (bool)C('smsir_api_key'), 'payping' => (bool)(C('payping_token_live') || C('payping_token_test')), 'kavenegar' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'), 'neshan_service' => (bool)C('neshan_service_key'), 'neshan_web' => (bool)C('neshan_web_key'), 'curl' => function_exists('curl_init'), 'tpl_login' => C('kavenegar_template', 'residim-login'), 'tpl_invite' => C('kavenegar_tpl_invite'), 'tpl_arrived' => C('kavenegar_tpl_arrived')],
+        'settings' => ['map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '75000'), 'free_permanent' => (int)getv('free_permanent', '1'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'sub_interest' => (int)getv('sub_interest', '0'), 'kave_sender' => (string)getv('kave_sender', ''), 'kave_sender_auto' => (string)getv('kave_sender_auto', ''), 'donate_card' => (string)getv('donate_card', ''), 'donate_name' => (string)getv('donate_name', ''), 'engine' => db_engine(), 'sms_provider' => getv('sms_provider', 'kavenegar'), 'pay_env' => getv('pay_env', 'test'), 'pay_provider' => pay_provider(), 'notice' => (string)getv('notice', ''), 'tips' => (string)getv('tips', ''), 'app_ver' => (string)getv('app_ver', ''), 'app_url' => (string)getv('app_url', '')],
+        'services' => ['db' => db_engine(), 'php' => PHP_VERSION, 'sms_provider' => getv('sms_provider', 'kavenegar'), 'smsir' => (bool)C('smsir_api_key'), 'payping' => (bool)(C('payping_token_live') || C('payping_token_test')), 'sep' => sep_tid() !== '', 'kavenegar' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'), 'neshan_service' => (bool)C('neshan_service_key'), 'neshan_web' => (bool)C('neshan_web_key'), 'curl' => function_exists('curl_init'), 'tpl_login' => C('kavenegar_template', 'residim-login'), 'tpl_invite' => C('kavenegar_tpl_invite'), 'tpl_arrived' => C('kavenegar_tpl_arrived')],
         'default_pass' => C('admin_pass') === 'mot']);
 }
 case 'admin_flag': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_array($k, ['sms_invite', 'sms_arrive', 'auto_arrive', 'test_tools', 'signup_open', 'otp_dev', 'sms_direct', 'otp_bale', 'pay_gateway', 'league_on', 'paid_mode', 'station_on', 'trip_scene', 'family_link', 'cand_swipe', 'trip_window', 'trusted_driver', 'bismillah', 'price_poll'], true)) NO('کلید نامعتبر.'); setv($k, !empty($in['v']) ? '1' : '0'); YES(); }
@@ -1330,6 +1342,10 @@ case 'admin_secret_set': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_
     if ($k === 'fcm_service_json' && $v !== '') { $v = preg_replace('/\s*\n\s*/', ' ', $v); $j = json_decode($v, true); if (!$j || empty($j['project_id']) || empty($j['client_email']) || empty($j['private_key'])) NO('این فایل JSON حساب سرویس فایربیس نیست (project_id، client_email و private_key لازم است).'); }
     elseif (mb_strlen($v) > 400 || preg_match('/[\x00-\x1f]/', $v)) NO('مقدار نامعتبر است.'); $sec = secrets_all(); if ($v === '') unset($sec[$k]); else $sec[$k] = $v; secrets_save($sec); YES(); }
 case 'admin_test': { need_admin(); $w = (string)($in['what'] ?? '');
+    if ($w === 'sep') { if (!sep_tid()) NO('شماره‌ی ترمینال سپ ذخیره نشده است.'); [$ih, $ip] = http_json('GET', 'https://api.ipify.org', null, [], 8); $ipm = $ih === 200 && preg_match('/^[\d.:a-f]+$/i', trim($ip)) ? ' – آی‌پی خروجی این سرور: ' . trim($ip) : '';
+        [$h, $j, $raw] = sep_token_req(10000, 'TEST' . time());
+        if ($h === 200 && (int)($j['status'] ?? 0) === 1 && !empty($j['token'])) YES(['pass' => true, 'msg' => 'ترمینال و آی‌پی تأیید شد؛ یک توکن آزمایشی گرفته شد و پولی جابه‌جا نشد.' . $ipm]);
+        YES(['pass' => false, 'msg' => sep_err($j, $raw, $h) . $ipm]); }
     if ($w === 'payping') { $env = ($in['env'] ?? '') === 'live' ? 'live' : 'test'; if (!pp_token($env)) NO('توکن ' . ($env === 'live' ? 'اصلی' : 'تست') . ' ذخیره نشده است.');
         [$h, $j, $raw] = pp('POST', 'pay', ['amount' => 10000, 'returnUrl' => 'https://residim.ir/app/api/pay.php', 'clientRefId' => 'TEST' . time(), 'description' => 'آزمون اتصال پیشخوان رسیدیم'], $env);
         if ($h === 200 && !empty($j['paymentCode'])) { pp('DELETE', 'pay', ['paymentCode' => $j['paymentCode']], $env); YES(['pass' => true, 'msg' => 'توکن معتبر است؛ یک دستور پرداخت آزمایشی ساخته و حذف شد.']); }
@@ -1361,6 +1377,7 @@ case 'admin_setting': { need_admin(); $k = (string)($in['k'] ?? ''); $v = trim((
     elseif ($k === 'donate_name') setv($k, mb_substr($v, 0, 60));
     elseif ($k === 'sms_provider' && in_array($v, ['kavenegar', 'smsir'], true)) setv($k, $v);
     elseif ($k === 'pay_env' && in_array($v, ['test', 'live'], true)) setv($k, $v);
+    elseif ($k === 'pay_provider' && in_array($v, ['payping', 'sep'], true)) setv($k, $v);
     elseif ($k === 'notice') setv($k, mb_substr($v, 0, 300));
     elseif ($k === 'tips') { $j = json_decode($v, true); if ($v !== '' && !is_array($j)) NO('فهرست توصیه‌ها باید JSON باشد.'); setv($k, $v); }
     elseif ($k === 'app_ver' || $k === 'app_url') setv($k, mb_substr($v, 0, 200));
