@@ -72,8 +72,8 @@ function db6(): PDO {
 function schema(PDO $p): void {
     $v = 0;
     try { $v = (int)$p->query("SELECT v FROM settings WHERE k='schema'")->fetchColumn(); } catch (Throwable $e) {}
-    if ($v >= 15) return;
-    if ($v >= 9) { if ($v < 10) schema10($p); if ($v < 11) schema11($p); if ($v < 12) schema12($p); if ($v < 13) schema13($p); if ($v < 14) schema14($p); schema15($p); return; }
+    if ($v >= 16) return;
+    if ($v >= 9) { if ($v < 10) schema10($p); if ($v < 11) schema11($p); if ($v < 12) schema12($p); if ($v < 13) schema13($p); if ($v < 14) schema14($p); if ($v < 15) schema15($p); schema16($p); return; }
     $K = 'VARCHAR(40)';
     $sql = [
         "CREATE TABLE IF NOT EXISTS settings (k VARCHAR(40) PRIMARY KEY, v TEXT)",
@@ -118,7 +118,7 @@ function schema(PDO $p): void {
     try { $p->exec('CREATE TABLE IF NOT EXISTS fb_likes (fb_id VARCHAR(40), voter VARCHAR(40), created INT, PRIMARY KEY(fb_id, voter))'); } catch (Throwable $e) {}
     try { $p->exec('CREATE TABLE IF NOT EXISTS amb (id VARCHAR(40) PRIMARY KEY, token VARCHAR(40) UNIQUE, code VARCHAR(12) UNIQUE, name VARCHAR(80), phone VARCHAR(20), rate_profile INT, rate_team INT, note VARCHAR(255), active INT DEFAULT 1, created INT)' . $my); } catch (Throwable $e) {}
     try { $p->exec('CREATE TABLE IF NOT EXISTS referrals (id VARCHAR(40) PRIMARY KEY, amb_id VARCHAR(40), user_id VARCHAR(40), profile_id VARCHAR(40), place_id VARCHAR(40), kind VARCHAR(10), amount INT, paid INT DEFAULT 0, created INT)' . $my); } catch (Throwable $e) {}
-    setv('schema', '9', $p); schema10($p); schema11($p); schema12($p); schema13($p); schema14($p); schema15($p);
+    setv('schema', '9', $p); schema10($p); schema11($p); schema12($p); schema13($p); schema14($p); schema15($p); schema16($p);
     foreach (['sms_invite' => '1', 'sms_arrive' => '0', 'auto_arrive' => '1', 'test_tools' => '1', 'signup_open' => '1', 'otp_dev' => '0', 'sms_direct' => '1', 'sms_provider' => 'kavenegar', 'otp_bale' => '0', 'pay_gateway' => '0', 'pay_env' => 'test', 'league_on' => '0', 'paid_mode' => '0', 'station_on' => '1', 'map_provider' => 'neshan', 'sub_price' => '297000', 'free_permanent' => '1', 'free_temp_month' => '2'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
 }
 function schema10(PDO $p): void { // v17: family link, pact, push tokens; league off for launch
@@ -173,6 +173,14 @@ function jr_profile(array $p): array { $d = pdata($p); $pl = $p['place_id'] ? ro
             'trips' => $trips, 'balance' => $bal, 'wk' => week_key(), 'live' => (int)(row('SELECT at FROM live WHERE team_id=?', [$t['id']])['at'] ?? 0)];
     }
     return $out; }
+function schema16(PDO $p): void { // v28: organisation seat pools
+    try { $p->exec('ALTER TABLE places ADD COLUMN seats INT DEFAULT 0'); } catch (Throwable $e) {}
+    setv('schema', '16', $p);
+}
+/** Seats used at a sponsored place: complete profiles, first come first served (rank by creation). */
+function seats_used(array $pl): int { return (int)q('SELECT COUNT(*) FROM profiles WHERE place_id=? AND complete=1', [$pl['id']])->fetchColumn(); }
+function seat_ok(array $prof, array $pl): bool { $n = (int)($pl['seats'] ?? 0); if ($n <= 0) return true;
+    return (int)q('SELECT COUNT(*) FROM profiles WHERE place_id=? AND complete=1 AND (created<? OR (created=? AND id<=?))', [$pl['id'], $prof['created'], $prof['created'], $prof['id']])->fetchColumn() <= $n; }
 function schema15(PDO $p): void { // v27: «رسیدیم برای مدارس»
     $K = 'VARCHAR(40)'; $my = $p->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' DEFAULT CHARSET=utf8mb4' : '';
     foreach (["CREATE TABLE IF NOT EXISTS school_leads (id $K PRIMARY KEY, src VARCHAR(10), school VARCHAR(160), city VARCHAR(60), role VARCHAR(40), name VARCHAR(80), phone VARCHAR(20), students INT, plan VARCHAR(20), note TEXT, place_code VARCHAR(12), status VARCHAR(16), created INT)$my",
@@ -193,7 +201,7 @@ function school_dash(array $pl): array {
         foreach (rows("SELECT arr FROM trips WHERE team_id=? AND status='done'", [$t['id']]) as $r) $rides += count((array)json_decode((string)$r['arr'], true));
         $urg += (int)q('SELECT COUNT(*) FROM msgs WHERE team_id=? AND urgent=1 AND created>?', [$t['id'], time() - 30 * 86400])->fetchColumn(); }
     $inTeam = (int)q('SELECT COUNT(*) FROM profiles WHERE place_id=? AND team_id IS NOT NULL', [$pl['id']])->fetchColumn();
-    return ['place' => ['name' => $pl['name'], 'city' => $pl['city'], 'code' => $pl['code'], 'kind' => $pl['kind'], 'plan_until' => (int)($pl['plan_until'] ?? 0), 'plan_tier' => (string)($pl['plan_tier'] ?? ''), 'league' => (int)($pl['league'] ?? 0), 'radio' => json_decode((string)($pl['radio'] ?? '[]'), true) ?: [], 'bc_at' => (int)($pl['bc_at'] ?? 0)],
+    return ['seats' => (int)($pl['seats'] ?? 0), 'seats_used' => seats_used($pl), 'place' => ['name' => $pl['name'], 'city' => $pl['city'], 'code' => $pl['code'], 'kind' => $pl['kind'], 'plan_until' => (int)($pl['plan_until'] ?? 0), 'plan_tier' => (string)($pl['plan_tier'] ?? ''), 'league' => (int)($pl['league'] ?? 0), 'radio' => json_decode((string)($pl['radio'] ?? '[]'), true) ?: [], 'bc_at' => (int)($pl['bc_at'] ?? 0)],
         'families' => $fam, 'kids' => $kids, 'teams' => count($T), 'active_teams' => $active, 'in_team' => $inTeam, 'trips_month' => $tripsM, 'trips_all' => $tripsAll, 'rides' => $rides, 'cars_saved_day' => $carsSaved * 2, 'urgent_month' => $urg,
         'hoods' => $hoods, 'dist' => array_map(fn($v) => $v >= 3 ? $v : ($v ? -1 : 0), $dist), 'dir' => array_map(fn($v) => $v >= 3 ? $v : ($v ? -1 : 0), $dir), 'roles' => $roles,
         'week' => array_map(fn($i) => (int)q("SELECT COUNT(*) FROM trips t JOIN teams m ON m.id=t.team_id WHERE m.place_id=? AND t.status='done' AND t.updated BETWEEN ? AND ?", [$pl['id'], strtotime("-$i weeks", time()) - 7 * 86400, strtotime("-$i weeks", time())])->fetchColumn(), range(7, 0, -1))];
@@ -279,7 +287,8 @@ function team_rule_ok(?array $place, array $riders): bool {
 function team_cap(array $riders): int { if (!$riders) return 5; $adult = true; foreach ($riders as $r) if (!str_ends_with((string)$r['id'], '-s')) $adult = false; if ($adult) return 5;
     foreach ($riders as $r) if ($r['age'] === null || $r['age'] >= 9) return 4; return 5; }
 /** A school with an active «رسیدیم برای مدارس» plan gives every one of its families the premium features. */
-function school_until(string $uid): int { return (int)q('SELECT COALESCE(MAX(pl.plan_until),0) FROM profiles p JOIN places pl ON pl.id=p.place_id WHERE p.user_id=?', [$uid])->fetchColumn(); }
+function school_until(string $uid): int { $best = 0; foreach (rows('SELECT p.id, p.created, pl.id plid, pl.plan_until, pl.seats FROM profiles p JOIN places pl ON pl.id=p.place_id WHERE p.user_id=? AND p.complete=1 AND pl.plan_until>?', [$uid, time()]) as $r)
+    if (seat_ok(['id' => $r['id'], 'created' => $r['created']], ['id' => $r['plid'], 'seats' => $r['seats']])) $best = max($best, (int)$r['plan_until']); return $best; }
 function is_premium(?string $uid): bool { if (!$uid) return false; $u = row('SELECT premium_until FROM users WHERE id=?', [$uid]); return ($u && (int)($u['premium_until'] ?? 0) > time()) || school_until($uid) > time(); }
 /** Platform rule: girls over 8 and boys over 12 never share a service with the opposite gender. */
 function gender_age_ok(array $ridersAll): bool {
@@ -506,7 +515,7 @@ function neshan_check(array $pl): array {
 function place_out(array $p, bool $counts = true): array {
     $o = ['id' => $p['id'], 'code' => $p['code'], 'kind' => $p['kind'], 'name' => $p['name'], 'city' => $p['city'], 'gender' => $p['gender'], 'shift' => $p['shift'],
         'lat' => (float)$p['lat'], 'lng' => (float)$p['lng'], 'in' => $p['t_in'], 'out' => $p['t_out'], 'days' => array_map('intval', array_filter(explode(',', (string)$p['days']), 'strlen')), 'verified' => (int)$p['verified'], 'trusted' => (int)($p['trusted'] ?? 0), 'nv' => (int)($p['nv'] ?? 0), 'nv_title' => (string)($p['nv_title'] ?? ''), 'in2' => (string)($p['t_in2'] ?? ''), 'out2' => (string)($p['t_out2'] ?? ''), 'rot' => mb_strpos((string)$p['shift'], 'چرخشی') !== false];
-    $o['league'] = (int)($p['league'] ?? 0); $o['school_plan'] = (int)($p['plan_until'] ?? 0) > time(); $o['radio'] = json_decode((string)($p['radio'] ?? '[]'), true) ?: [];
+    $o['league'] = (int)($p['league'] ?? 0); $o['school_plan'] = (int)($p['plan_until'] ?? 0) > time(); if ($o['school_plan'] && (int)($p['seats'] ?? 0) > 0) { $o['seats'] = (int)$p['seats']; $o['seats_left'] = max(0, (int)$p['seats'] - seats_used($p)); } $o['radio'] = json_decode((string)($p['radio'] ?? '[]'), true) ?: [];
     if ($counts) {
         $o['families'] = (int)q('SELECT COUNT(*) FROM profiles WHERE place_id=? AND complete=1', [$p['id']])->fetchColumn();
         $o['drivers'] = 0; foreach (rows('SELECT data FROM profiles WHERE place_id=? AND complete=1', [$p['id']]) as $r) { $d = json_decode((string)$r['data'], true); if (in_array($d['role'] ?? '', ['drive', 'both'], true)) $o['drivers']++; }
@@ -1189,9 +1198,9 @@ case 'report_user': { $u = auth(); $me = my_profile($u, (string)($in['profile_id
 case 'block_user': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $id = (string)($in['about'] ?? ''); $d = pdata($me); $b = array_values(array_diff((array)($d['blocked'] ?? []), [$id]));
     if (!empty($in['v'])) $b[] = $id; $d['blocked'] = array_slice($b, -200); q('UPDATE profiles SET data=?, updated=? WHERE id=?', [json_encode($d, JSON_UNESCAPED_UNICODE), time(), $me['id']]); YES(['blocked' => $d['blocked']]); }
 case 'school_lead': { if (hit('lead_' . ip_tag(), 3600) > 6) NO('درخواست‌ها زیاد شد؛ کمی بعد دوباره بفرستید.', 429);
-    $f = fn($k, $n) => mb_substr(trim((string)($in[$k] ?? '')), 0, $n); $ph = phone_norm($f('phone', 20)); if ($f('school', 160) === '' || (!$ph && $f('src', 10) === 'school')) NO('نام مدرسه و شماره‌ی تماس را بنویسید.');
-    q('INSERT INTO school_leads(id,src,school,city,role,name,phone,students,plan,note,place_code,status,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', [uid(), $f('src', 10) === 'parent' ? 'parent' : 'school', $f('school', 160), $f('city', 60), $f('role', 40), $f('name', 80), $ph ?: $f('phone', 20), max(0, min(20000, (int)($in['students'] ?? 0))), $f('plan', 20), $f('note', 1500), strtoupper($f('code', 12)), 'new', time()]);
-    ev_log('lead', ($f('src', 10) === 'parent' ? '👪 والدی مدرسه‌ای را معرفی کرد: ' : '🏫 درخواست مدرسه: ') . $f('school', 80) . ($f('city', 60) ? '، ' . $f('city', 60) : '') . ((int)($in['students'] ?? 0) ? ' – ' . (int)$in['students'] . ' دانش‌آموز' : ''), []); YES(); }
+    $f = fn($k, $n) => mb_substr(trim((string)($in[$k] ?? '')), 0, $n); $ph = phone_norm($f('phone', 20)); if ($f('school', 160) === '' || (!$ph && $f('src', 10) !== 'parent')) NO('نام مدرسه و شماره‌ی تماس را بنویسید.');
+    q('INSERT INTO school_leads(id,src,school,city,role,name,phone,students,plan,note,place_code,status,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', [uid(), in_array($f('src', 10), ['parent', 'org'], true) ? $f('src', 10) : 'school', $f('school', 160), $f('city', 60), $f('role', 40), $f('name', 80), $ph ?: $f('phone', 20), max(0, min(20000, (int)($in['students'] ?? 0))), $f('plan', 20), $f('note', 1500), strtoupper($f('code', 12)), 'new', time()]);
+    ev_log('lead', ($f('src', 10) === 'parent' ? '👪 والدی مدرسه‌ای را معرفی کرد: ' : ($f('src', 10) === 'org' ? '🏢 درخواست سازمانی: ' : '🏫 درخواست مدرسه: ')) . $f('school', 80) . ($f('city', 60) ? '، ' . $f('city', 60) : '') . ((int)($in['students'] ?? 0) ? ' – ' . (int)$in['students'] . ' دانش‌آموز' : ''), []); YES(); }
 case 'school_dash': { $pl = school_by_token((string)($in['token'] ?? '')); YES(school_dash($pl)); }
 case 'school_set': { $pl = school_by_token((string)($in['token'] ?? '')); if ((int)($pl['plan_until'] ?? 0) < time()) NO('اشتراک مدرسه فعال نیست؛ با رسیدیم تماس بگیرید.', 402);
     if (isset($in['league'])) q('UPDATE places SET league=? WHERE id=?', [!empty($in['league']) ? 1 : 0, $pl['id']]);
@@ -1205,8 +1214,8 @@ case 'admin_school_leads': { need_admin(); YES(['list' => rows('SELECT * FROM sc
 case 'admin_school_lead_set': { need_admin(); q('UPDATE school_leads SET status=? WHERE id=?', [mb_substr((string)($in['status'] ?? 'new'), 0, 16), (string)($in['id'] ?? '')]); YES(); }
 case 'admin_school_plan': { need_admin(); $pl = row('SELECT * FROM places WHERE code=?', [strtoupper(trim((string)($in['code'] ?? '')))]); if (!$pl) NO('مکانی با این کد نیست.');
     $mo = max(0, min(36, (int)($in['months'] ?? 1))); $from = max(time(), (int)($pl['plan_until'] ?? 0)); $until = $mo ? $from + $mo * 30 * 86400 : 0; $tok = (string)($pl['dash_token'] ?? '') ?: bin2hex(random_bytes(12));
-    q('UPDATE places SET plan_until=?, plan_tier=?, dash_token=? WHERE id=?', [$until, mb_substr((string)($in['tier'] ?? ''), 0, 20), $tok, $pl['id']]);
-    ev_log('school', 'اشتراک مدرسه‌ی ' . $pl['name'] . ($mo ? ' تا ' . date('Y-m-d', $until) . ' فعال شد' : ' برداشته شد'), []); YES(['until' => $until, 'link' => 'https://residim.ir/schools/#panel/' . $tok]); }
+    q('UPDATE places SET plan_until=?, plan_tier=?, dash_token=?, seats=? WHERE id=?', [$until, mb_substr((string)($in['tier'] ?? ''), 0, 20), $tok, max(0, min(100000, (int)($in['seats'] ?? 0))), $pl['id']]);
+    ev_log('school', 'اشتراک مدرسه‌ی ' . $pl['name'] . ($mo ? ' تا ' . date('Y-m-d', $until) . ' فعال شد' : ' برداشته شد'), []); YES(['until' => $until, 'link' => 'https://residim.ir/' . (in_array($pl['kind'], ['school', 'kinder'], true) ? 'schools' : 'b2b') . '/#panel/' . $tok]); }
 case 'ticket': {
     $u = auth(); $txt = trim((string)($in['text'] ?? '')); if (mb_strlen($txt) < 5) NO('چند کلمه بیشتر بنویسید.');
     $no = 1024 + (int)q('SELECT COUNT(*) FROM tickets')->fetchColumn();

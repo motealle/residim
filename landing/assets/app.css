@@ -1215,8 +1215,8 @@ body.px-open{overflow:hidden}
 
 /* ═════════ v21: animated aerial-map wallpaper (chat + the page's empty areas) ═════════ */
 .mapbg{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;contain:strict}
-.mapbg::before{content:"";position:absolute;left:-960px;top:-960px;width:calc(100% + 960px);height:calc(100% + 960px);background:url(mapbg.svg?v=27) 0 0/960px 960px repeat;opacity:.62;animation:mbpan 150s linear infinite;will-change:transform}
-:root[data-theme="dark"] .mapbg::before{background-image:url(mapbg-dark.svg?v=27);opacity:.9}
+.mapbg::before{content:"";position:absolute;left:-960px;top:-960px;width:calc(100% + 960px);height:calc(100% + 960px);background:url(mapbg.svg?v=28) 0 0/960px 960px repeat;opacity:.62;animation:mbpan 150s linear infinite;will-change:transform}
+:root[data-theme="dark"] .mapbg::before{background-image:url(mapbg-dark.svg?v=28);opacity:.9}
 @keyframes mbpan{to{transform:translate3d(960px,960px,0)}} /* camera drifts south-east → north-west */
 @media (prefers-reduced-motion:reduce){.mapbg::before{animation:none}}
 .page-bg{position:fixed;z-index:-1;display:none}
@@ -1458,3 +1458,5 @@ body.chat-open .page-bg,body.map-full .page-bg{visibility:hidden}
 .mi.schools-mi b{display:block;font-weight:900}.mi.schools-mi small{display:block;font-size:.74rem;opacity:.85;line-height:1.6}
 .mi.schools-mi .dong-ic{background:#1DBF73;color:#04140B}.mi.schools-mi>svg:last-child{transform:none;opacity:.6}
 :root[data-theme="dark"] .mi.schools-mi{background:linear-gradient(110deg,#0F2A1B,#123524)!important;color:#CFF5E0}
+
+.spons-b{background:#ffffffe6;color:#0B3D24;border-radius:14px;padding:8px 12px;font-weight:700;font-size:.9rem;line-height:1.9;position:relative;z-index:1}
