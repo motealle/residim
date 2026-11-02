@@ -102,14 +102,14 @@ function missingStep(p) {
   if (!d.rules_at) return 'rules';
   return null;
 }
-let ME = { premium_until: 0 };
+let ME = { premium_until: 0, premium_bank: 0 };
 const $$ = q => Array.from(document.querySelectorAll(q));
 /* ═════════ sound: tiny Web Audio tones, made on the fly (no files, only after a tap) ═════════ */
 const SND = { ctx: null };
 const SND_FILE = { arrive: 'arrived', done: 'done', door: 'door', urgent: 'urgent', boarded: 'boarded', start: 'start', invite: 'invite', team: 'team', remind: 'remind', msg: 'msg' };
 const SND_ALT = { door: 'honk', urgent: 'honk', boarded: 'step', start: 'whoosh', invite: 'ok', team: 'done', remind: 'ok', msg: 'tap' };
 function sndLoad(name) { const c = SND.ctx; if (!c) return; SND.buf = SND.buf || {}; if (SND.buf[name] !== undefined) return; SND.buf[name] = null;
-  fetch('assets/snd/' + name + '.mp3?v=30').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
+  fetch('assets/snd/' + name + '.mp3?v=31').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
 function snd(kind) {
   if (S.sound !== false && SND_FILE[kind]) { try { if (!SND.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) SND.ctx = new AC(); }
     const c = SND.ctx; if (c) { if (c.state === 'suspended') c.resume(); const nm = SND_FILE[kind]; sndLoad(nm); Object.values(SND_FILE).forEach(sndLoad); const b = SND.buf[nm];
@@ -164,7 +164,9 @@ function paywallSheet(reason, w) {
       <li>${ic('check')}<span>پشتیبانی سریع</span></li></ul>
     <p class="muted small">یک خانواده که هفته‌ای ۵ روز رفت و برگشت را با تیم تقسیم کند، معمولاً ماهانه چند میلیون تومان کمتر خرج می‌کند و ده‌ها ساعت وقت آزاد می‌گیرد. اشتراک، کسری از همین صرفه‌جویی است.</p>
     ${reason === 'temp' && w ? `<button class="btn line block" data-a="pw-free">${ic('wheel')}خودم می‌برم و رایگان است</button>` : ''}
-    ${act ? '' : `<button class="btn ac block" data-a="sub-want" data-v="${esc(reason || '')}">${on ? 'می‌خواهم؛ وقتی پرداخت باز شد خبرم کنید' : 'وقتی اشتراک آمد خبرم کنید'}</button>`}`, on ? 'مسیرک اول مهمان ما هستید؛ ' + fa(CFG.free_temp_month || 2) + ' مسیرک سفر هم هر ماه رایگان است.' : '');
+    ${ME.premium_bank > 0 ? `<p class="hint">${ic('check')}<span>${fa(ME.premium_bank)} روز اشتراک «همراه» برای شما ذخیره است و از پایان دوره‌ی آزمایشی شروع می‌شود.</span></p>` : ''}
+    ${CFG.pay_on ? `<a class="btn ac block" href="pricing/#plans">${act ? 'تمدید اشتراک' : 'خرید اشتراک'}</a>` : ''}
+    ${act || CFG.pay_on ? '' : `<button class="btn ac block" data-a="sub-want" data-v="${esc(reason || '')}">${on ? 'می‌خواهم؛ وقتی پرداخت باز شد خبرم کنید' : 'وقتی اشتراک آمد خبرم کنید'}</button>`}`, on ? 'مسیرک اول مهمان ما هستید؛ ' + fa(CFG.free_temp_month || 2) + ' مسیرک سفر هم هر ماه رایگان است.' : '');
 }
 /* ═════════ guide ═════════ */
 function guideSheet() {
@@ -185,7 +187,7 @@ function guideSheet() {
 }
 async function refreshMe() {
   if (!S.token) { P = []; return; }
-  try { const r = await api('me'); P = r.profiles; S.phone = r.phone; ME.premium_until = +r.premium_until || 0; persist(); } catch (e) { if (e.code !== 'net') P = []; }
+  try { const r = await api('me'); P = r.profiles; S.phone = r.phone; ME.premium_until = +r.premium_until || 0; ME.premium_bank = +r.premium_bank || 0; persist(); } catch (e) { if (e.code !== 'net') P = []; }
 }
 function setActive(id, opts = {}) {
   S.active = id; persist();
@@ -233,7 +235,7 @@ async function mapLib() {
     }
     await loadCss('assets/maplibre-gl.css');
     await loadJs('assets/maplibre-gl.js', () => !!window.maplibregl, 12000);
-    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=30', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
+    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=31', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
     return (MapKit.lib = { name: 'libre', G: window.maplibregl });
   })();
   try { return await MapKit.loading; } catch (e) { MapKit.failed = true; MapKit.loading = null; throw e; }
@@ -242,7 +244,7 @@ async function makeMap(el, center, zoom) {
   const L = await mapLib();
   let map;
   if (L.name === 'neshan') map = new L.G.Map({ mapType: (isDark() && L.G.Map.mapTypes.neshanVectorNight) || L.G.Map.mapTypes.neshanVector, container: el, zoom, pitch: 0, center: [center[1], center[0]], minZoom: 4, maxZoom: 19, trackResize: true, mapKey: CFG.web_key, poi: false, traffic: false, mapTypeControllerOptions: { show: false } });
-  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=30' : 'assets/map-style.json?v=30', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=31' : 'assets/map-style.json?v=31', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('map-timeout')), 10000);
     map.on('load', () => { clearTimeout(t); res(); });
@@ -898,9 +900,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=30" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=31" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)} <span class="pchip">${ic('down', '')}</span></b><small>${p.team ? esc(teamName(p.team)) + ' – ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</small></span>`; }
-  else t = `<img src="assets/icon.svg?v=30" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=31" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -978,13 +980,14 @@ function drawer(keep) {
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const grp = (k, i, t, body) => `<div class="grp"><button class="sec-h" data-a="toggle" data-v="${k}" aria-expanded="${!!ui.open[k]}"><span>${ic(i, 'i')} ${t}</span>${ic('down', 'i chev' + (ui.open[k] ? ' open' : ''))}</button><div class="plist ${ui.open[k] ? '' : 'closed'}" style="max-height:${ui.open[k] ? 700 : 0}px">${body}</div></div>`;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=30" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=31" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     <div class="sec-h"><span>مسیرک‌های من <button class="q-mark" data-a="glossary" aria-label="مسیرک یعنی چه؟">؟</button></span><button class="link small" data-a="new-profile">${ic('plus')}تازه</button></div>
     <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${!x.complete && !x.shared ? `<button class="pdel" data-a="prof-del" data-id="${x.id}" aria-label="پاک کردن «${esc(x.label)}»">${ic('close')}</button>` : ''}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیرک را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
     ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیرک دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
     ${S.token && !S.phone ? `<div class="hint warn" style="margin:6px 0">${ic('phone')}<span class="grow small">شماره‌تان هنوز تأیید نشده؛ تا تأیید، شماره‌ی دیگران را نمی‌بینید.</span><button class="btn sm" data-a="verify">تأیید</button></div>` : ''}
     ${p && p.team && leagueOn(p) ? `<div class="tiles"><button class="tile" data-a="quiz">${ic('trophy')}<span>لیگ راه ${esc(destWord(p))}</span></button></div>` : ''}
     <div class="sep"></div>
+    <a class="mi" href="pricing/"><span class="dong-ic">${ic('coin')}</span><span class="grow"><b>تعرفه‌ها و خرید اشتراک</b><small>رایگان، اشتراک «همراه»، حمایت و مدارس</small></span>${ic('back')}</a>
     <a class="mi schools-mi" href="schools/"><span class="dong-ic">${ic('school')}</span><span class="grow"><b>رسیدیم برای مدارس</b><small>برنامه‌ی رسمی برای مدرسه‌ی فرزندتان؛ به مدیر پیشنهاد دهید</small></span>${ic('back')}</a>
     ${CFG.donate && (CFG.donate.card || CFG.donate.gateway) ? `<button class="mi dong" data-a="donate"><span class="dong-ic">${ic('heart')}</span><span class="grow"><b>دنگ خیر</b><small>کمک کنید رسیدیم رایگان بماند</small></span></button>` : ''}
     ${standalone() || NATIVE ? '' : `<button class="mi app-cta" data-a="install">${ic('install')}<span class="grow"><b>${ui.apk && ui.apk.url ? 'اپ اندروید رسیدیم' : 'نصب روی گوشی'}</b><small>یادآوری نوبت، حتی وقتی بسته است</small></span></button>`}
@@ -999,7 +1002,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۳۰</small></span>` : `<span>نسخه‌ی وب ۳۰${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
+    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۳۱</small></span>` : `<span>نسخه‌ی وب ۳۱${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -1066,7 +1069,7 @@ async function ambView() {
       <div class="row"><input id="amb-pl" dir="ltr" placeholder="WPXJUG5A" maxlength="8" style="flex:1"><button class="btn ac" data-a="amb-make">ساختن</button></div><div id="amb-out"></div></section>
     <section class="card stack"><h2>ایده‌های سریع</h2><ol class="steps3"><li>پوستر A5 را روی تابلوی اعلانات مدرسه (با اجازه‌ی مدرسه) بچسبانید.</li><li>متن آماده و لینک را در گروه کلاس و کانال مدرسه بگذارید؛ صبح‌های شنبه بهترین زمان است.</li><li>از ۲ خانواده‌ی هم‌محله بخواهید با هم ثبت‌نام کنند؛ تیم زودتر شکل می‌گیرد.</li></ol></section>
     ${A.list.length ? `<section class="card"><h2>ثبت‌شده‌ها</h2><table><tr><th>تاریخ</th><th>مکان</th><th>نوع</th><th>مبلغ</th></tr>${A.list.slice(0, 60).map(x => `<tr><td>${jLabel(new Date(x.created * 1000))}</td><td>${esc(x.place || '—')}</td><td>${x.kind === 'team' ? 'تیم شد' : 'ثبت‌نام'}</td><td>${money(x.amount)}${+x.paid ? ' ✓' : ''}</td></tr>`).join('')}</table></section>` : ''}</div>`;
-  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=30" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
+  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=31" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
 }
 function reportHtml(p, T) {
   const H = (ui.hist && ui.hist.trips) || [], done = H.filter(x => x.status === 'done').sort((a, b) => a.date < b.date ? -1 : 1), b = balances(T), now = new Date();
@@ -1100,7 +1103,7 @@ async function saveBlob(blob, name, title, text) {
 }
 /** Render an element (inside #print-root) to a PNG or a paged A4 PDF that never cuts through a row or a line. */
 async function elToFile(el, kind, name, title) {
-  try { await loadJs('assets/html2canvas.min.js?v=30', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=30', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
+  try { await loadJs('assets/html2canvas.min.js?v=31', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=31', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
   try { await document.fonts.ready; } catch (e) {}
   const cv = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }); let blob;
   if (kind === 'png') blob = await new Promise(res => cv.toBlob(res, 'image/png'));
@@ -1739,7 +1742,15 @@ function admConn(A) {
       <button class="btn line sm" data-a="adm-test" data-v="smsir">آزمون اتصال و اعتبار</button>${out('t-smsir')}
       ${tplGuide(`<p class="muted small">پنل sms.ir ← ارسال سریع (وریفای) ← قالب جدید. بعد از تأیید، شناسه‌ی عددی قالب را در فیلد بالا بگذارید.</p>${SMSIR_TPL.map(([n, k, x, v]) => `<div class="tpl"><div class="row between"><b>${n}</b><span class="small muted">متغیرها: <span dir="ltr">${v}</span></span></div><pre dir="rtl">${tplShow(x)}</pre>${cp(x, 'کپی متن')}</div>`).join('')}`)}</section>
     <section class="card stack"><h2>درگاه پرداخت</h2><p class="muted small">کلید «پرداخت از درگاه» پایین‌تر، هر دو را روشن و خاموش می‌کند. درگاه فعال:</p>
-      <div class="chips">${[['payping', 'پی‌پینگ'], ['sep', 'سِپ (بانک سامان)']].map(([k, v]) => `<button class="chip" data-a="pay-prov" data-v="${k}" aria-pressed="${(ST.pay_provider || 'payping') === k}">${v}</button>`).join('')}</div></section>
+      <div class="chips">${[['zarinpal', 'زرین‌پال'], ['payping', 'پی‌پینگ'], ['sep', 'سِپ (بانک سامان)']].map(([k, v]) => `<button class="chip" data-a="pay-prov" data-v="${k}" aria-pressed="${(ST.pay_provider || 'payping') === k}">${v}</button>`).join('')}</div></section>
+    <section class="card stack"><h2>درگاه زرین‌پال</h2>${secRow(K, 'zarinpal_merchant', 'مرچنت کد', '۳۶ نویسه، مثل xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', { secret: 1 })}
+      <p class="muted small">«حالت تست» پایین (بخش پی‌پینگ) برای زرین‌پال یعنی سندباکس؛ «حالت واقعی» یعنی درگاه اصلی. صفحه‌ی خرید: <a href="pricing/" target="_blank">residim.ir/pricing</a></p>
+      <div class="row wrap"><button class="btn line sm" data-a="adm-test" data-v="zarinpal" data-env="test">آزمون سندباکس</button><button class="btn line sm" data-a="adm-test" data-v="zarinpal" data-env="live">آزمون درگاه اصلی</button></div>${out('t-zarinpal')}
+      ${tplGuide(`<p class="muted small">در پنل زرین‌پال ← درگاه‌ها ← افزودن درگاه:</p>
+        <div class="tpl"><div class="row between"><span>آدرس وب‌سایت (دامنه)</span>${cp('residim.ir')}</div><pre dir="ltr">residim.ir</pre></div>
+        <div class="tpl"><div class="row between"><span>صفحه‌ی محصولات و قیمت‌ها</span>${cp('https://residim.ir/pricing/')}</div><pre dir="ltr">https://residim.ir/pricing/</pre></div>
+        <div class="tpl"><div class="row between"><span>نشانی بازگشت (Callback)</span>${cp('https://residim.ir/app/api/pay.php')}</div><pre dir="ltr">https://residim.ir/app/api/pay.php</pre></div>
+        <p class="muted small">مرچنت کد بعد از تأیید درگاه در پنل زرین‌پال دیده می‌شود. آن را بالا بگذارید، «آزمون درگاه اصلی» را بزنید و بعد درگاه فعال را زرین‌پال و حالت را واقعی کنید.</p>`)}</section>
     <section class="card stack"><h2>درگاه سِپ (بانک سامان)</h2>${secRow(K, 'sep_terminal_id', 'شماره‌ی ترمینال', 'شماره‌ای که سپ بعد از تأیید پیامک یا ایمیل می‌کند')}
       <p class="muted small">سپ حالت تست ندارد؛ آزمون زیر فقط یک توکن می‌گیرد و پولی جابه‌جا نمی‌شود. اولین پرداخت واقعی را با ۱۰ هزار تومان امتحان کنید.</p>
       <button class="btn line sm" data-a="adm-test" data-v="sep">آزمون ترمینال و آی‌پی</button>${out('t-sep')}
@@ -1803,9 +1814,12 @@ function admHome(A) {
     <section class="card"><h2>کلیدهای امکانات</h2>${Object.keys(flagLbl).map(k => `<label class="switch"><span>${flagLbl[k]}</span><input type="checkbox" data-a="adm-flag" data-k="${k}" ${F[k] ? 'checked' : ''}></label>`).join('')}</section>
     <section class="card stack"><h2>نقشه و اشتراک</h2>
       <div class="field"><label for="st-map">نقشه‌ی کاربران</label><select id="st-map" data-a="adm-set" data-k="map_provider"><option value="neshan" ${ST.map_provider !== 'openfree' ? 'selected' : ''}>نشان (کلید وب لازم است)</option><option value="openfree" ${ST.map_provider === 'openfree' ? 'selected' : ''}>OpenFreeMap (رایگان)</option></select></div>
-      <div class="adm-form three">${[['sub_price', 'قیمت اشتراک ماهانه (تومان)'], ['free_permanent', 'مسیرک دائمی رایگان'], ['free_temp_month', 'مسیرک سفر رایگان در ماه']].map(([k, l]) => `<div class="field"><label for="st-${k}">${l}</label><input id="st-${k}" inputmode="numeric" dir="ltr" value="${esc(ST[k] ?? '')}"><button class="link" data-a="adm-set" data-k="${k}">ذخیره</button></div>`).join('')}</div>
+      <div class="adm-form three">${[['sub_price', 'قیمت اشتراک ماهانه (تومان)'], ['sub_price_q', 'قیمت سه‌ماهه (۰ = خودکار با ۱۰٪ تخفیف)'], ['sub_price_y', 'قیمت ۹ ماهه (۰ = خودکار با ۲۵٪ تخفیف)'], ['free_permanent', 'مسیرک دائمی رایگان'], ['free_temp_month', 'مسیرک سفر رایگان در ماه']].map(([k, l]) => `<div class="field"><label for="st-${k}">${l}</label><input id="st-${k}" inputmode="numeric" dir="ltr" value="${esc(ST[k] ?? '')}"><button class="link" data-a="adm-set" data-k="${k}">ذخیره</button></div>`).join('')}</div>
       <h3>اشتراک دستی برای یک کاربر</h3><div class="adm-form"><div class="field"><label for="pu-ph">شماره</label><input id="pu-ph" dir="ltr" inputmode="tel" placeholder="0912…"></div><div class="field"><label for="pu-d">روز (۰ = لغو)</label><input id="pu-d" inputmode="numeric" dir="ltr" value="30"></div></div><button class="btn line sm" data-a="adm-puser">ثبت اشتراک</button>
+      <p class="muted small">قیمت‌های فعلی صفحه‌ی خرید: ${ST.plans ? Object.values(ST.plans).map(x => esc(x.title) + ' ' + money(x.price)).join(' – ') : '—'}</p>
       <p class="muted small">${fa(ST.sub_interest || 0)} نفر «خبرم کنید» زده‌اند.</p></section>
+    <section class="card stack"><h2>اطلاعات تماس صفحه‌ی خرید</h2><p class="muted small">در صفحه‌ی تعرفه‌ها (residim.ir/pricing) دیده می‌شود؛ بازبین درگاه و خریدار به آن نگاه می‌کنند. باید با اطلاعات اینماد یکی باشد.</p>
+      <div class="adm-form">${[['contact_name', 'نام کسب‌وکار یا صاحب امتیاز', ''], ['contact_phone', 'تلفن پشتیبانی', 'ltr'], ['contact_email', 'ایمیل', 'ltr'], ['contact_address', 'نشانی', '']].map(([k, l, d]) => `<div class="field full"><label for="st-${k}">${l}</label><input id="st-${k}" ${d ? 'dir="ltr"' : ''} value="${esc(ST[k] || '')}"><button class="link" data-a="adm-set" data-k="${k}">ذخیره</button></div>`).join('')}</div></section>
     <section class="card stack"><h2>دنگ خیر (حمایت از رسیدیم)</h2><p class="muted small">شماره کارت و نام صاحب کارت در منوی کاربران دیده می‌شود. خالی بگذارید تا گزینه پنهان شود.</p>
       <div class="adm-form"><div class="field full"><label for="st-donate_card">شماره کارت (۱۶ رقم)</label><input id="st-donate_card" dir="ltr" inputmode="numeric" value="${esc(ST.donate_card || '')}" placeholder="6037…"></div><div class="field full"><label for="st-donate_name">به نام</label><input id="st-donate_name" value="${esc(ST.donate_name || '')}" placeholder="مثلاً رسیدیم (نام صاحب کارت)"></div></div>
       <div class="row wrap"><button class="btn line sm" data-a="adm-set" data-k="donate_card">ذخیره‌ی کارت</button><button class="btn line sm" data-a="adm-set" data-k="donate_name">ذخیره‌ی نام</button></div></section></div>`;
@@ -1971,7 +1985,7 @@ function jrView(J) {
   <section class="card jr-dx"><h3>🩺 تشخیص</h3><ul>${D.map(f => `<li class="is-${f.lv}"><span class="jr-dxi">${f.ic}</span><span><b>${esc(f.t)}</b>${f.fix ? `<small>${esc(f.fix)}</small>` : ''}</span></li>`).join('')}</ul></section>
   ${J.profiles.length > 1 ? `<div class="jr-ptabs no-print">${J.profiles.map((p, i) => `<button data-a="jr-prof" data-v="${i}" aria-pressed="${p === P}">${kindIc(p.kind)}<span>${esc(p.place ? p.place.name : p.label)}</span>${p.team ? '<i>تیم</i>' : ''}</button>`).join('')}</div>` : ''}
   <section class="card jr-swc"><h3>🗺️ مسیر در فرایند رسیدیم ${P && P.place ? `<small>${esc(P.place.name)}${P.place.city ? '، ' + esc(P.place.city) : ''}</small>` : ''}</h3>
-    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=30" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
+    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=31" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
       <div class="jr-grid" style="--n:${S.length}">${[0, 1, 2].map(l => `<i class="jr-lane l${l}" style="grid-column:${l + 2}"></i>`).join('')}<svg class="jr-wires" aria-hidden="true"></svg>
         ${S.map((s, i) => `<span class="jr-no is-${s.st}" style="grid-row:${i + 1}">${fa(i + 1)}</span><div class="jr-node is-${s.st} l${s.lane}" style="grid-row:${i + 1};grid-column:${s.lane + 2};--d:${i}" data-i="${i}">${i === cur ? `<span class="jr-here">${shapeAv(P ? P.id : u.id, 30)}<em>اینجاست</em></span>` : ''}<b><i>${s.ic}</i>${s.t}</b><small>${esc(s.sub || '')}</small>${s.at ? `<time>${jrAgo(s.at)}</time>` : ''}</div>`).join('')}
       </div></div>
@@ -2416,7 +2430,7 @@ async function act(a, el) {
     case 'adm-refresh': ui.adm = null; return renderMain();
     case 'adm-flag': try { await api('admin_flag', { k: el.dataset.k, v: el.checked ? 1 : 0 }, true); CFG.flags[el.dataset.k] = el.checked; toast('ذخیره شد.'); } catch (e) { fail(e); } return;
     case 'adm-verify': try { await api('admin_place', { id: el.dataset.id, verified: el.checked ? 1 : 0 }, true); toast('ذخیره شد.'); } catch (e) { fail(e); } return;
-    case 'adm-set': case 'adm-clear': { const k = el.dataset.k, raw = a === 'adm-clear' ? '' : el.tagName === 'SELECT' ? el.value : k === 'tips' ? $('#st-tips').value.trim() : en($('#st-' + k).value.trim()), v = ['donate_name', 'map_provider', 'notice', 'tips', 'app_ver', 'app_url'].includes(k) ? raw : raw.replace(/\D/g, '');
+    case 'adm-set': case 'adm-clear': { const k = el.dataset.k, raw = a === 'adm-clear' ? '' : el.tagName === 'SELECT' ? el.value : k === 'tips' ? $('#st-tips').value.trim() : en($('#st-' + k).value.trim()), v = ['donate_name', 'map_provider', 'notice', 'tips', 'app_ver', 'app_url', 'contact_name', 'contact_email', 'contact_address'].includes(k) ? raw : raw.replace(/\D/g, '');
       try { await api('admin_setting', { k, v }, true); if (ui.adm && ui.adm.ov.settings) ui.adm.ov.settings[k] = v; if (k === 'kave_sender' && ui.adm) ui.adm.ov.settings.kave_sender_auto = ''; renderMain(); toast(a === 'adm-clear' ? 'پاک شد.' : k === 'map_provider' ? 'ذخیره شد؛ کاربران از بارگذاری بعدی نقشه‌ی تازه را می‌بینند.' : 'ذخیره شد.'); } catch (e) { fail(e); } return; }
     case 'tips-add': ui.tipsEd.push({ a: '', t: '', s: '' }); return renderMain();
     case 'tips-del': ui.tipsEd.splice(+el.dataset.i, 1); return renderMain();
@@ -2669,6 +2683,7 @@ async function nativeInit() { if (!NATIVE) return; document.body.classList.add('
   if (!active()) S.active = (allProfiles()[0] || {}).id || null;
   applyAccent();
   { const pm = location.hash.match(/^#pay\/(ok|fail)\/([A-Za-z0-9]+)/); if (pm) { render(true); return payResult(pm[1], pm[2]); } }
+  if (location.hash === '#rules') { history.replaceState(null, '', BASE); render(true); return sheet('قوانین و حریم خصوصی', rulesHtml().replace('class="rules"', 'class="rules full"')); }
   if (code) return openCode(code);
   const rd = location.hash.match(/^#\/([^/]+)\/(.+)$/);
   if (rd && rd[1] !== 'c') { try { const city = decodeURIComponent(rd[1]), name = decodeURIComponent(rd[2]).replace(/-/g, ' '); const r = await api('place_near', { q: name.split(' ').slice(0, 3).join(' ') }); const m = r.places.filter(x => !city || x.city === city || /^[a-z]+$/i.test(city)); if (m.length === 1) return openCode(m[0].code); if (m.length) { render(true); return sheet('کدام یکی؟', m.map(x => `<button class="place-opt" data-a="open-code" data-c="${x.code}">${kindIc(x.kind, false, false)}<span class="grow">${esc(x.name)}<small>${esc(x.city)}${x.shift ? ' – ' + esc(x.shift) : ''} – کد ${x.code}</small></span></button>`).join(''), 'چند مکان با این نام هست؛ برای همین لینک‌های رسیدیم کد کوتاه دارند.'); } } catch (e) {} }

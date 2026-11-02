@@ -1,5 +1,5 @@
-const CACHE='residim-30-v1';
-const SHELL=['./','index.html','manifest.webmanifest','radio.json','assets/app.css?v=30','assets/app.js?v=30','assets/map-style.json?v=30','assets/map-style-dark.json?v=30','assets/qrcode.js?v=30','assets/maplibre-gl.css','assets/icon.svg?v=30','assets/mapbg.svg?v=30','assets/snd/door.mp3?v=30','assets/snd/arrived.mp3?v=30','assets/snd/urgent.mp3?v=30','assets/icon-192.png','assets/icon-512.png','assets/vazirmatn.woff2'];
+const CACHE='residim-31-v1';
+const SHELL=['./','index.html','manifest.webmanifest','radio.json','assets/app.css?v=31','assets/app.js?v=31','assets/map-style.json?v=31','assets/map-style-dark.json?v=31','assets/qrcode.js?v=31','assets/maplibre-gl.css','assets/icon.svg?v=31','assets/mapbg.svg?v=31','assets/snd/door.mp3?v=31','assets/snd/arrived.mp3?v=31','assets/snd/urgent.mp3?v=31','assets/icon-192.png','assets/icon-512.png','assets/vazirmatn.woff2'];
 const SCOPE=new URL('./',self.registration.scope).pathname;
 const TILES='residim-tiles-v1',MAX=900,AGE=14*864e5;
 const MAPS=/(^|\.)(openfreemap\.org|neshan\.org)$/;
@@ -15,7 +15,7 @@ self.addEventListener('fetch',e=>{
   if(e.request.method==='GET'&&MAPS.test(u.hostname)&&u.protocol==='https:'){e.respondWith(tile(e.request,/\.json$/.test(u.pathname)?864e5:AGE));return}
   if(e.request.method!=='GET'||u.origin!==location.origin||!u.pathname.startsWith(SCOPE))return;
   if(SCOPE==='/'&&OTHER.test(u.pathname))return; // root copy never touches /app or /t
-  if(e.request.mode==='navigate'){e.respondWith(fetch(e.request).then(r=>{const c=r.clone();caches.open(CACHE).then(x=>x.put('index.html',c));return r}).catch(()=>caches.open(CACHE).then(c=>c.match('index.html'))));return}
+  if(e.request.mode==='navigate'){const root=/^\/(index\.html)?$/.test(new URL(e.request.url).pathname);e.respondWith(fetch(e.request).then(r=>{if(root&&r.ok){const c=r.clone();caches.open(CACHE).then(x=>x.put('index.html',c))}return r}).catch(()=>caches.open(CACHE).then(c=>c.match('index.html'))));return}
   if(u.pathname.endsWith('radio.json')){e.respondWith(fetch(e.request).then(r=>{const c=r.clone();caches.open(CACHE).then(x=>x.put(e.request,c));return r}).catch(()=>caches.open(CACHE).then(c=>c.match(e.request))));return}
   e.respondWith(caches.open(CACHE).then(c=>c.match(e.request)).then(h=>h||fetch(e.request).then(r=>{if(r.ok){const c=r.clone();caches.open(CACHE).then(x=>x.put(e.request,c))}return r})));
 });
