@@ -81,7 +81,7 @@ const QUIPS = {
   welcome: ['از امروز «دیر شد!» را کمتر می‌شنوید.', 'به جمع آدم‌های وقت‌شناس خوش آمدید!', 'صبح‌های شما رسماً بهتر شد؛ امضا: رسیدیم.']
 };
 function quip(k, prob = .45) { const L = QUIPS[k]; if (!L || Math.random() > prob) return ''; S.q = S.q || {}; let i = Math.floor(Math.random() * L.length); if (i === S.q[k]) i = (i + 1) % L.length; S.q[k] = i; persist(); return ' ' + L[i]; }
-const fail = e => { if (e && e.code === 'need_phone') return sheet('تأیید شماره', `<p style="line-height:2">${esc(e.message)}</p><button class="btn ac block" data-a="login">تأیید شماره با کد پیامکی</button>`); if (e && e.code === 'watch') return sheet('حالت «فقط دیدن»', `<p style="line-height:2">${esc(e.message)}</p><button class="btn ac block" data-a="fam-act">من ادامه می‌دهم</button><p class="muted small">هر وقت خواستید دوباره به «فقط دیدن» برگردید.</p>`); toast(e && e.message ? e.message : 'خطایی پیش آمد.'); };
+const fail = e => { if (e && e.code === 'team_locked') return teamPaySheet(); if (e && e.code === 'need_phone') return sheet('تأیید شماره', `<p style="line-height:2">${esc(e.message)}</p><button class="btn ac block" data-a="login">تأیید شماره با کد پیامکی</button>`); if (e && e.code === 'watch') return sheet('حالت «فقط دیدن»', `<p style="line-height:2">${esc(e.message)}</p><button class="btn ac block" data-a="fam-act">من ادامه می‌دهم</button><p class="muted small">هر وقت خواستید دوباره به «فقط دیدن» برگردید.</p>`); toast(e && e.message ? e.message : 'خطایی پیش آمد.'); };
 
 /* ═════════ profiles ═════════ */
 const allProfiles = () => [...P, ...S.drafts];
@@ -109,7 +109,7 @@ const SND = { ctx: null };
 const SND_FILE = { arrive: 'arrived', done: 'done', door: 'door', urgent: 'urgent', boarded: 'boarded', start: 'start', invite: 'invite', team: 'team', remind: 'remind', msg: 'msg' };
 const SND_ALT = { door: 'honk', urgent: 'honk', boarded: 'step', start: 'whoosh', invite: 'ok', team: 'done', remind: 'ok', msg: 'tap' };
 function sndLoad(name) { const c = SND.ctx; if (!c) return; SND.buf = SND.buf || {}; if (SND.buf[name] !== undefined) return; SND.buf[name] = null;
-  fetch('assets/snd/' + name + '.mp3?v=31').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
+  fetch('assets/snd/' + name + '.mp3?v=32').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
 function snd(kind) {
   if (S.sound !== false && SND_FILE[kind]) { try { if (!SND.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) SND.ctx = new AC(); }
     const c = SND.ctx; if (c) { if (c.state === 'suspended') c.resume(); const nm = SND_FILE[kind]; sndLoad(nm); Object.values(SND_FILE).forEach(sndLoad); const b = SND.buf[nm];
@@ -149,24 +149,39 @@ async function installApp() {
 }
 /* ═════════ subscription ═════════ */
 function paywallSheet(reason, w) {
-  const pr = +CFG.sub_price || 297000, day = Math.round(pr / 30 / 100) * 100, on = !!CFG.flags.paid_mode, act = ME.premium_until * 1000 > Date.now();
-  const top = reason === 'temp' ? `<p class="hint warn">${ic('train')}<span>${fa(CFG.free_temp_month || 2)} مسیرک سفرِ رایگانِ این ماه را استفاده کرده‌اید. اگر خودتان رانندگی می‌کنید و رایگان می‌برید، این سفر هم رایگان است.</span></p>`
-    : reason === 'perm' ? `<p class="hint warn">${ic('spark')}<span>مسیرک اول مهمان ما بودید. برای مسیرک‌های بیشتر، اشتراک «همراه» لازم است.</span></p>`
-    : !on ? `<p class="hint">${ic('heart')}<span><b>در دوره‌ی آزمایشی همه‌چیز رایگان است.</b> این صفحه فقط می‌گوید بعداً چه چیزی در اشتراک هست.</span></p>` : act ? `<p class="hint">${ic('check')}<span>اشتراک شما فعال است. ممنون که همراه ما هستید!</span></p>` : '';
-  sheet('رسیدیم همراه', `${top}
-    <div class="sub-hero"><b>ماهی ${money(pr)}</b><span>روزی حدود ${money(day)}؛ کمتر از یک کرایه‌ی اسنپ در کل ماه</span></div>
-    <ul class="ticks">
-      <li>${ic('check')}<span>مسیرک و تیم <b>بی‌سقف</b>: مدرسه، کلاس زبان، باشگاه، محل کار</span></li>
-      <li>${ic('check')}<span>مسیرک سفر بی‌سقف (ایستگاه، فرودگاه، ترمینال)</span></li>
-      <li>${ic('check')}<span>پیامک «فرزندتان رسید» و ثبت رسیدن خودکار</span></li>
-      <li>${ic('check')}<span>جایگزینی هوشمند وقتی راننده‌ی امروز نیست</span></li>
-      <li>${ic('check')}<span>گزارش ماهانه‌ی حساب و سفرها، یادآوری مهربان تسویه</span></li>
-      <li>${ic('check')}<span>پشتیبانی سریع</span></li></ul>
-    <p class="muted small">یک خانواده که هفته‌ای ۵ روز رفت و برگشت را با تیم تقسیم کند، معمولاً ماهانه چند میلیون تومان کمتر خرج می‌کند و ده‌ها ساعت وقت آزاد می‌گیرد. اشتراک، کسری از همین صرفه‌جویی است.</p>
-    ${reason === 'temp' && w ? `<button class="btn line block" data-a="pw-free">${ic('wheel')}خودم می‌برم و رایگان است</button>` : ''}
-    ${ME.premium_bank > 0 ? `<p class="hint">${ic('check')}<span>${fa(ME.premium_bank)} روز اشتراک «همراه» برای شما ذخیره است و از پایان دوره‌ی آزمایشی شروع می‌شود.</span></p>` : ''}
-    ${CFG.pay_on ? `<a class="btn ac block" href="pricing/#plans">${act ? 'تمدید اشتراک' : 'خرید اشتراک'}</a>` : ''}
-    ${act || CFG.pay_on ? '' : `<button class="btn ac block" data-a="sub-want" data-v="${esc(reason || '')}">${on ? 'می‌خواهم؛ وقتی پرداخت باز شد خبرم کنید' : 'وقتی اشتراک آمد خبرم کنید'}</button>`}`, on ? 'مسیرک اول مهمان ما هستید؛ ' + fa(CFG.free_temp_month || 2) + ' مسیرک سفر هم هر ماه رایگان است.' : '');
+  const pl = CFG.plans || {}, pm = (pl.m || {}).price || 299000, td = CFG.team_trial_days || 30, on = !!CFG.flags.paid_mode, p = active(), T = ui.team && p && p.team ? ui.team : null;
+  sheet('رایگان کجاست، پولی کجا؟', `${!on ? `<p class="hint">${ic('heart')}<span><b>الان دوره‌ی آزمایشی است و همه‌چیز رایگان است.</b> این صفحه می‌گوید بعداً مرز کجاست.</span></p>` : ''}
+    ${ME.premium_bank > 0 ? `<p class="hint">${ic('check')}<span>${fa(ME.premium_bank)} روز اعتبار اشتراک تیم دارید؛ هر وقت ماه هدیه‌ی تیم‌تان تمام شود، خودکار به کار می‌افتد.</span></p>` : ''}
+    <ol class="tiers">
+      <li><b>همیشه رایگان: پیدا کردن و ساختن</b><span>ثبت مسیرک، نقشه‌ی هم‌مسیرها، دعوت، ساختن تیم، گفتگو و شماره‌ی هم‌تیمی‌ها.</span></li>
+      <li><b>هدیه: ${fa(td)} روز اولِ هر تیم با همه‌ی امکانات</b><span>برنامه و نوبت خودکار، جایگزین، حساب سفرها و تسویه، دکمه‌ی «رسیدیم» و خبر رسیدن، همراه خانواده.</span></li>
+      <li><b>اشتراک تیم: ماهی ${money(pm)} برای کل تیم</b><span>یک نفر می‌پردازد و سهم بقیه خودکار در حساب تیم ثبت می‌شود؛ در تیم ۴ خانواده‌ای هر خانواده حدود ${money(Math.round(pm / 4 / 1000) * 1000)} در ماه. سه‌ماهه و سال تحصیلی ارزان‌تر است.</span></li>
+      <li><b>مدرسه‌ی حامی: برای همه رایگان</b><span>اگر مدرسه یا محل کار اشتراک بگیرد، همه‌ی تیم‌هایش بی‌هزینه‌اند.</span></li>
+    </ol>
+    <p class="muted small">بدون اشتراک هم تیم از هم نمی‌پاشد: اعضا، گفتگو، شماره‌ها و تسویه‌ی بدهی‌ها همیشه باز است.</p>
+    ${T && on ? `<button class="btn ac block" data-a="team-pay">${ic('coin')}اشتراک ${esc(teamName(p.team))}</button>` : ''}
+    <a class="btn line block" href="pricing/">${ic('coin')}تعرفه‌ها و خرید اعتبار</a>`);
+}
+/* the team's plan, shown on the team page only when Residim charges (paid_mode) */
+function planCard(T, p) {
+  const P = T.plan; if (!P || P.state === 'free') return '';
+  const left = d => Math.max(0, Math.ceil((d * 1000 - Date.now()) / 864e5)), sch = P.school ? esc(P.school) : '';
+  if (P.state === 'school') return `<div class="hint plan-ok">${ic('school')}<span><b>به حمایت ${sch}</b> همه‌ی امکانات تیم رایگان است.</span></div>`;
+  if (P.state === 'paid') return left(P.until) > 10 ? '' : `<div class="hint warn">${ic('coin')}<span>اشتراک تیم ${fa(left(P.until))} روز دیگر تمام می‌شود.</span><button class="btn sm ac" data-a="team-pay">تمدید</button></div>`;
+  if (P.state === 'trial') { const d = left(P.until); return d > 7 ? `<div class="hint">${ic('heart')}<span>ماه هدیه‌ی تیم: ${fa(d)} روز مانده. <button class="link" data-a="sub-info">بعدش چه می‌شود؟</button></span></div>`
+    : `<div class="hint warn">${ic('heart')}<span>${fa(d)} روز از ماه هدیه‌ی تیم مانده. برای اینکه برنامه و حساب سفرها ادامه داشته باشد، اشتراک تیم را بگیرید یا از ${sch || 'مدرسه'} بخواهید حامی شود.</span><button class="btn sm ac" data-a="team-pay">ادامه</button></div>`; }
+  return `<div class="card plan-lock stack"><b>${ic('shield')}ماه هدیه‌ی تیم تمام شد</b><span class="muted small">گفتگو، اعضا، شماره‌ها و تسویه باز است. برنامه و نوبت خودکار، حساب سفرها، «رسیدیم» و خبر رسیدن با اشتراک تیم ادامه پیدا می‌کند.</span>
+    <div class="row wrap"><button class="btn ac" data-a="team-pay">اشتراک تیم</button><a class="btn line" href="schools/#lead" data-tab-go="parent">از ${sch || 'مدرسه'} بخواهید حامی شود</a></div></div>`;
+}
+function teamPaySheet() {
+  const p = active(), T = ui.team; if (!p || !T || !T.team) return paywallSheet('info');
+  const pl = CFG.plans || {}, n = Math.max(1, T.members.length), sch = T.plan && T.plan.school ? esc(T.plan.school) : 'مدرسه';
+  ui.tplan = ui.tplan && pl[ui.tplan] ? ui.tplan : 'q';
+  sheet('اشتراک ' + teamName(p.team), `<p class="muted small" style="line-height:2">یک نفر برای کل تیم می‌پردازد و سهم بقیه (${fa(n)} خانواده) خودکار در «حساب» تیم ثبت می‌شود؛ مثل سهم یک سفر.</p>
+    <div class="choices">${Object.entries(pl).map(([k, x]) => `<button class="choice" data-a="tplan" data-v="${k}" aria-pressed="${ui.tplan === k}"><b>${esc(x.title)} – ${money(x.price)}</b><small>سهم هر خانواده حدود ${money(Math.round(x.price / n / 1000) * 1000)}</small></button>`).join('')}</div>
+    <label class="check"><input type="checkbox" id="tp-a"><span><a href="pricing/#terms" target="_blank">شرایط خرید و بازگشت وجه</a> را می‌پذیرم.</span></label>
+    ${CFG.pay_on ? `<button class="btn ac block" data-a="tpay">${ic('coin')}پرداخت امن ${money((pl[ui.tplan] || {}).price)}</button>` : `<p class="hint">${ic('spark')}<span>پرداخت آنلاین به‌زودی باز می‌شود.</span></p>`}
+    <a class="btn line block" href="schools/#lead" data-tab-go="parent">${ic('school')}از ${sch} بخواهید حامی شود (برای همه رایگان)</a>`);
 }
 /* ═════════ guide ═════════ */
 function guideSheet() {
@@ -235,7 +250,7 @@ async function mapLib() {
     }
     await loadCss('assets/maplibre-gl.css');
     await loadJs('assets/maplibre-gl.js', () => !!window.maplibregl, 12000);
-    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=31', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
+    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=32', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
     return (MapKit.lib = { name: 'libre', G: window.maplibregl });
   })();
   try { return await MapKit.loading; } catch (e) { MapKit.failed = true; MapKit.loading = null; throw e; }
@@ -244,7 +259,7 @@ async function makeMap(el, center, zoom) {
   const L = await mapLib();
   let map;
   if (L.name === 'neshan') map = new L.G.Map({ mapType: (isDark() && L.G.Map.mapTypes.neshanVectorNight) || L.G.Map.mapTypes.neshanVector, container: el, zoom, pitch: 0, center: [center[1], center[0]], minZoom: 4, maxZoom: 19, trackResize: true, mapKey: CFG.web_key, poi: false, traffic: false, mapTypeControllerOptions: { show: false } });
-  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=31' : 'assets/map-style.json?v=31', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=32' : 'assets/map-style.json?v=32', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('map-timeout')), 10000);
     map.on('load', () => { clearTimeout(t); res(); });
@@ -668,10 +683,10 @@ function teamTab(p) {
   const plan = planOf(T), x = focusSlot(T, plan), me = mem(T, p.id), issues = teamIssues(T);
   if (!isDesk()) { const sub = ui.tsub || 'plan', tabs = [['plan', 'برنامه', 'list'], ['stats', 'کارنامه', 'trophy'], ['fam', 'خانواده‌ها', 'team']];
     const members = `<div class="card"><div class="row between" style="margin-bottom:6px"><h2><i class="team-dot"></i>${esc(teamName(t))}</h2><span class="tag ac">هر سفر ${money(T.team.price)}</span></div>${T.members.map(m => `<div class="member">${shapeAv(m.id, 40)}<span class="grow"><b>${esc(fam(m))}</b>${m.id === p.id ? ' <span class="tag ac">شما</span>' : ''}${T.team.coord === m.id ? ' <span class="tag">هماهنگ‌کننده</span>' : ''}<br><span class="muted small">${m.kids.map(k => esc(kidName(k, m))).join('، ')}</span></span><span class="roles">${m.role !== 'pay' ? ic('wheel') : ''}${m.role !== 'drive' ? ic('coin') : ''}</span>${m.id !== p.id && m.phone ? `<a class="icon-btn" href="tel:${esc(m.phone)}" aria-label="تماس">${ic('phone')}</a>` : ''}</div>`).join('')}<p class="muted small" style="margin-top:8px">مبلغ هر سفر ۶۰٪ میانگین برآورد اسنپ اعضاست. هماهنگ‌کننده خودکار است.</p></div>`;
-    return `<div class="stack">${teamSteps(T, p)}${agreeCard(T, p)}${x ? todayCard(T, x, plan, p) : ''}${tomorrowCard(T, plan, p)}${issues.map(i => `<div class="hint ${i.startsWith('✓') ? '' : 'warn'}">${ic(i.startsWith('✓') ? 'check' : 'warn')}<span>${esc(i)}</span></div>`).join('')}
+    return `<div class="stack">${teamSteps(T, p)}${planCard(T, p)}${agreeCard(T, p)}${x ? todayCard(T, x, plan, p) : ''}${tomorrowCard(T, plan, p)}${issues.map(i => `<div class="hint ${i.startsWith('✓') ? '' : 'warn'}">${ic(i.startsWith('✓') ? 'check' : 'warn')}<span>${esc(i)}</span></div>`).join('')}
       <nav class="subtabs" role="tablist">${tabs.map(([k, n, i]) => `<button role="tab" data-a="tsub" data-v="${k}" aria-selected="${sub === k}">${ic(i)}${n}</button>`).join('')}</nav>
       ${sub === 'plan' ? calCard(T, plan) : sub === 'stats' ? statsCard(T) + (leagueOn() ? `<button class="card row" data-a="quiz" style="text-align:right;border-color:var(--ac)">${ic('trophy')}<span class="grow"><b>لیگ راه ${esc(destWord(p))}</b><br><span class="muted small">معمای امروز را با هم حل کنید.</span></span>${ic('back')}</button>` : '') + campaignCard(p) : members + `<div id="trust-slot"></div>` + `<button class="card row" data-a="leave" style="text-align:right">${ic('leave')}<span class="grow"><b>ترک تیم</b><br><span class="muted small">اگر مسیر یا ساعت‌تان عوض شده.</span></span></button>`}</div>`; }
-  return `<div class="split"><div class="stack">${teamSteps(T, p)}${agreeCard(T, p)}${x ? todayCard(T, x, plan, p) : ''}${tomorrowCard(T, plan, p)}${issues.map(i => `<div class="hint ${i.startsWith('✓') ? '' : 'warn'}">${ic(i.startsWith('✓') ? 'check' : 'warn')}<span>${esc(i)}</span></div>`).join('')}
+  return `<div class="split"><div class="stack">${teamSteps(T, p)}${planCard(T, p)}${agreeCard(T, p)}${x ? todayCard(T, x, plan, p) : ''}${tomorrowCard(T, plan, p)}${issues.map(i => `<div class="hint ${i.startsWith('✓') ? '' : 'warn'}">${ic(i.startsWith('✓') ? 'check' : 'warn')}<span>${esc(i)}</span></div>`).join('')}
       <button class="card row" data-a="chat" style="text-align:right;border-color:var(--ac)">${ic('team')}<span class="grow"><b>گفتگوی تیم</b><br><span class="muted small">هماهنگی، خبر تأخیر، تشکر؛ کوتاه و محترمانه.</span></span>${ic('back')}</button>
       ${leagueOn() ? `<button class="card row" data-a="quiz" style="text-align:right;border-color:var(--ac)">${ic('trophy')}<span class="grow"><b>لیگ راه ${esc(destWord(p))}</b><br><span class="muted small">معمای امروز را با هم حل کنید؛ پاسخ بعد از رسیدن.</span></span>${ic('back')}</button>` : ''}</div>
     <aside class="stack">${calCard(T, plan)}${statsCard(T)}
@@ -900,9 +915,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=31" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=32" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)} <span class="pchip">${ic('down', '')}</span></b><small>${p.team ? esc(teamName(p.team)) + ' – ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</small></span>`; }
-  else t = `<img src="assets/icon.svg?v=31" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=32" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -980,19 +995,19 @@ function drawer(keep) {
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const grp = (k, i, t, body) => `<div class="grp"><button class="sec-h" data-a="toggle" data-v="${k}" aria-expanded="${!!ui.open[k]}"><span>${ic(i, 'i')} ${t}</span>${ic('down', 'i chev' + (ui.open[k] ? ' open' : ''))}</button><div class="plist ${ui.open[k] ? '' : 'closed'}" style="max-height:${ui.open[k] ? 700 : 0}px">${body}</div></div>`;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=31" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=32" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div><button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     <div class="sec-h"><span>مسیرک‌های من <button class="q-mark" data-a="glossary" aria-label="مسیرک یعنی چه؟">؟</button></span><button class="link small" data-a="new-profile">${ic('plus')}تازه</button></div>
     <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${!x.complete && !x.shared ? `<button class="pdel" data-a="prof-del" data-id="${x.id}" aria-label="پاک کردن «${esc(x.label)}»">${ic('close')}</button>` : ''}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیرک را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
     ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیرک دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
     ${S.token && !S.phone ? `<div class="hint warn" style="margin:6px 0">${ic('phone')}<span class="grow small">شماره‌تان هنوز تأیید نشده؛ تا تأیید، شماره‌ی دیگران را نمی‌بینید.</span><button class="btn sm" data-a="verify">تأیید</button></div>` : ''}
     ${p && p.team && leagueOn(p) ? `<div class="tiles"><button class="tile" data-a="quiz">${ic('trophy')}<span>لیگ راه ${esc(destWord(p))}</span></button></div>` : ''}
     <div class="sep"></div>
-    <a class="mi" href="pricing/"><span class="dong-ic">${ic('coin')}</span><span class="grow"><b>تعرفه‌ها و خرید اشتراک</b><small>رایگان، اشتراک «همراه»، حمایت و مدارس</small></span>${ic('back')}</a>
+    <a class="mi schools-mi pricing-mi" href="pricing/"><span class="dong-ic">${ic('coin')}</span><span class="grow"><b>رایگان کجاست، پولی کجا؟</b><small>تعرفه‌ها، اشتراک تیم و مدرسه‌ی حامی</small></span>${ic('back')}</a>
     <a class="mi schools-mi" href="schools/"><span class="dong-ic">${ic('school')}</span><span class="grow"><b>رسیدیم برای مدارس</b><small>برنامه‌ی رسمی برای مدرسه‌ی فرزندتان؛ به مدیر پیشنهاد دهید</small></span>${ic('back')}</a>
     ${CFG.donate && (CFG.donate.card || CFG.donate.gateway) ? `<button class="mi dong" data-a="donate"><span class="dong-ic">${ic('heart')}</span><span class="grow"><b>دنگ خیر</b><small>کمک کنید رسیدیم رایگان بماند</small></span></button>` : ''}
     ${standalone() || NATIVE ? '' : `<button class="mi app-cta" data-a="install">${ic('install')}<span class="grow"><b>${ui.apk && ui.apk.url ? 'اپ اندروید رسیدیم' : 'نصب روی گوشی'}</b><small>یادآوری نوبت، حتی وقتی بسته است</small></span></button>`}
     ${grp('help', 'guide', 'راهنما و ارتباط', mi('guide', 'guide', 'راهنمای رسیدیم') + mi('glossary', 'book', 'واژه‌نامه‌ی رسیدیم') + mi('notif-guide', 'bell', 'چه خبری کجا می‌رسد؟') + mi('support', 'ticket', 'پشتیبانی (مشکلی دارم)') + mi('feedback', 'spark', 'نظر و پیشنهاد ⭐') + mi('about', 'heart', 'درباره‌ی ما'))}
-    ${grp('set', 'gear', 'تنظیمات', `<label class="mi"><span style="display:contents">${ic('sound')}</span><span class="grow">صداهای اپ</span><input type="checkbox" class="tgl" data-a="sound" ${S.sound !== false ? 'checked' : ''}></label>` + mi('notify', 'bell', 'اعلان‌ها') + mi('sub', 'spark', CFG.flags.paid_mode ? (ME.premium_until * 1000 > Date.now() ? 'اشتراک همراه: فعال' : 'اشتراک همراه') : 'اشتراک (فعلاً رایگان)') + mi('radio', 'radio', 'رادیو رسیدیم') + mi('rules', 'shield', 'قوانین و حریم خصوصی') + (S.token ? mi('logout', 'logout', 'خروج از حساب') : ''))}
+    ${grp('set', 'gear', 'تنظیمات', `<label class="mi"><span style="display:contents">${ic('sound')}</span><span class="grow">صداهای اپ</span><input type="checkbox" class="tgl" data-a="sound" ${S.sound !== false ? 'checked' : ''}></label>` + mi('notify', 'bell', 'اعلان‌ها') + mi('sub', 'spark', CFG.flags.paid_mode ? 'اشتراک تیم' : 'اشتراک تیم (فعلاً رایگان)') + mi('radio', 'radio', 'رادیو رسیدیم') + mi('rules', 'shield', 'قوانین و حریم خصوصی') + (S.token ? mi('logout', 'logout', 'خروج از حساب') : ''))}
     ${S.token ? '' : mi('login', 'user', 'ورود به حساب')}
     ${CFG.flags.test_tools ? `<div class="sep"></div><div class="test-zone"><button class="sec-h" data-a="toggle" data-v="test" aria-expanded="${ui.open.test}"><span>${ic('flask', 'i')} گزینه‌های آزمایشی</span>${ic('down', 'i chev' + (ui.open.test ? ' open' : ''))}</button>
       <div class="plist ${ui.open.test ? '' : 'closed'}" style="max-height:${ui.open.test ? 600 : 0}px">
@@ -1002,7 +1017,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۳۱</small></span>` : `<span>نسخه‌ی وب ۳۱${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
+    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۳۲</small></span>` : `<span>نسخه‌ی وب ۳۲${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -1025,6 +1040,8 @@ function donateSheet() {
 }
 function payResult(st, ref) {
   history.replaceState(null, '', BASE);
+  if (st === 'ok' && /^R/.test(ref)) { api('pay_status', { ref }).then(({ pay: x }) => { if (!String(x.purpose).startsWith('team_') || x.status !== 'paid') return; snd('done'); loadTeam && loadTeam();
+    sheet('اشتراک تیم فعال شد 🎉', `<div class="dong-hero"><span class="shine"></span>${ic('check')}<b>${fa(x.days)} روز برنامه و حساب بی‌دغدغه</b><span>سهم هر خانواده در «حساب» تیم ثبت شد.</span></div><p class="muted small" style="text-align:center">کد پیگیری: <b dir="ltr">${esc(x.refid || x.ref)}</b></p>`); }).catch(() => {}); }
   if (st === 'ok') { snd('done'); sheet('دمتان گرم! 🌸', `<div class="dong-hero"><span class="shine"></span>${ic('heart')}<b>حمایت شما رسید</b><span>با این دنگ خیر، رسیدیم برای خانواده‌های بیشتری رایگان می‌ماند.${quip('done', 1)}</span></div><p class="muted small" style="text-align:center">کد پیگیری: <b dir="ltr">${esc(ref)}</b></p><button class="btn block" data-a="close">خواهش می‌کنم</button>`); }
   else sheet('پرداخت انجام نشد', `<p style="line-height:2">پرداخت کامل نشد یا لغو شد. اگر پولی از حساب‌تان کم شده، بانک معمولاً تا ۷۲ ساعت خودکار برمی‌گرداند؛ با کد <b dir="ltr">${esc(ref)}</b> هم می‌توانید از «تماس با ما» پیگیری کنید.</p><div class="row"><button class="btn ac grow" data-a="donate">دوباره امتحان می‌کنم</button><button class="btn line grow" data-a="close">بعداً</button></div>`);
 }
@@ -1069,7 +1086,7 @@ async function ambView() {
       <div class="row"><input id="amb-pl" dir="ltr" placeholder="WPXJUG5A" maxlength="8" style="flex:1"><button class="btn ac" data-a="amb-make">ساختن</button></div><div id="amb-out"></div></section>
     <section class="card stack"><h2>ایده‌های سریع</h2><ol class="steps3"><li>پوستر A5 را روی تابلوی اعلانات مدرسه (با اجازه‌ی مدرسه) بچسبانید.</li><li>متن آماده و لینک را در گروه کلاس و کانال مدرسه بگذارید؛ صبح‌های شنبه بهترین زمان است.</li><li>از ۲ خانواده‌ی هم‌محله بخواهید با هم ثبت‌نام کنند؛ تیم زودتر شکل می‌گیرد.</li></ol></section>
     ${A.list.length ? `<section class="card"><h2>ثبت‌شده‌ها</h2><table><tr><th>تاریخ</th><th>مکان</th><th>نوع</th><th>مبلغ</th></tr>${A.list.slice(0, 60).map(x => `<tr><td>${jLabel(new Date(x.created * 1000))}</td><td>${esc(x.place || '—')}</td><td>${x.kind === 'team' ? 'تیم شد' : 'ثبت‌نام'}</td><td>${money(x.amount)}${+x.paid ? ' ✓' : ''}</td></tr>`).join('')}</table></section>` : ''}</div>`;
-  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=31" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
+  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=32" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
 }
 function reportHtml(p, T) {
   const H = (ui.hist && ui.hist.trips) || [], done = H.filter(x => x.status === 'done').sort((a, b) => a.date < b.date ? -1 : 1), b = balances(T), now = new Date();
@@ -1103,7 +1120,7 @@ async function saveBlob(blob, name, title, text) {
 }
 /** Render an element (inside #print-root) to a PNG or a paged A4 PDF that never cuts through a row or a line. */
 async function elToFile(el, kind, name, title) {
-  try { await loadJs('assets/html2canvas.min.js?v=31', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=31', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
+  try { await loadJs('assets/html2canvas.min.js?v=32', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=32', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
   try { await document.fonts.ready; } catch (e) {}
   const cv = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }); let blob;
   if (kind === 'png') blob = await new Promise(res => cv.toBlob(res, 'image/png'));
@@ -1814,9 +1831,10 @@ function admHome(A) {
     <section class="card"><h2>کلیدهای امکانات</h2>${Object.keys(flagLbl).map(k => `<label class="switch"><span>${flagLbl[k]}</span><input type="checkbox" data-a="adm-flag" data-k="${k}" ${F[k] ? 'checked' : ''}></label>`).join('')}</section>
     <section class="card stack"><h2>نقشه و اشتراک</h2>
       <div class="field"><label for="st-map">نقشه‌ی کاربران</label><select id="st-map" data-a="adm-set" data-k="map_provider"><option value="neshan" ${ST.map_provider !== 'openfree' ? 'selected' : ''}>نشان (کلید وب لازم است)</option><option value="openfree" ${ST.map_provider === 'openfree' ? 'selected' : ''}>OpenFreeMap (رایگان)</option></select></div>
-      <div class="adm-form three">${[['sub_price', 'قیمت اشتراک ماهانه (تومان)'], ['sub_price_q', 'قیمت سه‌ماهه (۰ = خودکار با ۱۰٪ تخفیف)'], ['sub_price_y', 'قیمت ۹ ماهه (۰ = خودکار با ۲۵٪ تخفیف)'], ['free_permanent', 'مسیرک دائمی رایگان'], ['free_temp_month', 'مسیرک سفر رایگان در ماه']].map(([k, l]) => `<div class="field"><label for="st-${k}">${l}</label><input id="st-${k}" inputmode="numeric" dir="ltr" value="${esc(ST[k] ?? '')}"><button class="link" data-a="adm-set" data-k="${k}">ذخیره</button></div>`).join('')}</div>
+      <div class="adm-form three">${[['team_price', 'اشتراک تیم، ماهانه (تومان)'], ['team_price_q', 'اشتراک تیم سه‌ماهه (۰ = خودکار، ۱۰٪ تخفیف)'], ['team_price_y', 'اشتراک تیم ۹ ماهه (۰ = خودکار، ۲۵٪ تخفیف)'], ['team_trial_days', 'روزهای هدیه‌ی هر تیم'], ['free_permanent', 'مسیرک دائمی رایگان'], ['free_temp_month', 'مسیرک سفر رایگان در ماه']].map(([k, l]) => `<div class="field"><label for="st-${k}">${l}</label><input id="st-${k}" inputmode="numeric" dir="ltr" value="${esc(ST[k] ?? '')}"><button class="link" data-a="adm-set" data-k="${k}">ذخیره</button></div>`).join('')}</div>
       <h3>اشتراک دستی برای یک کاربر</h3><div class="adm-form"><div class="field"><label for="pu-ph">شماره</label><input id="pu-ph" dir="ltr" inputmode="tel" placeholder="0912…"></div><div class="field"><label for="pu-d">روز (۰ = لغو)</label><input id="pu-d" inputmode="numeric" dir="ltr" value="30"></div></div><button class="btn line sm" data-a="adm-puser">ثبت اشتراک</button>
       <p class="muted small">قیمت‌های فعلی صفحه‌ی خرید: ${ST.plans ? Object.values(ST.plans).map(x => esc(x.title) + ' ' + money(x.price)).join(' – ') : '—'}</p>
+      <p class="muted small">تیم‌ها: ${[['trial', 'در ماه هدیه'], ['paid', 'پرداخت‌کرده'], ['school', 'با حامی'], ['locked', 'تمام‌شده بی‌اشتراک'], ['free', 'دوره‌ی آزمایشی']].filter(([k]) => (ST.team_states || {})[k]).map(([k, l]) => `${l} ${fa(ST.team_states[k])}`).join(' – ') || '—'}${(ST.team_states || {}).paid || (ST.team_states || {}).locked ? ` – نرخ تبدیل ${fa(Math.round(100 * ((ST.team_states.paid || 0)) / Math.max(1, (ST.team_states.paid || 0) + (ST.team_states.locked || 0))))}٪` : ''} – ${fa(ST.credit_users || 0)} نفر اعتبار ذخیره دارند.</p>
       <p class="muted small">${fa(ST.sub_interest || 0)} نفر «خبرم کنید» زده‌اند.</p></section>
     <section class="card stack"><h2>اطلاعات تماس صفحه‌ی خرید</h2><p class="muted small">در صفحه‌ی تعرفه‌ها (residim.ir/pricing) دیده می‌شود؛ بازبین درگاه و خریدار به آن نگاه می‌کنند. باید با اطلاعات اینماد یکی باشد.</p>
       <div class="adm-form">${[['contact_name', 'نام کسب‌وکار یا صاحب امتیاز', ''], ['contact_phone', 'تلفن پشتیبانی', 'ltr'], ['contact_email', 'ایمیل', 'ltr'], ['contact_address', 'نشانی', '']].map(([k, l, d]) => `<div class="field full"><label for="st-${k}">${l}</label><input id="st-${k}" ${d ? 'dir="ltr"' : ''} value="${esc(ST[k] || '')}"><button class="link" data-a="adm-set" data-k="${k}">ذخیره</button></div>`).join('')}</div></section>
@@ -1985,7 +2003,7 @@ function jrView(J) {
   <section class="card jr-dx"><h3>🩺 تشخیص</h3><ul>${D.map(f => `<li class="is-${f.lv}"><span class="jr-dxi">${f.ic}</span><span><b>${esc(f.t)}</b>${f.fix ? `<small>${esc(f.fix)}</small>` : ''}</span></li>`).join('')}</ul></section>
   ${J.profiles.length > 1 ? `<div class="jr-ptabs no-print">${J.profiles.map((p, i) => `<button data-a="jr-prof" data-v="${i}" aria-pressed="${p === P}">${kindIc(p.kind)}<span>${esc(p.place ? p.place.name : p.label)}</span>${p.team ? '<i>تیم</i>' : ''}</button>`).join('')}</div>` : ''}
   <section class="card jr-swc"><h3>🗺️ مسیر در فرایند رسیدیم ${P && P.place ? `<small>${esc(P.place.name)}${P.place.city ? '، ' + esc(P.place.city) : ''}</small>` : ''}</h3>
-    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=31" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
+    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=32" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
       <div class="jr-grid" style="--n:${S.length}">${[0, 1, 2].map(l => `<i class="jr-lane l${l}" style="grid-column:${l + 2}"></i>`).join('')}<svg class="jr-wires" aria-hidden="true"></svg>
         ${S.map((s, i) => `<span class="jr-no is-${s.st}" style="grid-row:${i + 1}">${fa(i + 1)}</span><div class="jr-node is-${s.st} l${s.lane}" style="grid-row:${i + 1};grid-column:${s.lane + 2};--d:${i}" data-i="${i}">${i === cur ? `<span class="jr-here">${shapeAv(P ? P.id : u.id, 30)}<em>اینجاست</em></span>` : ''}<b><i>${s.ic}</i>${s.t}</b><small>${esc(s.sub || '')}</small>${s.at ? `<time>${jrAgo(s.at)}</time>` : ''}</div>`).join('')}
       </div></div>
@@ -2197,7 +2215,7 @@ async function liveTick() {
 }
 function liveStrip() {
   const L = ui.live;
-  if (ui.liveLocked) return `<div class="live" id="live-strip">${ic('car')}<span class="grow">دیدن زنده‌ی ماشین روی نقشه مخصوص اشتراک «همراه» است.</span><button class="btn sm line" data-a="sub-info">بیشتر</button></div>`;
+  if (ui.liveLocked) return `<div class="live" id="live-strip">${ic('car')}<span class="grow">دیدن زنده‌ی ماشین جزو اشتراک تیم است.</span><button class="btn sm line" data-a="team-pay">اشتراک تیم</button></div>`;
   if (!L) return `<div class="live dim" id="live-strip">${ic('car')}<span class="grow">راننده هنوز موقعیت زنده را روشن نکرده است.</span></div>`;
   return `<div class="live" id="live-strip"><span class="live-dot"></span><span class="grow"><b>${L.m != null ? (L.m < 1000 ? fa(L.m) + ' متر' : km1(L.m / 1000) + ' کیلومتر') : 'ماشین'}</b> تا خانه‌ی شما <small>– ${L.ago < 60 ? 'همین حالا' : fa(Math.round(L.ago / 60)) + ' دقیقه پیش'}</small></span><button class="btn sm" data-a="live-map">${ic('map')}روی نقشه</button></div>`;
 }
@@ -2312,6 +2330,10 @@ async function act(a, el) {
     case 'install-pwa': { closeLayer(); const k = ui.apk; ui.apk = null; await installApp(); ui.apk = k; return; }
     case 'sound': S.sound = el.checked; persist(); if (el.checked) snd('ok'); return;
     case 'sub': closeLayer(); return paywallSheet('info');
+    case 'team-pay': closeLayer(); return teamPaySheet();
+    case 'tplan': ui.tplan = el.dataset.v; return teamPaySheet();
+    case 'tpay': { const p = active(); if (!$('#tp-a') || !$('#tp-a').checked) return toast('اول شرایط خرید را بپذیرید.'); el.disabled = true;
+      try { const r = await api('pay_start', { plan: ui.tplan, profile_id: p.id, agree: 1 }); if (!/^https:\/\/[a-z0-9.-]+\.(zarinpal\.com|shaparak\.ir|payping\.ir)\//i.test(r.url)) throw new Error('نشانی درگاه نامعتبر است.'); location.href = r.url; } catch (e) { el.disabled = false; fail(e); } return; }
     case 'sub-want': try { await api('sub_interest', { reason: el.dataset.v || '' }); } catch (e) {} closeLayer(); snd('ok'); return toast('ثبت شد؛ به محض باز شدن پرداخت آنلاین خبرتان می‌کنیم.');
     case 'pw-free': closeLayer(); if (ui.wiz) { ui.wiz.d.role = 'drive'; ui.wiz.d.free_ride = true; const st = wizSteps(ui.wiz); ui.wiz.step = Math.max(0, st.findIndex(x => x.key === 'role')); wizRender(); toast('«رایگان می‌برم» را زدیم؛ با «ادامه» جلو بروید.'); } return;
     case 'radio-vote': if (S.radioVoted) return; try { const r = await api('radio_vote'); CFG.radio_votes = r.votes; S.radioVoted = 1; persist(); toast('ممنون! صدای شما شمرده شد.'); return radioSheet(); } catch (e) { return fail(e); }

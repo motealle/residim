@@ -119,3 +119,7 @@
 - `sub_price`، `sub_price_q`، `sub_price_y`: قیمت یک‌ماهه، سه‌ماهه، ۹ ماهه به تومان (۰ = خودکار). در `/pricing/` دیده می‌شوند.
 - `contact_name`، `contact_phone`، `contact_email`، `contact_address`: اطلاعات تماس صفحه‌ی خرید؛ با اینماد یکی باشد.
 - راز `zarinpal_merchant`: مرچنت کد ۳۶ نویسه‌ای.
+
+## اشتراک تیم (نسخه‌ی ۳۲)
+- `team_price` (پیش‌فرض ۲۹۹٬۰۰۰)، `team_price_q`، `team_price_y` (۰ = خودکار)، `team_trial_days` (پیش‌فرض ۳۰). جای `sub_price*` را گرفته‌اند.
+- همه‌ی محدودیت‌ها فقط با `paid_mode` روشن اعمال می‌شوند.

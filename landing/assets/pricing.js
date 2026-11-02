@@ -8,10 +8,11 @@
   const phone = s => { let p = en(s).replace(/\D/g, ''); if (p.startsWith('0098')) p = '0' + p.slice(4); else if (p.startsWith('98') && p.length === 12) p = '0' + p.slice(2); else if (p.startsWith('9') && p.length === 10) p = '0' + p; return /^09\d{9}$/.test(p) ? p : ''; };
   const api = async (a, body) => { const r = await fetch(API + a, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }); const j = await r.json().catch(() => ({})); if (!r.ok || j.ok === false) throw new Error(j.message || 'ارتباط برقرار نشد؛ دوباره امتحان کنید.'); return j; };
   const GW = { zarinpal: 'زرین‌پال', sep: 'سِپ (بانک سامان)', payping: 'پی‌پینگ' };
-  let CFG = { plans: { m: { price: 75000, days: 30 }, q: { price: 203000, days: 90 }, y: { price: 506000, days: 270 } } }, plan = 'q';
+  let CFG = { plans: { m: { price: 299000, days: 30 }, q: { price: 807000, days: 90 }, y: { price: 2018000, days: 270 } } }, plan = 'q';
   try { const s = JSON.parse(localStorage.getItem('residim-06') || '{}'); if (s.phone) $('#co-m').value = s.phone; } catch (e) {}
   const paint = () => {
-    Object.entries(CFG.plans).forEach(([k, p]) => { $$(`[data-price="${k}"]`).forEach(el => el.textContent = money(p.price)); const per = $(`[data-per="${k}"]`); if (per) per.textContent = `${fa(p.days)} روز – ماهی حدود ${money(Math.round(p.price / (p.days / 30) / 1000) * 1000)} تومان`; });
+    Object.entries(CFG.plans).forEach(([k, p]) => { $$(`[data-price="${k}"]`).forEach(el => el.textContent = money(p.price)); const per = $(`[data-per="${k}"]`); if (per) per.textContent = `${fa(p.days)} روز – برای هر خانواده‌ی تیم ۴ نفره ماهی حدود ${money(Math.round(p.price / (p.days / 30) / 4 / 1000) * 1000)} تومان`; });
+    $$('[data-share]').forEach(el => el.textContent = `در تیم ۴ خانواده‌ای، هر خانواده حدود ${money(Math.round(CFG.plans.m.price / 4 / 1000) * 1000)} تومان`); $$('[data-trial]').forEach(el => el.textContent = fa(CFG.team_trial_days || 30));
     $$('#seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.plan === plan));
     $('#co-total').textContent = money(CFG.plans[plan].price) + ' تومان';
     const gw = GW[CFG.pay_provider]; $('#co-pay').textContent = gw ? `پرداخت امن با ${gw}` : 'پرداخت امن آنلاین';
@@ -49,8 +50,8 @@
       api('pay_status', { ref: pm[2] }).then(({ pay: p }) => {
         if (p.status !== 'paid') return show(`<div class="big">⏳</div><h2 class="h2" style="margin:0">پرداخت هنوز تأیید نشده</h2><p class="per">اگر مبلغ کم شده و تا ۷۲ ساعت برنگشت، با کد <b dir="ltr">${esc(p.ref)}</b> از پشتیبانی پیگیری کنید.</p>`);
         const sub = String(p.purpose).startsWith('sub_'), trial = CFG.flags && !CFG.flags.paid_mode;
-        show(`<div class="big">🎉</div><h2 class="h2" style="margin:0">${sub ? `اشتراک ${fa(p.days)} روزه‌ی «رسیدیم همراه» ثبت شد` : 'حمایت شما رسید؛ دمتان گرم!'}</h2>
+        show(`<div class="big">🎉</div><h2 class="h2" style="margin:0">${sub ? `اعتبار ${fa(p.days)} روزه‌ی اشتراک تیم ثبت شد` : 'حمایت شما رسید؛ دمتان گرم!'}</h2>
           <p class="per">مبلغ ${money(p.amount)} تومان – شماره‌ی پیگیری بانکی <b dir="ltr">${esc(p.refid || '')}</b> – کد سفارش <b dir="ltr">${esc(p.ref)}</b></p>
-          ${sub ? `<p class="per">${p.applied ? 'روی حساب‌تان نشست.' : 'با همان شماره‌ی موبایلی که وارد کردید وارد رسیدیم شوید؛ اشتراک خودکار فعال می‌شود.'}${trial ? ' چون رسیدیم در دوره‌ی آزمایشی است، مدت اشتراک از پایان این دوره شمرده می‌شود.' : ''}</p>` : ''}
+          ${sub ? `<p class="per">${p.applied ? 'روی حساب‌تان نشست' : 'با همان شماره‌ی موبایل وارد رسیدیم شوید تا روی حساب‌تان بنشیند'}؛ هر وقت ماه هدیه یا اشتراک تیم‌تان تمام شود، خودکار به کار می‌افتد.${trial ? ' تا دوره‌ی آزمایشی هست، دست‌نخورده می‌ماند.' : ''}</p>` : ''}
           <a class="btn pri" href="../">ورود به رسیدیم</a>`); }).catch(e => show(`<p class="per">${esc(e.message)}</p>`)); } }
 })();

@@ -1215,8 +1215,8 @@ body.px-open{overflow:hidden}
 
 /* ═════════ v21: animated aerial-map wallpaper (chat + the page's empty areas) ═════════ */
 .mapbg{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;contain:strict}
-.mapbg::before{content:"";position:absolute;left:-960px;top:-960px;width:calc(100% + 960px);height:calc(100% + 960px);background:url(mapbg.svg?v=31) 0 0/960px 960px repeat;opacity:.62;animation:mbpan 150s linear infinite;will-change:transform}
-:root[data-theme="dark"] .mapbg::before{background-image:url(mapbg-dark.svg?v=31);opacity:.9}
+.mapbg::before{content:"";position:absolute;left:-960px;top:-960px;width:calc(100% + 960px);height:calc(100% + 960px);background:url(mapbg.svg?v=32) 0 0/960px 960px repeat;opacity:.62;animation:mbpan 150s linear infinite;will-change:transform}
+:root[data-theme="dark"] .mapbg::before{background-image:url(mapbg-dark.svg?v=32);opacity:.9}
 @keyframes mbpan{to{transform:translate3d(960px,960px,0)}} /* camera drifts south-east → north-west */
 @media (prefers-reduced-motion:reduce){.mapbg::before{animation:none}}
 .page-bg{position:fixed;z-index:-1;display:none}
@@ -1460,3 +1460,24 @@ body.chat-open .page-bg,body.map-full .page-bg{visibility:hidden}
 :root[data-theme="dark"] .mi.schools-mi{background:linear-gradient(110deg,#0F2A1B,#123524)!important;color:#CFF5E0}
 
 .spons-b{background:#ffffffe6;color:#0B3D24;border-radius:14px;padding:8px 12px;font-weight:700;font-size:.9rem;line-height:1.9;position:relative;z-index:1}
+/* v32: the side menu never scrolls sideways (long words, big system fonts) */
+.drawer{overflow-x:hidden}
+.drawer>*{min-width:0;max-width:100%}
+.pc-panel .pc-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.pc-panel .pc-grid button{min-width:0;overflow-wrap:anywhere;hyphens:auto}
+.pc-panel .pc-grid button span{min-width:0;max-width:100%}
+.drawer .chips{flex-wrap:wrap;min-width:0}
+.drawer .mi .grow{min-width:0}
+.mi.pricing-mi{background:linear-gradient(110deg,#FFF7E0,#FFEBB5)!important;color:#4A3200}
+.mi.pricing-mi .dong-ic{background:#FFC93C;color:#3A2600}
+:root[data-theme="dark"] .mi.pricing-mi{background:linear-gradient(110deg,#2A2210,#33290F)!important;color:#FFE7A8}
+/* v32: team plan */
+.tiers{margin:0;padding:0;list-style:none;display:grid;gap:10px;counter-reset:t}
+.tiers li{display:grid;gap:2px;padding:12px 14px 12px 14px;border:1.5px solid var(--line);border-radius:16px;position:relative}
+.tiers li b{font-weight:900}.tiers li span{color:var(--muted);font-size:.86rem;line-height:1.8}
+.tiers li:nth-child(1){border-color:color-mix(in srgb,var(--ok,#1DBF73) 60%,transparent)}
+.tiers li:nth-child(2){border-style:dashed}
+.plan-lock{border:2px solid var(--warn,#E8A200)}
+.plan-lock b{display:flex;align-items:center;gap:8px}
+.hint .btn.sm{margin-inline-start:auto;flex:none}
+.side{overflow-x:hidden}.side>*{min-width:0}
