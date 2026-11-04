@@ -25,6 +25,19 @@ const api = (a, b, t) => fetch(B + '/app/api/r6.php?a=' + a, { method: 'POST', h
     await p.click('.school-main'); await sleep(400); assert.equal(await p.evaluate(() => window.__rs.ui.wiz.kind), 'school'); await p.keyboard.press('Escape'); await sleep(300); if (await p.$('[data-a="w-close-ok"]')) await p.click('[data-a="w-close-ok"]');
     await p.evaluate(t => localStorage.setItem('residim-06', JSON.stringify({ token: t, phone: '09121112233', drafts: [] })), T); await p.reload(); await sleep(900); await p.click('#splash').catch(() => {}); await sleep(1800);
     for (const tab of ['peers', 'team', 'money']) { await p.click(`${vp.width > 1000 ? '.side' : '.dock'} [data-tab="${tab}"]`); await sleep(900); assert(!(await wide()), 'overflow ' + tab + ' ' + vp.width); }
+    // layout guards (v33): side/drawer never clip or scroll sideways, the desktop list is as tall as its content, floating cards never overlap
+    await p.click(`${vp.width > 1000 ? '.side' : '.dock'} [data-tab="peers"]`); await sleep(900);
+    if (vp.width <= 1000) { await p.click('[data-a="menu"]').catch(() => {}); await sleep(700); }
+    const lay = await p.evaluate(() => { const box = document.querySelector(innerWidth > 1000 ? '.side' : '.drawer'), bad = [];
+      if (box) { box.querySelectorAll('small,b').forEach(e => { if (e.closest('.pcard2,.pcard')) e.textContent = 'دبیرستان غیردولتی دوره‌ی اول خاتم الانبیاء منطقه‌ی دو تهران'; });
+        const r = box.getBoundingClientRect(); if (box.scrollWidth > box.clientWidth + 1) bad.push('scrollX ' + box.className);
+        box.querySelectorAll('*').forEach(e => { const q = e.getBoundingClientRect(); if (q.width && (q.left < r.left - 1 || q.right > r.right + 1) && !e.closest('[hidden]')) bad.push('clip ' + e.tagName + '.' + e.className); }); }
+      const as = document.querySelector('.split.peers > aside'); if (as && innerWidth > 1000) { const q = as.getBoundingClientRect(); if (q.height > as.scrollHeight + 40) bad.push('aside taller than content ' + Math.round(q.height) + '/' + as.scrollHeight); }
+      const fl = [...document.querySelectorAll('.split.peers > .stack:not(aside) > :is(.hint,.card.empty,.legend)')].filter(e => getComputedStyle(e).position === 'absolute' && e.offsetParent);
+      for (let i = 0; i < fl.length; i++) for (let j = i + 1; j < fl.length; j++) { const x = fl[i].getBoundingClientRect(), y = fl[j].getBoundingClientRect(); if (x.left < y.right && y.left < x.right && x.top < y.bottom && y.top < x.bottom) bad.push('overlap ' + fl[i].className + ' / ' + fl[j].className); }
+      return bad.slice(0, 6); });
+    assert.deepEqual(lay, [], 'layout ' + vp.width + ': ' + lay.join(' | '));
+    if (vp.width <= 1000) { await p.keyboard.press('Escape'); await sleep(300); }
     ok('app tabs at', vp.width);
     await p.goto(B + '/#admin'); await sleep(900); await p.click('#splash').catch(() => {}); await p.fill('#au', 'mot'); await p.fill('#ap', 'mot'); await p.click('[data-a="adm-login"]'); await sleep(1300);
     for (const k of ['home', 'conn', 'pays', 'health', 'msgs', 'places', 'users', 'sms', 'posters', 'db']) { await p.click(`.adm-tabs [data-v="${k}"]`); await sleep(500); assert(!(await p.$('.adm .muted:text("در حال خواندن")')) || true); }

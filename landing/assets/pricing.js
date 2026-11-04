@@ -7,7 +7,7 @@
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const phone = s => { let p = en(s).replace(/\D/g, ''); if (p.startsWith('0098')) p = '0' + p.slice(4); else if (p.startsWith('98') && p.length === 12) p = '0' + p.slice(2); else if (p.startsWith('9') && p.length === 10) p = '0' + p; return /^09\d{9}$/.test(p) ? p : ''; };
   const api = async (a, body) => { const r = await fetch(API + a, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }); const j = await r.json().catch(() => ({})); if (!r.ok || j.ok === false) throw new Error(j.message || 'ارتباط برقرار نشد؛ دوباره امتحان کنید.'); return j; };
-  const GW = { zarinpal: 'زرین‌پال', sep: 'سِپ (بانک سامان)', payping: 'پی‌پینگ' };
+  const GW = { zarinpal: 'زرین‌پال', bpm: 'به‌پرداخت ملت', sep: 'سِپ (بانک سامان)', payping: 'پی‌پینگ' };
   let CFG = { plans: { m: { price: 299000, days: 30 }, q: { price: 807000, days: 90 }, y: { price: 2018000, days: 270 } } }, plan = 'q';
   try { const s = JSON.parse(localStorage.getItem('residim-06') || '{}'); if (s.phone) $('#co-m').value = s.phone; } catch (e) {}
   const paint = () => {
@@ -30,7 +30,7 @@
   $$('[data-buy]').forEach(b => b.addEventListener('click', () => { plan = b.dataset.buy; paint(); $('#checkout').scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => $('#co-m').focus({ preventScroll: true }), 450); }));
   $('#seg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { plan = b.dataset.plan; paint(); } });
   const go = async (btn, body, eid) => { btn.disabled = true; const t = btn.textContent; btn.textContent = 'در حال اتصال به درگاه…';
-    try { const r = await api('pay_start', body); if (!/^https:\/\/[a-z0-9.-]+\.(zarinpal\.com|shaparak\.ir|payping\.ir)\//i.test(r.url)) throw new Error('نشانی درگاه نامعتبر است.'); location.href = r.url; }
+    try { const r = await api('pay_start', body); if (!/^https:\/\/([a-z0-9.-]+\.(zarinpal\.com|shaparak\.ir|payping\.ir)|residim\.ir\/app\/api\/pay\.php)/i.test(r.url)) throw new Error('نشانی درگاه نامعتبر است.'); location.href = r.url; }
     catch (e) { err(eid, e.message); btn.disabled = false; btn.textContent = t; } };
   $('#checkout').addEventListener('submit', e => { e.preventDefault(); err('#co-err');
     const m = phone($('#co-m').value); if (!m) return err('#co-err', 'شماره‌ی موبایل را درست وارد کنید؛ مثل ۰۹۱۲۱۲۳۴۵۶۷.');

@@ -3,6 +3,7 @@
  * Return URL of every gateway: https://residim.ir/app/api/pay.php
  * - ZarinPal v4: GET Authority, Status (OK|NOK)
  * - Saman (SEP): POST MID, TerminalId, RefNum, ResNum, State, Status, Token…
+ * - Behpardakht (Mellat): ?go=REF posts the RefId to Mellat; callback POST RefId, ResCode, SaleOrderId, SaleReferenceId → verify → settle
  * - PayPing v3: POST status, errorCode and data (JSON with clientRefId, paymentCode, paymentRefId…)
  * Rules for all three: the payment must be ours and still open, the amount we verify always comes from our database,
  * and pay_paid() marks it paid exactly once (a reload, a second callback or a race delivers nothing twice).
@@ -19,6 +20,38 @@ $back = function (string $st, string $r) use (&$p): void {
 $fail = function (string $status, string $note) use (&$p): void {
     q('UPDATE payments SET status=?, note=?, updated=? WHERE id=? AND status<>?', [$status, mb_substr($note, 0, 250), time(), $p['id'], 'paid']);
 };
+
+/* Behpardakht: our own page POSTs the RefId to Mellat (the gateway only accepts a form POST) */
+if (isset($_GET['go'])) {
+    $ref = preg_replace('/[^A-Z0-9]/', '', strtoupper((string)$_GET['go']));
+    $p = $ref ? row("SELECT * FROM payments WHERE ref=? AND env='bpm' AND status='sent'", [$ref]) : null;
+    if (!$p || (int)$p['created'] < time() - 1200) $back('fail', $ref ?: 'x');
+    header('Content-Type: text/html; charset=utf-8'); header('Cache-Control: no-store'); header("Content-Security-Policy: default-src 'none'; form-action https://bpm.shaparak.ir; style-src 'unsafe-inline'; script-src 'unsafe-inline'");
+    echo '<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>انتقال به درگاه</title><body style="font-family:Tahoma,sans-serif;text-align:center;padding:60px 16px">'
+        . '<form id="f" method="post" action="' . BPM_PAY . '"><input type="hidden" name="RefId" value="' . htmlspecialchars((string)$p['code'], ENT_QUOTES) . '"><p>در حال انتقال به درگاه امن بانک ملت…</p><button type="submit" style="font:inherit;padding:12px 24px">ادامه</button></form>'
+        . '<script>document.getElementById("f").submit()</script></body></html>';
+    exit;
+}
+
+/* Behpardakht callback: POST RefId, ResCode, SaleOrderId, SaleReferenceId, CardHolderPan, FinalAmount */
+if (isset($_POST['SaleOrderId']) || (isset($_POST['RefId']) && isset($_POST['ResCode']))) {
+    $oid = preg_replace('/\D/', '', (string)($_POST['SaleOrderId'] ?? ''));
+    $p = $oid ? row("SELECT * FROM payments WHERE oid=? AND env='bpm'", [$oid]) : null;
+    if (!$p) { log_error('pay', 'bpm callback without a known payment: ' . mb_substr(json_encode($_POST, JSON_UNESCAPED_UNICODE), 0, 300)); $back('fail', 'x'); }
+    if ($p['status'] === 'paid') $back('ok', $p['ref']);
+    if (!hash_equals((string)$p['code'], (string)($_POST['RefId'] ?? ''))) { log_error('pay', 'bpm RefId mismatch ' . $p['ref']); $back('fail', $p['ref']); }
+    $sr = preg_replace('/\D/', '', (string)($_POST['SaleReferenceId'] ?? ''));
+    if ((string)($_POST['ResCode'] ?? '') !== '0' || $sr === '') { $fail('canceled', 'ResCode ' . mb_substr((string)($_POST['ResCode'] ?? ''), 0, 10)); $back('fail', $p['ref']); }
+    if (row('SELECT id FROM payments WHERE refid=? AND id<>?', [$sr, $p['id']])) { log_error('pay', 'bpm SaleReferenceId reused ' . $p['ref']); $back('fail', $p['ref']); }
+    $vf = ['orderId' => $oid, 'saleOrderId' => $oid, 'saleReferenceId' => $sr];
+    $fa = (int)preg_replace('/\D/', '', (string)($_POST['FinalAmount'] ?? '0'));
+    if ($fa && $fa !== (int)$p['amount'] * 10) { bpm_call('bpReversalRequest', $vf); $fail('verify_failed', "amount mismatch $fa"); log_error('pay', 'bpm amount ' . $p['ref']); $back('fail', $p['ref']); }
+    $v = bpm_call('bpVerifyRequest', $vf); if ($v !== '0' && $v !== '43') { $v2 = bpm_call('bpInquiryRequest', $vf); if ($v2 !== '0') { bpm_call('bpReversalRequest', $vf); $m = bpm_err($v); $fail('verify_failed', $m); log_error('pay', 'bpm verify ' . $p['ref'] . ': ' . $m); $back('fail', $p['ref']); } }
+    $st = bpm_call('bpSettleRequest', $vf);
+    if ($st === '0' || $st === '45') { pay_paid($p, $sr, (string)($_POST['CardHolderPan'] ?? '')); $back('ok', $p['ref']); }
+    bpm_call('bpReversalRequest', $vf); $m = 'settle: ' . bpm_err($st); $fail('verify_failed', $m); log_error('pay', 'bpm ' . $p['ref'] . ' ' . $m);
+    $back('fail', $p['ref']);
+}
 
 /* ZarinPal */
 if (isset($in['Authority'])) {

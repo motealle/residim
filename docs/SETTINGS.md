@@ -123,3 +123,6 @@
 ## اشتراک تیم (نسخه‌ی ۳۲)
 - `team_price` (پیش‌فرض ۲۹۹٬۰۰۰)، `team_price_q`، `team_price_y` (۰ = خودکار)، `team_trial_days` (پیش‌فرض ۳۰). جای `sub_price*` را گرفته‌اند.
 - همه‌ی محدودیت‌ها فقط با `paid_mode` روشن اعمال می‌شوند.
+
+## به‌پرداخت ملت (نسخه‌ی ۳۳)
+- رازها: `bpm_terminal`، `bpm_user`، `bpm_pass`. درگاه فعال: `pay_provider=bpm`. بازگشت: `https://residim.ir/app/api/pay.php`. آی‌پی سرور در پنل به‌پرداخت ثبت شود (خطای ۴۲۱).

@@ -28,8 +28,8 @@ function C(string $k, $def = null) {
     return $c[$k] ?? $def;
 }
 const SECRET_FILE = __DIR__ . '/../storage/secrets.local.php';
-const SECRET_KEYS = ['fcm_service_json', 'bale_client_id', 'bale_client_secret', 'kavenegar_api_key', 'kavenegar_template', 'kavenegar_tpl_invite', 'kavenegar_tpl_arrived', 'kavenegar_tpl_call', 'smsir_api_key', 'smsir_line', 'smsir_tpl_login', 'smsir_tpl_invite', 'smsir_tpl_arrived', 'payping_token_live', 'payping_token_test', 'neshan_service_key', 'neshan_web_key', 'sep_terminal_id', 'zarinpal_merchant'];
-const SECRET_HIDDEN = ['fcm_service_json', 'bale_client_secret', 'kavenegar_api_key', 'smsir_api_key', 'payping_token_live', 'payping_token_test', 'neshan_service_key', 'neshan_web_key', 'zarinpal_merchant'];
+const SECRET_KEYS = ['fcm_service_json', 'bale_client_id', 'bale_client_secret', 'kavenegar_api_key', 'kavenegar_template', 'kavenegar_tpl_invite', 'kavenegar_tpl_arrived', 'kavenegar_tpl_call', 'smsir_api_key', 'smsir_line', 'smsir_tpl_login', 'smsir_tpl_invite', 'smsir_tpl_arrived', 'payping_token_live', 'payping_token_test', 'neshan_service_key', 'neshan_web_key', 'sep_terminal_id', 'zarinpal_merchant', 'bpm_terminal', 'bpm_user', 'bpm_pass'];
+const SECRET_HIDDEN = ['fcm_service_json', 'bale_client_secret', 'kavenegar_api_key', 'smsir_api_key', 'payping_token_live', 'payping_token_test', 'neshan_service_key', 'neshan_web_key', 'zarinpal_merchant', 'bpm_pass'];
 /* Files are read as data (not include) so OPcache can never serve a stale copy; the first line stops PHP if requested directly. */
 function guarded_read(string $f): array { if (!is_file($f)) return []; $t = (string)@file_get_contents($f); if (str_starts_with($t, '<?php')) { $i = strpos($t, "\n"); $t = $i === false ? '' : substr($t, $i + 1); } $v = json_decode($t, true); if (!is_array($v) && str_contains($t, 'return ')) { $v = @include $f; } return is_array($v) ? $v : []; }
 function guarded_write(string $f, array $v): void { $tmp = $f . '.tmp'; file_put_contents($tmp, "<?php exit; ?>\n" . json_encode($v, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)); @chmod($tmp, 0600); rename($tmp, $f); if (function_exists('opcache_invalidate')) @opcache_invalidate($f, true); }
@@ -72,8 +72,8 @@ function db6(): PDO {
 function schema(PDO $p): void {
     $v = 0;
     try { $v = (int)$p->query("SELECT v FROM settings WHERE k='schema'")->fetchColumn(); } catch (Throwable $e) {}
-    if ($v >= 18) return;
-    if ($v >= 9) { if ($v < 10) schema10($p); if ($v < 11) schema11($p); if ($v < 12) schema12($p); if ($v < 13) schema13($p); if ($v < 14) schema14($p); if ($v < 15) schema15($p); if ($v < 16) schema16($p); if ($v < 17) schema17($p); schema18($p); return; }
+    if ($v >= 19) return;
+    if ($v >= 9) { if ($v < 10) schema10($p); if ($v < 11) schema11($p); if ($v < 12) schema12($p); if ($v < 13) schema13($p); if ($v < 14) schema14($p); if ($v < 15) schema15($p); if ($v < 16) schema16($p); if ($v < 17) schema17($p); if ($v < 18) schema18($p); schema19($p); return; }
     $K = 'VARCHAR(40)';
     $sql = [
         "CREATE TABLE IF NOT EXISTS settings (k VARCHAR(40) PRIMARY KEY, v TEXT)",
@@ -118,7 +118,7 @@ function schema(PDO $p): void {
     try { $p->exec('CREATE TABLE IF NOT EXISTS fb_likes (fb_id VARCHAR(40), voter VARCHAR(40), created INT, PRIMARY KEY(fb_id, voter))'); } catch (Throwable $e) {}
     try { $p->exec('CREATE TABLE IF NOT EXISTS amb (id VARCHAR(40) PRIMARY KEY, token VARCHAR(40) UNIQUE, code VARCHAR(12) UNIQUE, name VARCHAR(80), phone VARCHAR(20), rate_profile INT, rate_team INT, note VARCHAR(255), active INT DEFAULT 1, created INT)' . $my); } catch (Throwable $e) {}
     try { $p->exec('CREATE TABLE IF NOT EXISTS referrals (id VARCHAR(40) PRIMARY KEY, amb_id VARCHAR(40), user_id VARCHAR(40), profile_id VARCHAR(40), place_id VARCHAR(40), kind VARCHAR(10), amount INT, paid INT DEFAULT 0, created INT)' . $my); } catch (Throwable $e) {}
-    setv('schema', '9', $p); schema10($p); schema11($p); schema12($p); schema13($p); schema14($p); schema15($p); schema16($p); schema17($p); schema18($p);
+    setv('schema', '9', $p); schema10($p); schema11($p); schema12($p); schema13($p); schema14($p); schema15($p); schema16($p); schema17($p); schema18($p); schema19($p);
     foreach (['sms_invite' => '1', 'sms_arrive' => '0', 'auto_arrive' => '1', 'test_tools' => '1', 'signup_open' => '1', 'otp_dev' => '0', 'sms_direct' => '1', 'sms_provider' => 'kavenegar', 'otp_bale' => '0', 'pay_gateway' => '0', 'pay_env' => 'test', 'league_on' => '0', 'paid_mode' => '0', 'station_on' => '1', 'map_provider' => 'neshan', 'sub_price' => '297000', 'free_permanent' => '1', 'free_temp_month' => '2'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
 }
 function schema10(PDO $p): void { // v17: family link, pact, push tokens; league off for launch
@@ -173,6 +173,11 @@ function jr_profile(array $p): array { $d = pdata($p); $pl = $p['place_id'] ? ro
             'trips' => $trips, 'balance' => $bal, 'wk' => week_key(), 'live' => (int)(row('SELECT at FROM live WHERE team_id=?', [$t['id']])['at'] ?? 0)];
     }
     return $out; }
+function schema19(PDO $p): void { // v33: Behpardakht (Mellat) needs a numeric order id
+    try { $p->exec('ALTER TABLE payments ADD COLUMN oid VARCHAR(24)'); } catch (Throwable $e) {}
+    try { $p->exec('CREATE INDEX IF NOT EXISTS ix_pay_oid ON payments(oid)'); } catch (Throwable $e) {}
+    setv('schema', '19', $p);
+}
 function schema18(PDO $p): void { // v32: the team is what is paid for (month one is a gift); a school or organisation can pay for all its teams
     foreach (['ALTER TABLE teams ADD COLUMN paid_until INT DEFAULT 0', 'ALTER TABLE payments ADD COLUMN team_id VARCHAR(40)', 'ALTER TABLE payments ADD COLUMN pid VARCHAR(40)'] as $x) try { $p->exec($x); } catch (Throwable $e) {}
     foreach (['team_price' => '299000', 'team_trial_days' => '30'] as $k => $val) if (getv($k, null, $p) === null) setv($k, $val, $p);
@@ -477,8 +482,20 @@ function zp_err(array $j, string $raw, int $h): string { $e = $j['errors'] ?? []
     $m = is_array($e) && !empty($e['message']) ? (string)$e['message'] : ''; if ($c) return 'کد ' . $c . ': ' . (ZP_CODES[$c] ?? $m); return $m !== '' ? $m : ('HTTP ' . $h . ' ' . mb_substr($raw, 0, 100)); }
 function zp_request(string $env, int $rial, string $ref, string $desc, string $mob = ''): array { $md = ['order_id' => $ref]; if ($mob) $md['mobile'] = $mob;
     return zp($env, 'request.json', ['merchant_id' => zp_mid(), 'amount' => $rial, 'callback_url' => 'https://residim.ir/app/api/pay.php', 'description' => $desc, 'metadata' => $md]); }
-function pay_provider(): string { $v = getv('pay_provider', 'payping'); return in_array($v, ['sep', 'zarinpal'], true) ? $v : 'payping'; }
-function pay_ready(): bool { $v = pay_provider(); return $v === 'sep' ? sep_tid() !== '' : ($v === 'zarinpal' ? zp_mid() !== '' : (bool)pp_token()); }
+/* Behpardakht Mellat: SOAP (pay → POST to startpay with RefId → callback → verify → settle; reversal on any doubt). Amount in rial. */
+const BPM_WS = 'https://bpm.shaparak.ir/pgwchannel/services/pgw', BPM_PAY = 'https://bpm.shaparak.ir/pgwchannel/startpay.mellat';
+const BPM_CODES = ['0' => 'موفق', '11' => 'شماره کارت نامعتبر', '12' => 'موجودی کافی نیست', '17' => 'کاربر از پرداخت انصراف داد', '21' => 'پذیرنده نامعتبر است', '23' => 'خطای امنیتی', '24' => 'اطلاعات کاربری پذیرنده (نام کاربری یا رمز) نادرست است', '25' => 'مبلغ نامعتبر است', '31' => 'پاسخ نامعتبر', '34' => 'خطای سیستمی', '41' => 'شماره‌ی درخواست تکراری است', '43' => 'قبلاً تأیید شده', '45' => 'قبلاً تسویه شده', '46' => 'تسویه نشده', '48' => 'برگشت خورده', '54' => 'تراکنش مرجع موجود نیست', '55' => 'تراکنش نامعتبر', '61' => 'خطا در واریز', '421' => 'آی‌پی سرور در پنل به‌پرداخت ثبت نشده (IP)'];
+function bpm_ok(): bool { return preg_match('/^\d{3,12}$/', (string)C('bpm_terminal')) && (string)C('bpm_user') !== '' && (string)C('bpm_pass') !== ''; }
+function bpm_call(string $m, array $f): string { $x = '<int:' . $m . '>'; foreach (['terminalId' => (int)C('bpm_terminal'), 'userName' => (string)C('bpm_user'), 'userPassword' => (string)C('bpm_pass')] + $f as $k => $v) $x .= '<' . $k . '>' . htmlspecialchars((string)$v, ENT_XML1) . '</' . $k . '>';
+    $env = '<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:int="http://interfaces.core.sw.bps.com/"><soapenv:Body>' . $x . '</int:' . $m . '></soapenv:Body></soapenv:Envelope>';
+    if (!function_exists('curl_init')) return 'curl';
+    $c = curl_init(BPM_WS); curl_setopt_array($c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_POSTFIELDS => $env, CURLOPT_TIMEOUT => 30, CURLOPT_CONNECTTIMEOUT => 8, CURLOPT_HTTPHEADER => ['Content-Type: text/xml; charset=utf-8', 'SOAPAction: ""']]);
+    $r = curl_exec($c); $e = curl_error($c); curl_close($c); if ($r === false) return 'curl: ' . $e;
+    return preg_match('#<return>([^<]*)</return>#', (string)$r, $mm) ? trim($mm[1]) : 'bad: ' . mb_substr(strip_tags((string)$r), 0, 120); }
+function bpm_err(string $r): string { $c = explode(',', $r)[0]; return isset(BPM_CODES[$c]) ? 'کد ' . $c . ': ' . BPM_CODES[$c] : $r; }
+function bpm_request(int $rial, string $oid, string $desc): string { return bpm_call('bpPayRequest', ['orderId' => $oid, 'amount' => $rial, 'localDate' => date('Ymd'), 'localTime' => date('His'), 'additionalData' => mb_substr($desc, 0, 100), 'callBackUrl' => 'https://residim.ir/app/api/pay.php', 'payerId' => 0]); }
+function pay_provider(): string { $v = getv('pay_provider', 'payping'); return in_array($v, ['sep', 'zarinpal', 'bpm'], true) ? $v : 'payping'; }
+function pay_ready(): bool { $v = pay_provider(); return $v === 'sep' ? sep_tid() !== '' : ($v === 'zarinpal' ? zp_mid() !== '' : ($v === 'bpm' ? bpm_ok() : (bool)pp_token())); }
 /** Plans of «رسیدیم همراه»; prices are toman and always come from settings, never from the request. */
 function plans(): array { $m = max(0, (int)getv('team_price', '299000')); $r = fn($x) => (int)(round($x / 1000) * 1000);
     $q = (int)getv('team_price_q', '0') ?: $r($m * 3 * .9); $y = (int)getv('team_price_y', '0') ?: $r($m * 9 * .75);
@@ -1108,12 +1125,16 @@ case 'pay_start': { // donation (and later subscription) through the PayPing gat
     $amt = (int)preg_replace('/\D/', '', strtr((string)($in['amount'] ?? ''), ['۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9']));
     if ($amt < 10000) NO('کمترین مبلغ ۱۰ هزار تومان است.'); if ($amt > 200000000) NO('مبلغ بیش از حد مجاز است؛ برای کمک‌های بزرگ از «تماس با ما» هماهنگ کنیم.');
     if (!pay_ready()) NO('درگاه هنوز تنظیم نشده است.'); if (hit('pay_' . ip_tag(), 3600) > 10) NO('چند دقیقه‌ی دیگر دوباره امتحان کنید.', 429);
-    $prov = pay_provider(); $env = $prov === 'sep' ? 'sep' : ($prov === 'zarinpal' ? (getv('pay_env', 'test') === 'live' ? 'zp_live' : 'zp_test') : getv('pay_env', 'test')); $ref = 'R' . date('ymd') . strtoupper(bin2hex(random_bytes(4))); $purpose = $plan !== '' ? ($tm ? 'team_' : 'sub_') . $plan : 'donate'; $days = $plan !== '' ? (int)$PL[$plan]['days'] : 0; $nm = mb_substr(trim((string)($in['name'] ?? '')), 0, 80); $mob = phone_norm((string)($in['mobile'] ?? '')) ?: (string)($u['phone'] ?? '');
+    $prov = pay_provider(); $env = $prov === 'bpm' ? 'bpm' : ($prov === 'sep' ? 'sep' : ($prov === 'zarinpal' ? (getv('pay_env', 'test') === 'live' ? 'zp_live' : 'zp_test') : getv('pay_env', 'test'))); $ref = 'R' . date('ymd') . strtoupper(bin2hex(random_bytes(4))); $purpose = $plan !== '' ? ($tm ? 'team_' : 'sub_') . $plan : 'donate'; $days = $plan !== '' ? (int)$PL[$plan]['days'] : 0; $nm = mb_substr(trim((string)($in['name'] ?? '')), 0, 80); $mob = phone_norm((string)($in['mobile'] ?? '')) ?: (string)($u['phone'] ?? '');
     if ($plan !== '' && !preg_match('/^09\d{9}$/', $mob)) NO('شماره‌ی موبایلی را که اشتراک برایش فعال شود درست وارد کنید.');
     $id = uid(); q('INSERT INTO payments(id,ref,purpose,amount,env,status,code,refid,card,name,mobile,user_id,note,created,updated,days,applied,team_id,pid) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?)', [$id, $ref, $purpose, $amt, $env, 'init', '', '', '', $nm, $mob, $u['user_id'] ?? null, '', time(), time(), $days, $tm['team_id'] ?? null, $tm['id'] ?? null]);
     $desc = $plan !== '' ? ($tm ? 'اشتراک تیم رسیدیم – ' : 'اعتبار اشتراک تیم رسیدیم – ') . $PL[$plan]['title'] : 'حمایت از رسیدیم (دنگ خیر)';
     $body = ['amount' => $amt, 'returnUrl' => 'https://residim.ir/app/api/pay.php', 'clientRefId' => $ref, 'description' => $desc, 'payerName' => $nm ?: 'حامی رسیدیم'];
     if ($mob) $body['payerIdentity'] = $mob;
+    if ($prov === 'bpm') { $oid = (string)(int)(microtime(true) * 1000) . random_int(10, 99); $res = bpm_request($amt * 10, $oid, $desc); $pr = explode(',', $res);
+        if ($pr[0] !== '0' || empty($pr[1]) || !preg_match('/^[A-Za-z0-9]{6,40}$/', $pr[1])) { $m = bpm_err($res); q('UPDATE payments SET status=?, note=?, updated=? WHERE id=?', ['failed', mb_substr($m, 0, 250), time(), $id]); log_error('pay', 'bpm request: ' . $m); NO('درگاه پاسخ نداد؛ کمی بعد دوباره امتحان کنید.'); }
+        q('UPDATE payments SET status=?, code=?, oid=?, updated=? WHERE id=?', ['sent', $pr[1], $oid, time(), $id]);
+        YES(['url' => 'https://residim.ir/app/api/pay.php?go=' . $ref, 'ref' => $ref, 'test' => false]); }
     if ($prov === 'zarinpal') { [$h, $j, $raw] = zp_request($env, $amt * 10, $ref, $desc, $mob); $au = (string)($j['data']['authority'] ?? '');
         if ($h !== 200 || (int)($j['data']['code'] ?? 0) !== 100 || !preg_match('/^[A-Za-z0-9]{10,64}$/', $au)) { $m = zp_err($j, $raw, $h); q('UPDATE payments SET status=?, note=?, updated=? WHERE id=?', ['failed', mb_substr($m, 0, 250), time(), $id]); log_error('pay', 'zarinpal request: ' . $m); NO('درگاه پاسخ نداد؛ کمی بعد دوباره امتحان کنید.'); }
         q('UPDATE payments SET status=?, code=?, updated=? WHERE id=?', ['sent', $au, time(), $id]);
@@ -1350,7 +1371,7 @@ case 'admin_overview': {
         'places' => $c('SELECT COUNT(*) FROM places'), 'teams' => $c('SELECT COUNT(*) FROM teams'), 'invites' => $c("SELECT COUNT(*) FROM invites WHERE status='pending'"), 'tickets' => $c("SELECT COUNT(*) FROM tickets WHERE status='open'"), 'sms_day' => $c('SELECT COUNT(*) FROM sms WHERE created>?', [time() - 86400]), 'unseen' => $c('SELECT COUNT(*) FROM tickets WHERE seen=0 OR seen IS NULL'), 'errors_day' => $c('SELECT COUNT(*) FROM errors WHERE last>?', [time() - 86400]), 'app_users' => $c("SELECT COUNT(*) FROM users WHERE client LIKE 'android%'"), 'fb' => $c('SELECT COUNT(*) FROM feedback'), 'paid' => $c("SELECT COUNT(*) FROM payments WHERE status='paid' AND env='live'")],
         'flags' => ['trip_scene' => getv('trip_scene', '1') === '1', 'family_link' => getv('family_link', '1') === '1', 'cand_swipe' => getv('cand_swipe', '0') === '1', 'trip_window' => getv('trip_window', '0') === '1', 'bismillah' => getv('bismillah', '1') === '1', 'price_poll' => getv('price_poll', '0') === '1', 'trusted_driver' => getv('trusted_driver', '0') === '1', 'sms_invite' => flag('sms_invite'), 'sms_arrive' => flag('sms_arrive'), 'auto_arrive' => flag('auto_arrive'), 'test_tools' => flag('test_tools'), 'signup_open' => flag('signup_open'), 'otp_dev' => flag('otp_dev'), 'sms_direct' => flag('sms_direct'), 'otp_bale' => flag('otp_bale'), 'pay_gateway' => flag('pay_gateway'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')],
         'settings' => ['map_provider' => getv('map_provider', 'neshan'), 'sub_price' => (int)getv('sub_price', '75000'), 'free_permanent' => (int)getv('free_permanent', '1'), 'free_temp_month' => (int)getv('free_temp_month', '2'), 'sub_interest' => (int)getv('sub_interest', '0'), 'kave_sender' => (string)getv('kave_sender', ''), 'kave_sender_auto' => (string)getv('kave_sender_auto', ''), 'donate_card' => (string)getv('donate_card', ''), 'donate_name' => (string)getv('donate_name', ''), 'engine' => db_engine(), 'sms_provider' => getv('sms_provider', 'kavenegar'), 'pay_env' => getv('pay_env', 'test'), 'pay_provider' => pay_provider(), 'team_price' => (int)getv('team_price', '299000'), 'team_price_q' => (int)getv('team_price_q', '0'), 'team_price_y' => (int)getv('team_price_y', '0'), 'team_trial_days' => team_trial_days(), 'plans' => plans(), 'team_states' => (function () { $c = []; foreach (rows('SELECT * FROM teams WHERE COALESCE(closed,0)=0 ORDER BY created DESC LIMIT 3000') as $t) { $st = team_plan($t, false)['state']; $c[$st] = ($c[$st] ?? 0) + 1; } return $c; })(), 'credit_users' => (int)q('SELECT COUNT(*) FROM users WHERE premium_bank>0')->fetchColumn(), 'contact_phone' => getv('contact_phone', ''), 'contact_email' => getv('contact_email', ''), 'contact_address' => getv('contact_address', ''), 'contact_name' => getv('contact_name', ''), 'notice' => (string)getv('notice', ''), 'tips' => (string)getv('tips', ''), 'app_ver' => (string)getv('app_ver', ''), 'app_url' => (string)getv('app_url', '')],
-        'services' => ['db' => db_engine(), 'php' => PHP_VERSION, 'sms_provider' => getv('sms_provider', 'kavenegar'), 'smsir' => (bool)C('smsir_api_key'), 'payping' => (bool)(C('payping_token_live') || C('payping_token_test')), 'sep' => sep_tid() !== '', 'zarinpal' => zp_mid() !== '', 'kavenegar' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'), 'neshan_service' => (bool)C('neshan_service_key'), 'neshan_web' => (bool)C('neshan_web_key'), 'curl' => function_exists('curl_init'), 'tpl_login' => C('kavenegar_template', 'residim-login'), 'tpl_invite' => C('kavenegar_tpl_invite'), 'tpl_arrived' => C('kavenegar_tpl_arrived')],
+        'services' => ['db' => db_engine(), 'php' => PHP_VERSION, 'sms_provider' => getv('sms_provider', 'kavenegar'), 'smsir' => (bool)C('smsir_api_key'), 'payping' => (bool)(C('payping_token_live') || C('payping_token_test')), 'sep' => sep_tid() !== '', 'zarinpal' => zp_mid() !== '', 'bpm' => bpm_ok(), 'kavenegar' => (bool)(C('kavenegar_api_key') && C('kavenegar_api_key') !== 'PUT_KEY_HERE'), 'neshan_service' => (bool)C('neshan_service_key'), 'neshan_web' => (bool)C('neshan_web_key'), 'curl' => function_exists('curl_init'), 'tpl_login' => C('kavenegar_template', 'residim-login'), 'tpl_invite' => C('kavenegar_tpl_invite'), 'tpl_arrived' => C('kavenegar_tpl_arrived')],
         'default_pass' => C('admin_pass') === 'mot']);
 }
 case 'admin_flag': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_array($k, ['sms_invite', 'sms_arrive', 'auto_arrive', 'test_tools', 'signup_open', 'otp_dev', 'sms_direct', 'otp_bale', 'pay_gateway', 'league_on', 'paid_mode', 'station_on', 'trip_scene', 'family_link', 'cand_swipe', 'trip_window', 'trusted_driver', 'bismillah', 'price_poll'], true)) NO('کلید نامعتبر.');
@@ -1402,7 +1423,7 @@ case 'admin_import_places': { need_admin(); $made = [];
         $o = place_out($ex, false); $o['address'] = (string)($it['address'] ?? ''); $made[] = $o; }
     YES(['places' => $made]); }
 case 'admin_payments': { need_admin(); $L = rows('SELECT ref,purpose,amount,env,status,refid,card,name,mobile,note,created,days,applied FROM payments ORDER BY created DESC LIMIT 500');
-    $sum = (int)q("SELECT COALESCE(SUM(amount),0) FROM payments WHERE status='paid' AND env IN ('live','sep','zp_live')")->fetchColumn(); YES(['list' => $L, 'sum_live' => $sum]); }
+    $sum = (int)q("SELECT COALESCE(SUM(amount),0) FROM payments WHERE status='paid' AND env IN ('live','sep','zp_live','bpm')")->fetchColumn(); YES(['list' => $L, 'sum_live' => $sum]); }
 case 'admin_errors': { need_admin(); YES(['list' => rows('SELECT id,src,msg,at_url,ua,n,created,last FROM errors ORDER BY last DESC LIMIT 200')]); }
 case 'admin_errors_clear': { need_admin(); q('DELETE FROM errors'); YES(); }
 case 'admin_secrets': { need_admin(); $sec = secrets_all(); $out = [];
@@ -1412,6 +1433,9 @@ case 'admin_secret_set': { need_admin(); $k = (string)($in['k'] ?? ''); if (!in_
     if ($k === 'fcm_service_json' && $v !== '') { $v = preg_replace('/\s*\n\s*/', ' ', $v); $j = json_decode($v, true); if (!$j || empty($j['project_id']) || empty($j['client_email']) || empty($j['private_key'])) NO('این فایل JSON حساب سرویس فایربیس نیست (project_id، client_email و private_key لازم است).'); }
     elseif (mb_strlen($v) > 400 || preg_match('/[\x00-\x1f]/', $v)) NO('مقدار نامعتبر است.'); $sec = secrets_all(); if ($v === '') unset($sec[$k]); else $sec[$k] = $v; secrets_save($sec); YES(); }
 case 'admin_test': { need_admin(); $w = (string)($in['what'] ?? '');
+    if ($w === 'bpm') { if (!bpm_ok()) NO('شماره‌ی ترمینال، نام کاربری و رمز به‌پرداخت را کامل ذخیره کنید.'); [$ih, $ip] = http_json('GET', 'https://api.ipify.org', null, [], 8); $ipm = $ih === 200 && preg_match('/^[\d.:a-f]+$/i', trim($ip)) ? ' – آی‌پی خروجی این سرور: ' . trim($ip) : '';
+        $r = bpm_request(10000, (string)(int)(microtime(true) * 1000) . random_int(10, 99), 'آزمون اتصال پیشخوان رسیدیم'); $pr = explode(',', $r);
+        YES($pr[0] === '0' && !empty($pr[1]) ? ['pass' => true, 'msg' => 'ترمینال، نام کاربری، رمز و آی‌پی تأیید شد؛ یک درخواست ۱٬۰۰۰ تومانی ساخته شد و پولی جابه‌جا نشد.' . $ipm] : ['pass' => false, 'msg' => bpm_err($r) . $ipm]); }
     if ($w === 'zarinpal') { if (!zp_mid()) NO('مرچنت کد زرین‌پال ذخیره نشده یا قالبش درست نیست (۳۶ نویسه با خط تیره).'); $env = ($in['env'] ?? '') === 'live' ? 'zp_live' : 'zp_test';
         [$h, $j, $raw] = zp_request($env, 10000, 'TEST' . time(), 'آزمون اتصال پیشخوان رسیدیم');
         if ($h === 200 && (int)($j['data']['code'] ?? 0) === 100) YES(['pass' => true, 'msg' => ($env === 'zp_live' ? 'درگاه اصلی' : 'سندباکس') . ': مرچنت و دامنه تأیید شد؛ یک درخواست پرداخت ۱٬۰۰۰ تومانی ساخته شد و پولی جابه‌جا نشد.']);
@@ -1451,7 +1475,7 @@ case 'admin_setting': { need_admin(); $k = (string)($in['k'] ?? ''); $v = trim((
     elseif ($k === 'donate_name') setv($k, mb_substr($v, 0, 60));
     elseif ($k === 'sms_provider' && in_array($v, ['kavenegar', 'smsir'], true)) setv($k, $v);
     elseif ($k === 'pay_env' && in_array($v, ['test', 'live'], true)) setv($k, $v);
-    elseif ($k === 'pay_provider' && in_array($v, ['payping', 'sep', 'zarinpal'], true)) setv($k, $v);
+    elseif ($k === 'pay_provider' && in_array($v, ['payping', 'sep', 'zarinpal', 'bpm'], true)) setv($k, $v);
     elseif (in_array($k, ['sub_price_q', 'sub_price_y', 'team_price', 'team_price_q', 'team_price_y', 'team_trial_days'], true) && ($v === '' || ctype_digit($v))) setv($k, $v === '' ? '0' : $v);
     elseif ($k === 'contact_phone' && ($v === '' || preg_match('/^[0-9۰-۹ +\-]{5,20}$/u', $v))) setv($k, $v);
     elseif ($k === 'contact_email' && ($v === '' || filter_var($v, FILTER_VALIDATE_EMAIL))) setv($k, $v);
