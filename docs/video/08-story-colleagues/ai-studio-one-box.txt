@@ -1,0 +1,16 @@
+Language: Persian (Farsi), natural spoken Tehrani accent. A 60-second warm story about women teachers of one school. Two speakers:
+Darya = a lively woman teacher stuck in traffic; tired at first, then surprised and delighted.
+Ravi = a friendly, calm narrator; clear, smiling, never salesy.
+Arc: weary traffic, a surprised pause at «صبر کن...», bright discovery, practical explanation, a light happy ending.
+Respect every pause tag and read the diacritics exactly as written. Keep it close to 60 seconds.
+
+Darya: [sigh] هَفت و نیم. تِرافیکِ هَمیشِگی.
+Ravi: چَهار تا مُعَلِّمِ یه مَدرِسه، از دو تا مَحَلّه‌یِ نَزدیک... با چَهار تا ماشین، تویِ یه صَف.
+Darya: [medium pause] صَبر کُن... خانُمِ آسِمان هَم که هَمین نَزدیکیِ ماست!
+Ravi: رِسیدیم هَمکارهایِ هَم‌جِنسِ هَم‌مَحَلّه رو پِیدا می‌کُنه؛ هَمون مَدرِسه، هَمون ساعَت.
+Ravi: هَفته تَقسیم می‌شه: هَر کَس یِکی دو روز پُشتِ فَرمون، بَقیّه‌یِ روزها با خیالِ راحَت.
+Darya: یَعنی تویِ راه بَرنامه‌یِ کِلاس رو هَم با هَم مُرور می‌کُنیم!
+Ravi: یه ماشین به‌جایِ چَهار تا؛ بَنزین کَمتَر، اَعصاب آروم‌تَر، شَهر سَبُک‌تَر.
+Darya: هَر روز سَرِ یه میز می‌شینیم... چِرا جُدا بیایم؟
+Ravi: رِسیدیم دات آی آر.
+Ravi: [short pause] رِسیدیم؛ نُوبَت‌ها روشَن، خیال‌ها جَمع.

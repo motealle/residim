@@ -1,0 +1,21 @@
+===== بخش ۱: در کادر Style instructions بچسبان =====
+
+Language: Persian (Farsi), natural spoken Tehrani accent. A 60-second warm story for parents. Two speakers:
+Madar = a tired but warm mother whose child has no school service; she sighs at first and laughs with relief at the end.
+Ravi = a friendly, calm narrator; clear and smiling, never salesy.
+Arc: weary morning, a thoughtful pause at «اما یه چیزی رو نمی‌دونه», hopeful discovery, warm explanation, a light laugh, confident ending.
+Respect every pause tag and read the diacritics exactly as written. Keep it close to 60 seconds.
+
+===== بخش ۲: در کادر متن (Script) بچسبان =====
+
+Madar: [sigh] اَوَّلِ مِهره... کیف آماده، لِباس آماده؛ فَقَط سِرویس پِیدا نَشُد.
+Madar: هَر روز خودَم می‌بَرَم، خودَم میارَم. ظُهر دوباره راه می‌اُفتَم...
+Ravi: [medium pause] اَمّا یه چیزی رو نِمی‌دونه...
+Ravi: دو تا کوچه پایین‌تَر، یه خانواده‌یِ دیگه هَم دَقیقاً هَمین گِرِفتاری رو داره. هَمون مَدرِسه، هَمون ساعَت.
+Ravi: رِسیدیم این دو تا خانواده رو، با حِفظِ حَریمِ خُصوصی، رویِ نَقشه به هَم نِشون می‌ده.
+Madar: یَعنی اَوَّل می‌تونیم آشنا بِشیم؟
+Ravi: اَوَّل آشنایی، بَعد قَرار. هَر وَقت خواستین.
+Ravi: بَعد روزها نِصف‌نِصف: سه روز شُما، دو روز اونا. حِساب هَم شَفّاف.
+Madar: [laughing] یَعنی سه روز در هَفته، صُبحونه با خیالِ راحَت!
+Ravi: سِرویس پِیدا نَشُد؟ شاید هَم‌مَسیرِت دو کوچه اون‌طَرَف‌تَر باشه. رِسیدیم دات آی آر.
+Ravi: [short pause] رِسیدیم؛ نُوبَت‌ها روشَن، خیال‌ها جَمع.

@@ -1,5 +1,6 @@
 // Residim end-to-end smoke test. Run: php -S 127.0.0.1:8899 tests/e2e/router.php & node tests/e2e/smoke.cjs
 // Covers the paths whose failure would cost families' trust: landing, school wizard, login, matching, team, chat, admin.
+const CONTRAST = "// returns low-contrast text elements inside root (page-evaluated)\nwindow.__lowContrast = (rootSel, min = 3) => {\n  const P = s => { const m = s.match(/rgba?\\(([^)]+)\\)/); if (!m) return null; const a = m[1].split(',').map(x => parseFloat(x)); return { r: a[0], g: a[1], b: a[2], a: a.length > 3 ? a[3] : 1 }; };\n  const L = c => { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(c.r) + .7152 * f(c.g) + .0722 * f(c.b); };\n  const bgOf = el => { for (let e = el; e; e = e.parentElement) { const cs = getComputedStyle(e); const im = cs.backgroundImage; if (im && im !== 'none' && /gradient/.test(im)) { const cols = [...im.matchAll(/rgba?\\([^)]+\\)/g)].map(m => P(m[0])).filter(c => c && c.a > .3); if (cols.length) return cols.reduce((a, c) => ({ r: a.r + c.r / cols.length, g: a.g + c.g / cols.length, b: a.b + c.b / cols.length, a: 1 }), { r: 0, g: 0, b: 0 }); } const c = P(cs.backgroundColor); if (c && c.a > .6) return c; } return { r: 255, g: 255, b: 255, a: 1 }; };\n  const out = []; const roots = document.querySelectorAll(rootSel);\n  roots.forEach(root => root.querySelectorAll('*').forEach(el => { if (!el.offsetParent && getComputedStyle(el).position !== 'fixed') return; const own = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1); if (!own) return;\n    const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || +cs.opacity < .5) return; const r = el.getBoundingClientRect(); if (!r.width || !r.height) return;\n    const fg = P(cs.color), bg = bgOf(el); if (!fg) return; const l1 = L(fg), l2 = L(bg), cr = (Math.max(l1, l2) + .05) / (Math.min(l1, l2) + .05);\n    if (cr < min) out.push(el.tagName + '.' + (el.className || '').toString().slice(0, 40) + ' «' + el.textContent.trim().slice(0, 24) + '» ' + cr.toFixed(2)); }));\n  return [...new Set(out)];\n};\n";
 const assert = require('assert'); const { chromium } = require('playwright');
 const B = process.env.BASE || 'http://127.0.0.1:8899'; const sleep = ms => new Promise(r => setTimeout(r, ms)); const ok = (...a) => console.log('✓', ...a);
 const api = (a, b, t) => fetch(B + '/app/api/r6.php?a=' + a, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Token': t || '' }, body: JSON.stringify(b || {}) }).then(r => r.json());
@@ -38,6 +39,21 @@ const api = (a, b, t) => fetch(B + '/app/api/r6.php?a=' + a, { method: 'POST', h
       return bad.slice(0, 6); });
     assert.deepEqual(lay, [], 'layout ' + vp.width + ': ' + lay.join(' | '));
     if (vp.width <= 1000) { await p.keyboard.press('Escape'); await sleep(300); }
+    // dark mode (v34): no text below 3:1 contrast in the main view, the side panel or the drawer
+    await p.addScriptTag({ content: CONTRAST });
+    for (const th of ['dark', 'light']) { await p.evaluate(t => document.documentElement.setAttribute('data-theme', t), th);
+      for (const tb of ['team', 'money', 'peers']) { await p.evaluate(t => { const b = document.querySelector(`${innerWidth > 1000 ? '.side' : '.dock'} [data-tab="${t}"]`); b && b.click(); }, tb); await sleep(700);
+        const low = await p.evaluate(() => __lowContrast('#main', 3).filter(x => !/OpenStreetMap|OpenMapTiles|OpenFreeMap|badge-src|maplibre/.test(x)));
+        assert.deepEqual(low, [], `contrast ${th} ${tb} ${vp.width}: ${low.join(' | ')}`); }
+      if (vp.width <= 1000) { await p.click('[data-a="menu"]').catch(() => {}); await sleep(600); }
+      const lowS = await p.evaluate(() => __lowContrast(innerWidth > 1000 ? '.side' : '.drawer', 3)); assert.deepEqual(lowS, [], `contrast ${th} menu ${vp.width}: ${lowS.join(' | ')}`);
+      if (vp.width <= 1000) { await p.keyboard.press('Escape'); await sleep(300); } }
+    // browser back (v34): back goes to the previous tab / closes the sheet, never leaves the app on the first press
+    await p.evaluate(() => { const b = document.querySelector(`${innerWidth > 1000 ? '.side' : '.dock'} [data-tab="team"]`); b && b.click(); }); await sleep(500);
+    await p.evaluate(() => { const b = document.querySelector(`${innerWidth > 1000 ? '.side' : '.dock'} [data-tab="money"]`); b && b.click(); }); await sleep(500);
+    await p.goBack(); await sleep(700);
+    const bk = await p.evaluate(() => [location.pathname, (document.querySelector('[data-tab].on,[data-tab][aria-current="page"],[data-tab][aria-selected="true"]') || {}).dataset?.tab || window.__rs.ui.tab]);
+    assert.equal(bk[1], 'team', 'back should return to the previous tab, got ' + bk.join(' '));
     ok('app tabs at', vp.width);
     await p.goto(B + '/#admin'); await sleep(900); await p.click('#splash').catch(() => {}); await p.fill('#au', 'mot'); await p.fill('#ap', 'mot'); await p.click('[data-a="adm-login"]'); await sleep(1300);
     for (const k of ['home', 'conn', 'pays', 'health', 'msgs', 'places', 'users', 'sms', 'posters', 'db']) { await p.click(`.adm-tabs [data-v="${k}"]`); await sleep(500); assert(!(await p.$('.adm .muted:text("در حال خواندن")')) || true); }
