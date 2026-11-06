@@ -19,6 +19,7 @@ const FAQ = [['رسیدیم تاکسی یا آژانس است؟', 'نه. رسی�
     ['همسفرِ آشنا یعنی چه؟', 'می‌توانید آگهی را فقط به مخاطبانی نشان دهید که خودتان از گوشی انتخاب می‌کنید؛ مثلاً همکاران یا اقوام. شماره‌ها رمزنگاری‌شده نگه داشته می‌شوند و آگهی برای دیگران دیده نمی‌شود.'],
     ['آگهی گذاشتن رایگان است؟', 'بله. تا ۳ آگهیِ فعال رایگان است. با اشتراک رسیدیم این‌ها هم اضافه می‌شود: تا ۱۰ آگهی، بالا بردنِ روزانه، هشدار آگهیِ تازه در مسیر شما، پیامکِ پیامِ تازه و آمار بازدید.']];
 
+if (!flag('ads_on')) { http_response_code(404); header('Content-Type: text/html; charset=utf-8'); echo '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>آگهی‌ها – رسیدیم</title></head><body style="font-family:Tahoma;text-align:center;padding:60px 16px"><h1>بخش آگهی‌ها فعلاً بسته است.</h1><p><a href="/">بازگشت به رسیدیم</a></p></body></html>'; exit; }
 $no = (int)($_GET['no'] ?? 0); $u = auth(false);
 $f = ['k' => (string)($_GET['k'] ?? ''), 'from' => s1((string)($_GET['from'] ?? ''), 40), 'to' => s1((string)($_GET['to'] ?? ''), 40), 'g' => (string)($_GET['g'] ?? ''), 'r' => (string)($_GET['r'] ?? ''), 'q' => s1((string)($_GET['q'] ?? ''), 40)];
 $pg = max(0, min(50, (int)($_GET['p'] ?? 0)));
@@ -86,7 +87,7 @@ if (!empty($private)) $body = '<article class="ad-d" id="ad-private" data-no="' 
 if ($status === 404) $body = '<div class="wrap empty"><b>این آگهی پیدا نشد.</b><p>شاید برداشته شده باشد. آگهی‌های فعال را ببینید.</p><a class="btn pri" href="/ads/">همه‌ی آگهی‌ها</a></div>';
 http_response_code($status);
 header('Content-Type: text/html; charset=utf-8'); header('Cache-Control: public, max-age=120');
-$V = '36';
+$V = '37';
 ?><!doctype html>
 <html lang="fa-IR" dir="rtl">
 <head>

@@ -16,15 +16,19 @@ const ff = a => execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-
   try {
     for (const id of ids) {
       const dir = ROOT + '/docs/video/' + SLUG[id] + '/', voice = ['wav', 'mp3', 'm4a'].map(e => dir + 'voice.' + e).find(f => fs.existsSync(f));
-      const ctx = await b.newContext({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1, recordVideo: { dir: TMP + '/' + id, size: { width: 1080, height: 1920 } } });
-      const pg = await ctx.newPage(), t0 = Date.now();
-      await pg.goto(`http://127.0.0.1:${PORT}/stories/?rec=${id}`, { waitUntil: 'domcontentloaded' });
-      await pg.waitForFunction(() => window.__filmStarted, null, { timeout: 20000 }); const start = (Date.now() - t0) / 1000;
-      await pg.waitForFunction(() => window.__filmDone, null, { timeout: 180000, polling: 250 });
-      const { wav, end } = await pg.evaluate(async id => { const F = STORY_FILMS[id], marks = [...F.plans.map(p => p.t), F.end];
+      // frame-exact: the page runs on a virtual clock and every frame is captured, so nothing stutters even on a slow machine
+      const ctx = await b.newContext({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 }), pg = await ctx.newPage(), FPS = 30;
+      await pg.goto(`http://127.0.0.1:${PORT}/stories/?rec=${id}&step=1`, { waitUntil: 'networkidle' });
+      await pg.waitForFunction(() => window.__recReady, null, { timeout: 20000 });
+      const end = await pg.evaluate(id => STORY_FILMS[id].end, id), N = Math.ceil((end + 1.6) * FPS), vid = TMP + `/${id}.mp4`;
+      const enc = spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-', '-c:v', 'libx264', '-preset', 'medium', '-crf', '16', '-pix_fmt', 'yuv420p', vid], { stdio: ['pipe', 'inherit', 'inherit'] });
+      const done = new Promise((res, rej) => enc.on('close', c => c ? rej(new Error('ffmpeg ' + c)) : res()));
+      for (let f = 0; f < N; f++) { await pg.evaluate(t => window.__recStep(t), f / FPS); const jpg = await pg.screenshot({ type: 'jpeg', quality: 92 }); if (!enc.stdin.write(jpg)) await new Promise(r => enc.stdin.once('drain', r)); if (f % 300 === 0) process.stdout.write(`${id} ${f}/${N}\n`); }
+      enc.stdin.end(); await done;
+      const { wav } = await pg.evaluate(async id => { const F = STORY_FILMS[id], marks = [...F.plans.map(p => p.t), F.end];
         const ev = MUS.score(F.plans.map(p => p.mood), marks, F.end, window.__storyCues(id)), buf = await MUS.render(ev, F.end + 2, 48000), w = new Uint8Array(MUS.wav(buf));
-        let s = ''; for (let i = 0; i < w.length; i += 32768) s += String.fromCharCode(...w.subarray(i, i + 32768)); return { wav: btoa(s), end: F.end }; }, id);
-      const vid = await pg.video().path(); await ctx.close();
+        let s = ''; for (let i = 0; i < w.length; i += 32768) s += String.fromCharCode(...w.subarray(i, i + 32768)); return { wav: btoa(s) }; }, id);
+      await ctx.close(); const start = 0;
       const mus = TMP + `/${id}.wav`, mix = TMP + `/${id}-mix.wav`; fs.writeFileSync(mus, Buffer.from(wav, 'base64'));
       const len = (end + 1.6).toFixed(2);
       // soundtrack: music alone, or voice on top with the music ducked under it
@@ -33,9 +37,9 @@ const ff = a => execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-
         : ['-i', mus, '-af', 'highpass=f=40,loudnorm=I=-15:TP=-1.5:LRA=11'];
       ff([...chain, '-t', len, '-ar', '48000', '-ac', '2', mix]);
       fs.mkdirSync(OUT + '/video', { recursive: true }); fs.mkdirSync(OUT + '/audio', { recursive: true });
-      ff(['-ss', start.toFixed(2), '-i', vid, '-i', mix, '-t', len, '-map', '0:v', '-map', '1:a', '-r', '30', '-c:v', 'libx264', '-preset', 'slow', '-crf', '24', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-movflags', '+faststart', OUT + `/video/${id}.mp4`]);
+      ff(['-i', vid, '-i', mix, '-t', len, '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-preset', 'slow', '-crf', '24', '-tune', 'animation', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-movflags', '+faststart', OUT + `/video/${id}.mp4`]);
       ff(['-i', mix, '-c:a', 'libmp3lame', '-b:a', '128k', '-ar', '48000', OUT + `/audio/${id}.mp3`]);
-      console.log(id, voice ? 'with narration' : 'music only', 'start', start.toFixed(2), 'end', end);
+      console.log(id, voice ? 'with narration' : 'music only', 'end', end, 'frames', N);
     }
   } finally { await b.close(); srv.kill(); fs.rmSync(TMP, { recursive: true, force: true }); }
   console.log('now run: python3 scripts/video/gen_stories.py  (marks mp4/audio in stories-data.js)');

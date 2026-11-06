@@ -74,7 +74,7 @@ function pitch() {
 function sponsorPoster(D, W) {
   const pl = D.place; let q = ''; try { const c = qrcode(0, 'M'); c.addData('https://residim.ir/' + pl.code); c.make(); q = c.createSvgTag({ cellSize: 6, margin: 1, scalable: true }); } catch (e) {}
   const el = document.createElement('div'); el.id = 'spons';
-  el.innerHTML = `<div class="sp-top"><img src="../assets/icon.svg?v=36" alt=""><b>رسیدیم</b></div><h1>اشتراک ویژه‌ی «رسیدیم» برای ${W.who} <span>${esc(pl.name)}</span> رایگان شد!</h1>
+  el.innerHTML = `<div class="sp-top"><img src="../assets/icon.svg?v=37" alt=""><b>رسیدیم</b></div><h1>اشتراک ویژه‌ی «رسیدیم» برای ${W.who} <span>${esc(pl.name)}</span> رایگان شد!</h1>
     <p class="sp-sub">${W.edu ? 'بچه‌ها را با خانواده‌های هم‌محله نوبتی ببرید و بیاورید؛' : 'با هم‌مسیرهای همین مجموعه با هم بروید، با هم برگردید؛'} منظم، با برنامه‌ی روزانه و هفتگی و سهم منصفانه‌ی هزینه.</p>
     <div class="sp-qr">${q}</div><p class="sp-url">residim.ir/${esc(pl.code)}</p>
     ${D.seats ? `<p class="sp-seats">ظرفیت: ${fa(D.seats)} اکانت – تا پر نشده ثبت‌نام کنید</p>` : ''}<p class="sp-by">با حمایت ${esc(pl.name)}</p>`;
@@ -108,6 +108,8 @@ async function panel(token) {
           <div class="rlist">${pl.radio.map((e, i) => `<div><span>🎧 ${esc(e.title)}</span><button class="btn sm ghost" data-rdel="${i}" ${on ? '' : 'disabled'}>حذف</button></div>`).join('') || '<p class="note">هنوز اپیزودی نگذاشته‌اید.</p>'}</div>
           <div class="form" style="gap:8px"><input id="r-t" placeholder="عنوان اپیزود (مثلاً قصه‌ی صبح شنبه)" maxlength="80" style="font:inherit;padding:10px;border-radius:12px;border:1.5px solid var(--line)"><input id="r-u" dir="ltr" placeholder="https://… لینک فایل صوتی (mp3)" style="font:inherit;padding:10px;border-radius:12px;border:1.5px solid var(--line)"><button class="btn sm dark" data-radd ${on ? '' : 'disabled'}>افزودن به رادیو</button></div></div>
         <div class="card c6"><h2>🖨️ پوستر و لینک ${W.org}</h2>${D.seats ? `<p>اکانت‌های اهدایی: <b>${fa(D.seats_used)} از ${fa(D.seats)}</b> استفاده شده؛ به ترتیب ثبت‌نام.</p><div style="height:10px;border-radius:6px;background:var(--bg);overflow:hidden;margin:6px 0 10px"><i style="display:block;height:100%;width:${Math.min(100, Math.round(100 * D.seats_used / D.seats))}%;background:var(--g)"></i></div>` : ''}<p>لینک ثبت‌نام ${edu ? 'خانواده‌ها' : 'اعضا'}: <b dir="ltr">residim.ir/${esc(pl.code)}</b></p><div id="qr" style="width:150px;margin:10px 0"></div><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap">${on ? `<button class="btn sm dark" data-spons>پوستر «رایگان شد» برای ${W.who.replace('‌های', 'ها').replace('اعضای', 'اعضا')}</button>` : ''}<a class="btn sm pri" href="../${esc(pl.code)}" target="_blank" rel="noopener">باز کردن صفحه‌ی ${W.org}</a></div></div>
+        <div class="card c12 no-print perks"><h2>✨ ${on ? 'آنچه اشتراک شما باز کرده' : 'با اشتراک ' + W.org + ' باز می‌شود'}</h2><div class="pk">${[['🎁', 'همه مهمانِ شما', 'هر خانواده همه‌ی امکاناتِ ویژه‌ی رسیدیم را رایگان دارد و در اپ می‌بیند «مهمانِ ' + esc(pl.name) + '».'], ['🎒', 'اردو با ماشین خانواده‌ها', 'اعلام، پاسخ و چیدن خودکار ماشین‌ها با قانون محرم و نامحرم.'], ['📣', 'پیام به همه با اعلان', 'اطلاعیه، دعوت به جلسه، تعطیلی و برنامه‌ها.'], ['👥', 'کادر با دسترسی کامل', 'تا ۱۰ شماره: مدیر پنل، یا کادری که امکانات کامل دارد.'], ['🖨️', 'پوستر و لینک اختصاصی', 'برای گروه‌های کلاس و تابلوی اعلانات.'], ['📊', 'گزارش ترافیک دمِ در', 'سفرها، محله‌ها و ماشین‌های کمتر.']].map(([i, t, d]) => `<div><b>${i} ${t}</b><span>${d}</span></div>`).join('')}</div></div>
+        <div class="card c12 no-print" id="staff-slot"><h2>👥 کادر مدرسه</h2><p class="note">در حال بارگذاری…</p></div>
         ${edu ? `<div class="card c12 no-print" id="ordu-slot"><h2>🎒 اردوی دانش‌آموزی و خانوادگی</h2><p class="note">در حال بارگذاری…</p></div>` : ''}
         <div class="card c6"><h2>🔒 حریم خصوصی</h2><p class="note" style="font-size:.92rem">این پنل فقط عددهای تجمیعی دارد. گروه‌های کمتر از سه خانواده نشان داده نمی‌شوند. این لینک را فقط در اختیار مدیریت مدرسه بگذارید.</p></div>
       </div></div></section>`;
@@ -120,8 +122,20 @@ async function panel(token) {
     const ra = $('[data-radd]'); if (ra) ra.onclick = () => { const t = $('#r-t').value.trim(), u = $('#r-u').value.trim(); if (!t || !/^https:\/\//.test(u)) return toast('عنوان و لینک https فایل صوتی را بنویسید.'); set({ radio: [...pl.radio, { title: t, src: u }] }); };
     const bc = $('[data-bc]'); if (bc) bc.onclick = async () => { const t = $('#bc').value.trim(); if (t.length < 8) return toast('پیام کوتاه است.'); bc.disabled = true; try { const r = await api('school_broadcast', { token, text: t }); toast(`پیام به ${fa(r.n)} خانواده رسید.`); D = await api('school_dash', { token }); draw(); } catch (e) { toast(e.message); bc.disabled = false; } };
     if (edu) orduPanel(token, on);
+    staffPanel(token, on);
   };
   draw();
+}
+/* staff numbers: «admin» opens this panel from their own Residim menu; everyone listed gets full access while the plan runs */
+async function staffPanel(token, on) {
+  const el = $('#staff-slot'); if (!el) return; let L;
+  try { L = (await api('school_staff', { token })).list; } catch (e) { el.innerHTML = `<h2>👥 کادر مدرسه</h2><p class="note">${esc(e.message)}</p>`; return; }
+  el.innerHTML = `<h2>👥 کادر مدرسه</h2><p class="note">شماره‌ی مدیر، معاون یا مربیان را بگذارید. «مدیر پنل» این پنل را از منوی رسیدیمِ خودش باز می‌کند و دیگر به این پیوند نیاز ندارد. همه‌ی این شماره‌ها، تا وقتی اشتراک فعال است، امکانات کامل فردی و تیمی دارند.</p>
+    <div class="od-k">${L.map(x => `<span dir="ltr">${esc(x.phone)} · ${x.role === 'admin' ? 'مدیر پنل' : 'کادر'} <button class="link" data-sdel="${esc(x.raw)}" aria-label="حذف">✕</button></span>`).join('') || '<span>هنوز شماره‌ای نیست.</span>'}</div>
+    <div class="form" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><input id="st-ph" inputmode="tel" dir="ltr" placeholder="۰۹۱۲…" style="font:inherit;padding:10px;border-radius:12px;border:1.5px solid var(--line)"><select id="st-r" style="font:inherit;padding:10px;border-radius:12px;border:1.5px solid var(--line)"><option value="admin">مدیر پنل</option><option value="staff">کادر (امکانات کامل)</option></select><button class="btn pri sm" id="st-add" ${on ? '' : 'disabled'}>افزودن</button></div>${on ? '' : '<p class="note">ویژه‌ی اشتراک.</p>'}`;
+  const call = async b => { try { await api('school_staff', { token, ...b }); staffPanel(token, on); } catch (e) { toast(e.message); } };
+  const ad = $('#st-add'); if (ad) ad.onclick = () => call({ op: 'add', phone: $('#st-ph').value, role: $('#st-r').value });
+  $$('[data-sdel]').forEach(b => b.onclick = () => call({ op: 'del', phone: b.dataset.sdel }));
 }
 /* اردو: the school announces, families answer in the app, one click arranges cars by home proximity and the mahram rules */
 async function orduPanel(token, on) {

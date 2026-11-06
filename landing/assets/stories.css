@@ -216,3 +216,5 @@ body.rec .cap .ln i{font-size:28px;padding:2px 18px;margin-inline-end:18px;verti
 .wnav .cnt{font-size:.78rem;font-weight:800;color:var(--mut);min-width:44px;text-align:center}
 .det .offer{margin:10px 0 0;display:inline-flex;gap:8px;align-items:flex-start;font-weight:800;font-size:1.02rem;color:var(--d);background:var(--l);border-radius:16px;padding:8px 14px}
 .det .offer::before{content:"✓";flex:0 0 auto;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--a);color:#fff;font-size:.8rem;margin-top:4px}
+
+.sc{scroll-snap-stop:always}

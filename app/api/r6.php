@@ -305,7 +305,9 @@ function team_cap(array $riders): int { if (!$riders) return 5; $adult = true; f
 /** A school with an active «رسیدیم برای مدارس» plan gives every one of its families the premium features. */
 function school_until(string $uid): int { $best = 0; foreach (rows('SELECT p.id, p.created, pl.id plid, pl.plan_until, pl.seats FROM profiles p JOIN places pl ON pl.id=p.place_id WHERE p.user_id=? AND p.complete=1 AND pl.plan_until>?', [$uid, time()]) as $r)
     if (seat_ok(['id' => $r['id'], 'created' => $r['created']], ['id' => $r['plid'], 'seats' => $r['seats']])) $best = max($best, (int)$r['plan_until']); return $best; }
-function is_premium(?string $uid): bool { if (!$uid) return false; $u = row('SELECT premium_until FROM users WHERE id=?', [$uid]); return ($u && (int)($u['premium_until'] ?? 0) > time()) || school_until($uid) > time(); }
+function staff_places(string $uid): array { $u = row('SELECT phone FROM users WHERE id=?', [$uid]); if (!$u || !$u['phone']) return []; try { return rows('SELECT pl.id, pl.name, pl.kind, pl.plan_until, s.role FROM place_staff s JOIN places pl ON pl.id=s.place_id WHERE s.phone=?', [$u['phone']]); } catch (Throwable $e) { return []; } }
+function staff_until(string $uid): int { $b = 0; foreach (staff_places($uid) as $r) $b = max($b, (int)$r['plan_until']); return $b; }
+function is_premium(?string $uid): bool { if (!$uid) return false; $u = row('SELECT premium_until FROM users WHERE id=?', [$uid]); return ($u && (int)($u['premium_until'] ?? 0) > time()) || school_until($uid) > time() || staff_until($uid) > time(); }
 /** Platform rule: girls over 8 and boys over 12 never share a service with the opposite gender. */
 function gender_age_ok(array $ridersAll): bool {
     $girls = array_filter($ridersAll, fn($r) => $r['g'] === 'f'); $boys = array_filter($ridersAll, fn($r) => $r['g'] === 'm');
@@ -830,7 +832,9 @@ case 'guest_start': {
     $id = uid(); q('INSERT INTO users(id,phone,fake,created) VALUES(?,NULL,0,?)', [$id, time()]);
     YES(['token' => issue_token($id), 'phone' => null]);
 }
-case 'me': { $u = auth(); $ur = row('SELECT premium_until, premium_bank FROM users WHERE id=?', [$u['user_id']]) ?: []; $pu = max((int)($ur['premium_until'] ?? 0), school_until($u['user_id'])); YES(['phone' => $u['phone'], 'premium_until' => $pu, 'premium_bank' => (int)($ur['premium_bank'] ?? 0), 'profiles' => array_merge(array_map('profile_out', rows('SELECT * FROM profiles WHERE user_id=? ORDER BY created', [$u['user_id']])), fam_shared($u))]); }
+case 'me': { $u = auth(); $ur = row('SELECT premium_until, premium_bank FROM users WHERE id=?', [$u['user_id']]) ?: []; $own = (int)($ur['premium_until'] ?? 0); $su = school_until($u['user_id']); $st = staff_places($u['user_id']); $pu = max($own, $su, staff_until($u['user_id']));
+    $host = null; if ($su > time() && $su >= $own) { $h = row('SELECT pl.name, pl.plan_until FROM profiles p JOIN places pl ON pl.id=p.place_id WHERE p.user_id=? AND p.complete=1 AND pl.plan_until>? ORDER BY pl.plan_until DESC LIMIT 1', [$u['user_id'], time()]); if ($h) $host = ['name' => $h['name'], 'until' => (int)$h['plan_until']]; }
+    if (!$host) foreach ($st as $r) if ((int)$r['plan_until'] > time()) { $host = ['name' => $r['name'], 'until' => (int)$r['plan_until'], 'staff' => 1]; break; } YES(['phone' => $u['phone'], 'premium_until' => $pu, 'host' => $host, 'staff' => array_map(fn($r) => ['place_id' => $r['id'], 'name' => $r['name'], 'admin' => $r['role'] === 'admin', 'paid' => (int)$r['plan_until'] > time()], $st), 'premium_bank' => (int)($ur['premium_bank'] ?? 0), 'profiles' => array_merge(array_map('profile_out', rows('SELECT * FROM profiles WHERE user_id=? ORDER BY created', [$u['user_id']])), fam_shared($u))]); }
 case 'logout': { $t = $_SERVER['HTTP_X_TOKEN'] ?? ''; if ($t) q('DELETE FROM tokens WHERE token=?', [hash('sha256', $t)]); YES(); }
 
 /* places */
