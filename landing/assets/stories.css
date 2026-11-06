@@ -218,3 +218,6 @@ body.rec .cap .ln i{font-size:28px;padding:2px 18px;margin-inline-end:18px;verti
 .det .offer::before{content:"✓";flex:0 0 auto;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--a);color:#fff;font-size:.8rem;margin-top:4px}
 
 .sc{scroll-snap-stop:always}
+/* a grid column must never grow to its widest child (the chips row scrolls inside it) */
+.hero .wrap{grid-template-columns:minmax(0,1fr)}.hero .wrap>*{min-width:0}
+@media (min-width:980px){.hero .wrap{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}}

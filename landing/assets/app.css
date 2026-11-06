@@ -1573,3 +1573,13 @@ body.chat-open .page-bg,body.map-full .page-bg{visibility:hidden}
 .hroll{margin-top:22px;max-width:420px}
 .hroll p{min-height:92px;width:100%;padding:16px 18px;border-radius:22px;background:linear-gradient(120deg,color-mix(in srgb,var(--brand) 14%,var(--surface)),color-mix(in srgb,#FFC93C 18%,var(--surface)));font-size:1.04rem;line-height:1.85;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--brand) 22%,transparent)}
 .hroll p .i{width:34px;height:34px;padding:8px;border-radius:12px;background:var(--brand);color:#04140B}
+.host-b img{flex:0 0 auto;width:40px;height:40px;border-radius:12px;object-fit:contain;background:#fff}
+.host-c{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:0 0 12px;border-radius:20px;background:linear-gradient(110deg,#FFF6D9,#E8F8EF);color:#2E2600;box-shadow:var(--sh)}
+.host-c img{flex:0 0 auto;width:52px;height:52px;border-radius:16px;object-fit:contain;background:#fff;box-shadow:0 0 0 2px #FFC93C}
+.host-c .grow{min-width:0;display:grid;line-height:1.6}.host-c small{color:#5A4A12;font-size:.82rem}
+:root[data-theme="dark"] .host-c{background:linear-gradient(110deg,#2E2710,#10291C);color:#FFE9A8}:root[data-theme="dark"] .host-c small{color:#E7D7A0}
+.host-c .lv-ic{flex:0 0 auto;width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:#FFC93C;color:#04140B}
+.mi-sheet h3{display:flex;align-items:center;gap:8px;font-size:1rem;margin:6px 0 0}.mi-sheet h3 svg{width:18px;height:18px;color:var(--ac)}
+.mi-sheet .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.mi-sheet .grid2>*{min-width:0;margin:0}@media (max-width:330px){.mi-sheet .grid2{grid-template-columns:minmax(0,1fr)}}
+.mi-r{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 72px 40px;gap:6px;align-items:center;margin-bottom:6px}.mi-r input{min-width:0;width:100%;min-height:46px;border-radius:14px;border:2px solid var(--line-2);background:var(--surface);color:var(--ink);padding:0 10px;font:inherit;font-weight:600}.mi-r input:focus{border-color:var(--ink);outline:none}
+.mi-auto{list-style:none;padding:0;margin:0;display:grid;gap:6px}.mi-auto li{display:flex;gap:8px;align-items:center;font-size:.9rem;min-width:0}.mi-auto li span{min-width:0;overflow-wrap:anywhere}.mi-auto svg{width:20px;height:20px;flex:0 0 auto}

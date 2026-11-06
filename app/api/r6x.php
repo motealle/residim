@@ -10,7 +10,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/r6.php';
 
 function x_schema(): void {
-    static $done = false; if ($done) return; $done = true; $v = (int)getv('xschema', '0'); if ($v >= 2) return; if ($v === 1) { x_schema2(); return; }
+    static $done = false; if ($done) return; $done = true; $v = (int)getv('xschema', '0'); if ($v >= 4) return; if ($v === 3) { x_schema4(); return; } if ($v === 2) { x_schema3(); x_schema4(); return; } if ($v === 1) { x_schema2(); x_schema3(); x_schema4(); return; }
     $p = db6(); $K = 'VARCHAR(40)'; $my = $p->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' DEFAULT CHARSET=utf8mb4' : '';
     foreach ([
         "CREATE TABLE IF NOT EXISTS ads (id $K PRIMARY KEY, no INT UNIQUE, user_id $K, kind VARCHAR(12), role VARCHAR(6), g VARCHAR(1), from_city VARCHAR(40), from_area VARCHAR(60), to_city VARCHAR(40), to_area VARCHAR(60), title VARCHAR(90), body TEXT, at INT, days VARCHAR(20), tm VARCHAR(5), seats INT, share VARCHAR(8), audience VARCHAR(8), contacts TEXT, status VARCHAR(10), pin_until INT DEFAULT 0, views INT DEFAULT 0, msgs INT DEFAULT 0, reports INT DEFAULT 0, bumped INT, created INT, updated INT, expires INT)$my",
@@ -27,12 +27,16 @@ function x_schema(): void {
         'CREATE INDEX ix_tg_place ON tgroups(place_id, status)', 'CREATE INDEX ix_tgm_p ON tg_members(profile_id)', 'CREATE INDEX ix_ordu_pl ON ordu(place_id)'] as $s) { try { $p->exec($s); } catch (Throwable $e) {} }
     foreach (['ads_on' => '1', 'ads_review' => '0', 'leave_on' => '1', 'ordu_on' => '1'] as $k => $v) if (getv($k, null, $p) === null) setv($k, $v, $p);
     if (!getv('x_pepper', null, $p)) setv('x_pepper', bin2hex(random_bytes(16)), $p);
-    setv('xschema', '1', $p); x_schema2();
+    setv('xschema', '1', $p); x_schema2(); x_schema3(); x_schema4();
 }
 /** v37: school staff numbers (full access + panel), and the direction of a leave group (home | work). */
 function x_schema2(): void { $p = db6(); $K = 'VARCHAR(40)'; $my = $p->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' DEFAULT CHARSET=utf8mb4' : '';
     foreach (["CREATE TABLE IF NOT EXISTS place_staff (place_id $K, phone VARCHAR(20), role VARCHAR(12), created INT, PRIMARY KEY(place_id, phone))$my", "ALTER TABLE tgroups ADD COLUMN dir VARCHAR(5) DEFAULT 'home'", 'CREATE INDEX ix_staff_ph ON place_staff(phone)'] as $q) { try { $p->exec($q); } catch (Throwable $e) {} }
     setv('xschema', '2', $p); }
+/** v38: a trip card and a rating per conversation (safety between strangers), and the school logo. */
+function x_schema3(): void { $p = db6(); foreach (['ALTER TABLE ad_threads ADD COLUMN trip TEXT', 'ALTER TABLE ad_threads ADD COLUMN owner_rate INT DEFAULT 0', 'ALTER TABLE ad_threads ADD COLUMN asker_rate INT DEFAULT 0', 'ALTER TABLE places ADD COLUMN logo TEXT'] as $q) { try { $p->exec($q); } catch (Throwable $e) {} } setv('xschema', '3', $p); }
+/** v38: the member's own fixed details («اطلاعات من»), used to prefill every form. */
+function x_schema4(): void { $p = db6(); try { $p->exec('ALTER TABLE users ADD COLUMN info TEXT'); } catch (Throwable $e) {} setv('xschema', '4', $p); }
 
 /* ───────── shared helpers ───────── */
 const FA_D = ['0' => '۰', '1' => '۱', '2' => '۲', '3' => '۳', '4' => '۴', '5' => '۵', '6' => '۶', '7' => '۷', '8' => '۸', '9' => '۹'];
@@ -94,6 +98,11 @@ function ad_visible(array $a, ?array $u): bool {
     if ($a['status'] !== 'live' || (int)$a['expires'] < time()) return false;
     if ($a['audience'] !== 'contacts') return true;
     return $u && !empty($u['phone']) && in_array(chash((string)$u['phone']), json_decode((string)$a['contacts'], true) ?: [], true); }
+/** What a stranger may know before meeting: how long the account exists, a verified phone, and how earlier co-travellers rated them. */
+function trust_of(string $uid): array { $u = row('SELECT created, phone FROM users WHERE id=?', [$uid]) ?: [];
+    $good = (int)q('SELECT (SELECT COUNT(*) FROM ad_threads WHERE owner=? AND asker_rate=1) + (SELECT COUNT(*) FROM ad_threads WHERE asker=? AND owner_rate=1)', [$uid, $uid])->fetchColumn();
+    $bad = (int)q('SELECT (SELECT COUNT(*) FROM ad_threads WHERE owner=? AND asker_rate=-1) + (SELECT COUNT(*) FROM ad_threads WHERE asker=? AND owner_rate=-1)', [$uid, $uid])->fetchColumn();
+    $c = (int)($u['created'] ?? time()); return ['since' => $c, 'since_t' => jdate_parts($c), 'new' => $c > time() - 7 * 86400, 'verified' => !empty($u['phone']), 'good' => $good, 'bad' => $bad]; }
 function ad_limit(string $uid): int { return x_premium($uid) ? 10 : 3; }
 
 /* ───────── 2) «دارم می‌روم» ───────── */
@@ -163,7 +172,7 @@ function x_route(string $a, array $in): void {
         if (hit('adv_' . $ad['id'] . '_' . ip_tag(), 21600) === 1) q('UPDATE ads SET views=views+1 WHERE id=?', [$ad['id']]);
         $me = $u ? $u['user_id'] : null; $mine = $me === $ad['user_id']; $g = $me ? user_g($me) : '';
         $th = $me && !$mine ? row('SELECT id FROM ad_threads WHERE ad_id=? AND asker=?', [$ad['id'], $me]) : null;
-        YES(['ad' => ad_out($ad, true) + ($mine ? ['views' => (int)$ad['views'], 'msgs' => (int)$ad['msgs'], 'expires' => (int)$ad['expires']] : []),
+        YES(['trust' => trust_of($ad['user_id']), 'ad' => ad_out($ad, true) + ($mine ? ['views' => (int)$ad['views'], 'msgs' => (int)$ad['msgs'], 'expires' => (int)$ad['expires']] : []),
             'viewer' => ['in' => (bool)$u, 'phone' => (bool)($u['phone'] ?? false), 'mine' => $mine, 'g' => $g, 'can_msg' => $u && !$mine && ($g === '' || $g === $ad['g']), 'thread' => $th['id'] ?? null, 'premium' => $me ? x_premium($me) : false]]); }
     case 'ad_save': { if (!flag('ads_on')) NO('بخش آگهی‌ها فعلاً بسته است.', 403); $u = auth(); need_phone($u); $me = $u['user_id'];
         $f = fn($k, $n) => s1((string)($in[$k] ?? ''), $n);
@@ -233,7 +242,21 @@ function x_route(string $a, array $in): void {
         YES(['list' => $o]); }
     case 'ad_thread': { $u = auth(); $me = $u['user_id']; $t = row('SELECT * FROM ad_threads WHERE id=?', [(string)($in['id'] ?? '')]); if (!$t || !in_array($me, [$t['owner'], $t['asker']], true)) NO('گفتگو پیدا نشد.', 404);
         $own = $t['owner'] === $me; q('UPDATE ad_threads SET ' . ($own ? 'owner_rd' : 'asker_rd') . '=? WHERE id=?', [time(), $t['id']]); $ad = row('SELECT * FROM ads WHERE id=?', [$t['ad_id']]);
-        YES(['ad' => $ad ? ad_out($ad) : null, 'own' => $own, 'blocked' => (int)$t['blocked'], 'phone_ok' => (int)$t['owner_replied'] === 1, 'list' => array_map(fn($m) => ['text' => $m['text'], 'at' => (int)$m['created'], 'mine' => $m['from_user'] === $me], rows('SELECT * FROM ad_msgs WHERE thread_id=? ORDER BY created LIMIT 300', [$t['id']]))]); }
+        $peer = $own ? $t['asker'] : $t['owner']; $pp = row('SELECT phone FROM users WHERE id=?', [$peer]);
+        YES(['ad' => $ad ? ad_out($ad) : null, 'own' => $own, 'blocked' => (int)$t['blocked'], 'phone_ok' => (int)$t['owner_replied'] === 1, 'trip' => json_decode((string)($t['trip'] ?? ''), true) ?: null,
+            'peer' => trust_of($peer) + ['phone' => (int)$t['owner_replied'] === 1 ? pmask((string)($pp['phone'] ?? '')) : ''], 'my_rate' => (int)($own ? $t['owner_rate'] : $t['asker_rate']), 'can_rate' => (int)$t['owner_replied'] === 1 && (!$ad || !(int)$ad['at'] || (int)$ad['at'] < time() + 3600), 'list' => array_map(fn($m) => ['text' => $m['text'], 'at' => (int)$m['created'], 'mine' => $m['from_user'] === $me], rows('SELECT * FROM ad_msgs WHERE thread_id=? ORDER BY created LIMIT 300', [$t['id']]))]); }
+    case 'ad_trip': { $u = auth(); $me = $u['user_id']; $t = row('SELECT * FROM ad_threads WHERE id=?', [(string)($in['id'] ?? '')]); if (!$t || !in_array($me, [$t['owner'], $t['asker']], true)) NO('گفتگو پیدا نشد.', 404);
+        if (!(int)$t['owner_replied']) NO('کارت سفر بعد از پاسخِ آگهی‌دهنده باز می‌شود.'); $T = json_decode((string)($t['trip'] ?? ''), true) ?: [];
+        foreach (['car' => 40, 'color' => 20, 'plate' => 20, 'meet' => 80, 'time' => 20] as $k => $n) if (isset($in[$k])) { $v = s1((string)$in[$k], $n); if ($e = x_bad($v, true)) NO($e); $T[$k] = $v; }
+        $T['by'] = $me === $t['owner'] ? 'owner' : 'asker'; $T['at'] = time(); q('UPDATE ad_threads SET trip=? WHERE id=?', [json_encode($T, JSON_UNESCAPED_UNICODE), $t['id']]);
+        q('INSERT INTO ad_msgs(id,thread_id,from_user,text,created) VALUES(?,?,?,?,?)', [uid(), $t['id'], $me, '🧾 کارت سفر به‌روز شد.', time()]); YES(['trip' => $T]); }
+    case 'ad_rate': { $u = auth(); $me = $u['user_id']; $t = row('SELECT * FROM ad_threads WHERE id=?', [(string)($in['id'] ?? '')]); if (!$t || !in_array($me, [$t['owner'], $t['asker']], true)) NO('گفتگو پیدا نشد.', 404);
+        $own = $me === $t['owner']; if ((int)($own ? $t['owner_rate'] : $t['asker_rate'])) NO('نظرتان را قبلاً ثبت کرده‌اید.'); if (!(int)$t['owner_replied']) NO('هنوز گفتگویی شکل نگرفته است.');
+        $v = (int)($in['v'] ?? 0) > 0 ? 1 : -1; q('UPDATE ad_threads SET ' . ($own ? 'owner_rate' : 'asker_rate') . '=? WHERE id=?', [$v, $t['id']]);
+        $peer = $own ? $t['asker'] : $t['owner'];
+        if ($v < 0) { $why = s1((string)($in['why'] ?? ''), 300); ev_log('report', '⚠️ همسفرِ ناراضی (' . pmask((string)(row('SELECT phone FROM users WHERE id=?', [$peer])['phone'] ?? '')) . '): ' . mb_substr($why, 0, 80), []);
+            if (trust_of($peer)['bad'] >= 2) q("UPDATE ads SET status='review' WHERE user_id=? AND status='live'", [$peer]); }
+        YES(); }
     case 'ad_block': { $u = auth(); $t = row('SELECT * FROM ad_threads WHERE id=?', [(string)($in['id'] ?? '')]); if (!$t || !in_array($u['user_id'], [$t['owner'], $t['asker']], true)) NO('گفتگو پیدا نشد.', 404);
         q('UPDATE ad_threads SET blocked=? WHERE id=?', [!empty($in['v']) ? 1 : 0, $t['id']]); YES(); }
     case 'ad_report': { $u = auth(); need_phone($u); $ad = ad_by_no((int)($in['no'] ?? 0)); if (!$ad) NO('آگهی پیدا نشد.', 404); if (hit('adrep_' . $u['user_id'], 86400) > 10) NO('گزارش‌های امروز زیاد شد.', 429);
@@ -337,11 +360,25 @@ function x_route(string $a, array $in): void {
         YES(['paid' => $paid, 'list' => array_map(fn($o) => ordu_out($o, true), rows('SELECT * FROM ordu WHERE place_id=? ORDER BY at DESC LIMIT 12', [$pl['id']]))]); }
     case 'school_staff': { $pl = school_by_token((string)($in['token'] ?? '')); $paid = (int)($pl['plan_until'] ?? 0) > time(); $op = (string)($in['op'] ?? 'list');
         if ($op !== 'list' && !$paid) NO('دسترسیِ کادر مدرسه ویژه‌ی اشتراک مدرسه است.', 402);
-        if ($op === 'add') { $ph = phone_norm((string)($in['phone'] ?? '')); if (!$ph) NO('شماره‌ی موبایل درست نیست.'); if ((int)q('SELECT COUNT(*) FROM place_staff WHERE place_id=?', [$pl['id']])->fetchColumn() >= 10) NO('حداکثر ۱۰ شماره‌ی کادر.');
+        if ($op === 'add') { $ph = phone_norm((string)($in['phone'] ?? '')); if (!$ph) NO('شماره‌ی موبایل درست نیست.'); if ((int)q('SELECT COUNT(*) FROM place_staff WHERE place_id=?', [$pl['id']])->fetchColumn() >= 5) NO('حداکثر ۵ شماره‌ی کادر.');
             $role = in_array($in['role'] ?? '', ['admin', 'staff'], true) ? $in['role'] : 'staff'; try { q('INSERT INTO place_staff(place_id,phone,role,created) VALUES(?,?,?,?)', [$pl['id'], $ph, $role, time()]); } catch (Throwable $e) { q('UPDATE place_staff SET role=? WHERE place_id=? AND phone=?', [$role, $pl['id'], $ph]); }
             ev_log('school', '👥 شماره‌ی کادر برای ' . $pl['name'] . ' ثبت شد', []); }
         if ($op === 'del') q('DELETE FROM place_staff WHERE place_id=? AND phone=?', [$pl['id'], phone_norm((string)($in['phone'] ?? '')) ?: '-']);
         YES(['paid' => $paid, 'list' => array_map(fn($r) => ['phone' => pmask($r['phone']), 'raw' => $r['phone'], 'role' => $r['role']], rows('SELECT * FROM place_staff WHERE place_id=? ORDER BY created', [$pl['id']]))]); }
+    case 'my_info': { $u = auth(); $me = $u['user_id']; $I = json_decode((string)(row('SELECT info FROM users WHERE id=?', [$me])['info'] ?? ''), true) ?: [];
+        if (!empty($in['save'])) { $f = fn($k, $n) => s1((string)($in[$k] ?? ''), $n);
+            foreach (['family' => 40, 'first' => 30, 'rel' => 12, 'city' => 40, 'hood' => 60, 'job' => 40, 'car' => 40, 'color' => 20, 'plate' => 20] as $k => $n) if (array_key_exists($k, $in)) { $v = $f($k, $n); if ($e = x_bad($v, true)) NO($e); $I[$k] = $v; }
+            if (isset($in['lat'], $in['lng']) && is_numeric($in['lat']) && is_numeric($in['lng']) && abs((float)$in['lat']) <= 90) { $I['lat'] = round((float)$in['lat'], 5); $I['lng'] = round((float)$in['lng'], 5); }
+            if (array_key_exists('seats', $in)) $I['seats'] = max(0, min(6, (int)$in['seats']));
+            if (isset($in['routes']) && is_array($in['routes'])) $I['routes'] = array_values(array_filter(array_map(fn($r) => ['label' => s1((string)($r['label'] ?? ''), 40), 'from' => s1((string)($r['from'] ?? ''), 60), 'to' => s1((string)($r['to'] ?? ''), 60), 'tm' => preg_match('/^\d{1,2}:\d{2}$/', en_d((string)($r['tm'] ?? ''))) ? en_d((string)$r['tm']) : ''], array_slice($in['routes'], 0, 8)), fn($r) => $r['from'] || $r['to']));
+            if (!empty($in['g'])) set_g($me, s1((string)$in['g'], 1));
+            q('UPDATE users SET info=? WHERE id=?', [json_encode($I, JSON_UNESCAPED_UNICODE), $me]); }
+        YES(['info' => $I + ['g' => user_g($me)]]); }
+    case 'school_logo': { $pl = school_by_token((string)($in['token'] ?? '')); if ((int)($pl['plan_until'] ?? 0) < time()) NO('لوگو ویژه‌ی اشتراک مدرسه است.', 402);
+        $d = (string)($in['data'] ?? ''); if ($d === '') { q('UPDATE places SET logo=NULL WHERE id=?', [$pl['id']]); YES(); }
+        if (!preg_match('#^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$#', $d, $m) || strlen($m[2]) > 160000) NO('تصویر PNG یا JPG تا حدود ۱۰۰ کیلوبایت بفرستید.');
+        $raw = base64_decode($m[2], true); $info = $raw ? @getimagesizefromstring($raw) : false; if (!$info || $info[0] > 1024 || $info[1] > 1024) NO('تصویر خراب است یا بزرگ‌تر از ۱۰۲۴ پیکسل.');
+        q('UPDATE places SET logo=? WHERE id=?', [$d, $pl['id']]); YES(['logo' => '/app/api/logo.php?p=' . $pl['id'] . '&v=' . substr(md5($d), 0, 8)]); }
     case 'staff_panel': { $u = auth(); need_phone($u); $r = row('SELECT pl.* FROM place_staff s JOIN places pl ON pl.id=s.place_id WHERE s.phone=? AND s.place_id=? AND s.role=?', [$u['phone'], (string)($in['place_id'] ?? ''), 'admin']);
         if (!$r || !$r['dash_token']) NO('دسترسی پنل این مدرسه برای شماره‌ی شما تعریف نشده است.', 403); ev_log('school', '🔑 ورود کادر به پنل ' . $r['name'], []); YES(['url' => '/schools/#panel/' . $r['dash_token']]); }
     case 'ordu_mine': { $u = auth(); $out = [];

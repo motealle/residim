@@ -198,3 +198,8 @@ footer .wrap{display:grid;gap:10px;justify-items:center}
 .c12{grid-column:1/-1}
 .perks .pk{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
 .perks .pk div{background:var(--bg);border-radius:16px;padding:10px 12px;display:grid;gap:2px}.perks .pk span{font-size:.86rem;opacity:.8}
+/* the calculator must never widen past its card on a 320px phone */
+.est{grid-template-columns:minmax(0,1fr)}.est>*{min-width:0}
+@media (max-width:380px){.est{padding:20px 16px;border-radius:26px}}
+@media (min-width:900px){.est{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)}}
+.range{min-width:0}.range input{min-width:0;flex:1 1 auto}.range output{min-width:72px;flex:0 0 auto}

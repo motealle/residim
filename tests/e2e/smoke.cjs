@@ -66,6 +66,24 @@ const api = (a, b, t) => fetch(B + '/app/api/r6.php?a=' + a, { method: 'POST', h
     const bad = await api('ad_save', { kind: 'daily', role: 'driver', g: 'f', from_city: 'تهران', to_city: 'کرج', tm: '07:30', days: ['sa'], seats: 2, share: 'dong', body: 'تماس ۰۹۱۲۱۲۳۴۵۶۷', adult: 1, rules: 1 }, TA); assert(!bad.ok, 'phone in ad must be refused');
     const ad = await api('ad_save', { kind: 'daily', role: 'driver', g: 'f', from_city: 'تهران', to_city: 'کرج', tm: '07:30', days: ['sa', 'mo'], seats: 2, share: 'dong', body: 'صبح‌ها از ونک', adult: 1, rules: 1 }, TA); assert(ad.ok && ad.no, 'ad save');
     const pg = await (await fetch(B + '/ads/' + ad.no)).text(); assert(pg.includes('"Trip"') && !pg.includes(ph), 'ad detail is public and has no phone'); ok('ad post + detail');
-    const lv = await api('leave_state', { profile_id: pr.id }, T); assert(lv.ok, 'leave_state'); ok('leave state'); }
+    const lv = await api('leave_state', { profile_id: pr.id }, T); assert(lv.ok, 'leave_state'); ok('leave state');
+    // v38: trip card, mutual rating, trust line, «اطلاعات من»
+    const pb = '0935' + String(Date.now()).slice(-7), ob = await api('otp_send', { phone: pb }), TB = (await api('otp_verify', { phone: pb, code: ob.dev_code })).token;
+    const m1 = await api('ad_msg', { no: ad.no, text: 'سلام، جای خالی هست؟', g: 'f' }, TB); assert(m1.ok, 'asker msg ' + JSON.stringify(m1));
+    const th = (await api('ad_threads', {}, TA)).list || (await api('ad_threads', {}, TA)).threads || []; const tid = (th[0] || {}).id || m1.thread; assert(tid, 'thread id');
+    assert(!(await api('ad_trip', { id: tid, car: 'پژو' }, TB)).ok, 'trip card waits for the owner reply');
+    assert((await api('ad_msg', { thread: tid, text: 'بله، هست.' }, TA)).ok, 'owner reply');
+    assert((await api('ad_trip', { id: tid, car: 'پژو ۲۰۶', color: 'سفید', meet: 'ایستگاه مترو' }, TA)).ok, 'trip card');
+    const tv = await api('ad_thread', { id: tid }, TB); assert(tv.trip && tv.trip.car && tv.peer, 'thread shows trip + trust');
+    assert((await api('ad_rate', { id: tid, v: 1 }, TB)).ok && !(await api('ad_rate', { id: tid, v: 1 }, TB)).ok, 'rate once');
+    const tr = await api('ad_get', { no: ad.no }, TB); assert(tr.trust && tr.trust.good >= 1, 'trust counts the rating'); ok('trip card + rating + trust');
+    const mi = await api('my_info', { save: 1, first: 'باران', family: 'آسمان', city: 'تهران', hood: 'ونک', car: 'پژو', routes: [{ from: 'خانه', to: 'باشگاه', tm: '18:00' }] }, TB);
+    assert(mi.ok && mi.info.hood === 'ونک' && mi.info.routes.length === 1, 'my_info save'); assert((await api('me', {}, TB)).info.city === 'تهران', 'me.info'); ok('my info');
+    const L2 = await (await fetch(B + '/ads/')).text(); assert(L2.includes('class="rt"') && L2.includes('data-do="swap"') && L2.includes('class="fab"'), 'ads redesign markup'); ok('ads redesign'); }
+  // no page may spill past the screen or silently cut text, on a 320px phone up to a large phone
+  { const chk = require('./overflow.cjs'), { devices } = require('playwright');
+    for (const d of ['Galaxy S9+', 'Pixel 7']) { const c = await b.newContext({ ...devices[d] }), q = await c.newPage();
+      for (const u of ['/', '/stories/', '/ads/', '/schools/', '/pricing/']) { await q.goto(B + u); await q.waitForTimeout(900); const r = await q.evaluate(chk); assert(!r.length, `overflow on ${u} (${d}): ${r.join(' | ')}`); }
+      await c.close(); } ok('no overflow on public pages (320–412px)'); }
   await b.close(); console.log('ERRORS', JSON.stringify(errs)); if (errs.length) process.exit(2);
 })().catch(e => { console.error('FAIL', e.message.split('\n').slice(0, 3).join(' | ')); process.exit(1); });

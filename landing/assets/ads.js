@@ -30,7 +30,8 @@
   const DAYS = { sa: 'ش', su: 'ی', mo: 'د', tu: 'س', we: 'چ', th: 'پ', fr: 'ج' };
   async function newAd(edit) {
     let me = { g: '', limit: 3, premium: false, list: [] }; try { me = await api('ad_mine', {}); } catch (e) {}
-    const a = edit || { kind: 'intercity', role: 'driver', seats: 3, share: 'dong', audience: 'public' }, once = edit ? !!edit.at : a.kind === 'intercity' || a.kind === 'event';
+    let I = {}; if (!edit) try { I = (await api('my_info', {})).info || {}; } catch (e) {}
+    const a = edit || { kind: 'intercity', role: I.car ? 'driver' : 'rider', seats: I.seats || 3, share: 'dong', audience: 'public', from_city: I.city || '', from_area: I.hood || '' }, once = edit ? !!edit.at : a.kind === 'intercity' || a.kind === 'event';
     const ch = (n, v, t, on) => `<label class="ch"><input type="radio" name="${n}" value="${v}" ${on ? 'checked' : ''}><span>${t}</span></label>`;
     const dt = edit && edit.at ? new Date(edit.at * 1000 - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16) : '';
     open(edit ? 'ویرایش آگهی' : 'ثبت آگهی رایگان', `<form id="af" class="frm">
@@ -74,12 +75,26 @@
   async function thread(id, ownerHint, host) {
     host = host || $('#ad-thread'); if (!id) { host.innerHTML = `<p class="mut">آگهیِ خودتان است. پیام‌ها در «آگهی‌ها و پیام‌های من» است.</p><button class="btn ghost sm" data-do="me">باز کردن</button>`; return; }
     let r; try { r = await api('ad_thread', { id }); } catch (e) { return toast(e.message); }
-    host.innerHTML = `<div class="th"><div class="th-l">${r.list.map(m => `<div class="m ${m.mine ? 'me' : ''}"><span>${esc(m.text)}</span><small>${fa(new Date(m.at * 1000).toLocaleString('fa-IR', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }))}</small></div>`).join('')}</div>
+    const P = r.peer || {}, A = r.ad || {}; let T = r.trip || {};
+    if (!T.car && r.phone_ok && (r.own ? A.role === 'driver' : A.role === 'rider')) try { const I = (await api('my_info', {})).info || {}; if (I.car) T = Object.assign({ car: I.car, color: I.color, plate: I.plate }, T); } catch (e) {}
+    const who = `<p class="trust">${r.own ? 'پرسنده' : 'آگهی‌دهنده'}: ${P.verified ? 'شماره‌ی تأییدشده' : 'شماره تأیید نشده'} · عضو از ${esc(P.since_t || '')}${P.good ? ` · <b>${fa(P.good)} همسفرِ راضی</b>` : ''}${P.bad ? ` · ${fa(P.bad)} ناراضی` : ''}${P.new ? ' · <span class="newacc">حساب تازه</span>' : ''}${P.phone ? ` · <span dir="ltr">${esc(fa(P.phone))}</span>` : ''}</p>`;
+    const card = r.phone_ok ? `<details class="tripc" ${T.car || T.meet ? 'open' : ''}><summary>🧾 کارت سفر ${T.car || T.meet ? '' : '(پیش از حرکت پر کنید)'}</summary>
+        <form class="frm two" id="tf"><label>ماشین<input name="car" maxlength="40" value="${esc(T.car || '')}" placeholder="مثلاً پژو ۲۰۶"></label><label>رنگ<input name="color" maxlength="20" value="${esc(T.color || '')}"></label>
+        <label>پلاک<input name="plate" maxlength="20" value="${esc(T.plate || '')}" placeholder="۱۲ ب ۳۴۵ ایران ۶۷"></label><label>ساعت<input name="time" maxlength="20" value="${esc(T.time || '')}" placeholder="۶:۳۰"></label>
+        <label style="grid-column:1/-1">جای سوار شدن (شلوغ و شناخته‌شده)<input name="meet" maxlength="80" value="${esc(T.meet || '')}" placeholder="مثلاً جلوی ورودی مترو صادقیه"></label>
+        <div class="row" style="grid-column:1/-1"><button class="btn sm pri">ذخیره</button><button type="button" class="btn sm ghost" id="tshare">فرستادن برای یک آشنا</button><span class="mut">پلیس ۱۱۰ · اورژانس ۱۱۵</span></div></form></details>` : '';
+    const rate = r.can_rate ? (r.my_rate ? `<p class="mut">نظرتان ثبت شد: ${r.my_rate > 0 ? '👍 راضی' : '👎 ناراضی'}. ممنون.</p>` : `<div class="rate"><span>سفر انجام شد؟ از همسفرتان راضی بودید؟</span><button class="btn sm ghost" data-rate="1">👍 راضی</button><button class="btn sm ghost" data-rate="-1">👎 ناراضی</button></div>`) : '';
+    host.innerHTML = `<div class="th">${who}<div class="th-l">${r.list.map(m => `<div class="m ${m.mine ? 'me' : ''}"><span>${esc(m.text)}</span><small>${fa(new Date(m.at * 1000).toLocaleString('fa-IR', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }))}</small></div>`).join('')}</div>
       ${r.blocked ? '<p class="mut">این گفتگو بسته شده است.</p>' : `<form class="tbox" data-th="${id}"><textarea maxlength="500" placeholder="${r.phone_ok ? 'پیام… (حالا می‌توانید شماره هم بدهید)' : 'پیام…'}" required></textarea><button class="btn pri">فرستادن</button></form>`}
-      <div class="row"><button class="link" data-block="${id}" data-v="${r.blocked ? 0 : 1}">${r.blocked ? 'باز کردن گفتگو' : 'بستن این گفتگو'}</button></div></div>`;
+      ${card}${rate}<div class="row"><button class="link" data-block="${id}" data-v="${r.blocked ? 0 : 1}">${r.blocked ? 'باز کردن گفتگو' : 'بستن این گفتگو'}</button></div></div>`;
     const L = host.querySelector('.th-l'); L.scrollTop = L.scrollHeight;
-    const f = host.querySelector('form'); if (f) f.onsubmit = async e => { e.preventDefault(); const t = f.querySelector('textarea'); try { await api('ad_msg', { thread: id, text: t.value }); thread(id, 0, host); } catch (er) { toast(er.message); } };
+    const f = host.querySelector('form.tbox'); if (f) f.onsubmit = async e => { e.preventDefault(); const t = f.querySelector('textarea'); try { await api('ad_msg', { thread: id, text: t.value }); thread(id, 0, host); } catch (er) { toast(er.message); } };
     host.querySelector('[data-block]').onclick = async e => { try { await api('ad_block', { id, v: +e.target.dataset.v }); thread(id, 0, host); } catch (er) { toast(er.message); } };
+    const tf = host.querySelector('#tf'); if (tf) { tf.onsubmit = async e => { e.preventDefault(); const fd = Object.fromEntries(new FormData(tf)); try { await api('ad_trip', { id, ...fd }); toast('کارت سفر ذخیره شد.'); thread(id, 0, host); } catch (er) { toast(er.message); } };
+      host.querySelector('#tshare').onclick = () => { const fd = Object.fromEntries(new FormData(tf)), txt = `🧾 کارت سفرِ من (رسیدیم)\n${A.title || ''}\n${A.when || ''}\nماشین: ${fd.car || '—'} ${fd.color || ''} · پلاک: ${fd.plate || '—'}\nساعت: ${fd.time || '—'} · سوار شدن: ${fd.meet || '—'}\nهمسفر: ${P.phone || 'شماره پس از پاسخ'} · عضو از ${P.since_t || ''}\nآگهی: residim.ir/ads/${A.no || ''}`;
+        if (navigator.share) navigator.share({ text: txt }).catch(() => {}); else navigator.clipboard.writeText(txt).then(() => toast('کپی شد؛ برای یک آشنا بفرستید.'), () => toast(txt)); }; }
+    host.querySelectorAll('[data-rate]').forEach(b => b.onclick = async () => { const v = +b.dataset.rate; let why = ''; if (v < 0) { why = window.prompt ? (prompt('چه مشکلی پیش آمد؟ (کوتاه؛ فقط تیم رسیدیم می‌بیند)') || '') : ''; }
+      try { await api('ad_rate', { id, v, why }); toast(v > 0 ? 'ممنون! این به همسفرهای بعدی اعتماد می‌دهد.' : 'ثبت شد؛ بررسی می‌کنیم.'); thread(id, 0, host); } catch (er) { toast(er.message); } });
   }
 
   /* ── my ads and messages ── */
@@ -107,6 +122,7 @@
   document.addEventListener('click', e => { const b = e.target.closest('[data-do]'); if (!b) return; const k = b.dataset.do;
     if (k === 'new') need(() => newAd()); if (k === 'me') need(() => mine()); if (k === 'msg') need(msgStart); if (k === 'report') need(report);
     if (k === 'login') login(() => location.reload());
+    if (k === 'swap') { const f = b.form, x = f.from.value; f.from.value = f.to.value; f.to.value = x; b.classList.toggle('on'); }
     if (k === 'share') { const u = location.href.split('#')[0], t = document.title; if (navigator.share) navigator.share({ title: t, url: u }).catch(() => {}); else navigator.clipboard.writeText(u).then(() => toast('پیوند کپی شد.'), () => toast(u)); } });
 
   /* a «contacts» ad is rendered here for the chosen members only */
