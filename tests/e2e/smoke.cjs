@@ -78,7 +78,18 @@ const api = (a, b, t) => fetch(B + '/app/api/r6.php?a=' + a, { method: 'POST', h
     assert((await api('ad_rate', { id: tid, v: 1 }, TB)).ok && !(await api('ad_rate', { id: tid, v: 1 }, TB)).ok, 'rate once');
     const tr = await api('ad_get', { no: ad.no }, TB); assert(tr.trust && tr.trust.good >= 1, 'trust counts the rating'); ok('trip card + rating + trust');
     const mi = await api('my_info', { save: 1, first: 'باران', family: 'آسمان', city: 'تهران', hood: 'ونک', car: 'پژو', routes: [{ from: 'خانه', to: 'باشگاه', tm: '18:00' }] }, TB);
-    assert(mi.ok && mi.info.hood === 'ونک' && mi.info.routes.length === 1, 'my_info save'); assert((await api('me', {}, TB)).info.city === 'تهران', 'me.info'); ok('my info');
+    assert(mi.ok && mi.info.hood === 'ونک' && mi.info.routes.length === 1, 'my_info save');
+    const m2 = await api('my_info', { save: 1, plate: '۱۲ ب ۳۴۵ ایران ۶۷', p3: '۳۴۵', pir: '67', job: 'cleric', tcode: '۸۸۰۰۱۲۳۴', rel: 'hacker', kids: [{ first: 'دریا', g: 'f', by: 1398 }, { first: '' }] }, TB);
+    assert(m2.ok && !m2.info.plate && m2.info.p3 === '345' && m2.info.pir === '67' && m2.info.tcode === '88001234' && m2.info.rel === '' && m2.info.kids.length === 1, 'my_info partial plate/talabe/kids ' + JSON.stringify(m2.info));
+    assert((await api('ad_trip', { id: tid, plate: '12ب345ایران67' }, TA)).ok && (await api('ad_thread', { id: tid }, TB)).trip.plate === '345 ایران 67', 'trip plate kept partial');
+    // «دارم می‌روم» quota: a work mesirak, paid mode on → 30 guest trips in the first month, one trip per direction per day
+    const wp = (await api('place_create', { kind: 'work', name: 'شرکت آزمون نسیم', city: 'تهران', gender: 'fm', lat: 35.70, lng: 51.40, force: true }, TB)).place;
+    const wpr = (await api('profile_save', { kind: 'work', label: 'کار', place_id: wp.id, complete: 1, data: { family: 'آسمان', pg: 'f', lat: 35.72, lng: 51.41, hood: 'ونک', role: 'drive', seats: 3, rules_at: 1, contact: 'app' } }, TB)).profile;
+    const AD = (await api('admin_login', { u: 'mot', p: 'mot' })).token; await api('admin_flag', { k: 'paid_mode', v: 1 }, AD); await api('admin_flag', { k: 'leave_on', v: 1 }, AD);
+    const q0 = (await api('leave_state', { profile_id: wpr.id }, TB)).quota; assert(q0 && !q0.unlimited && q0.free === 30 && q0.left === 30, 'quota first month ' + JSON.stringify(q0));
+    const s1 = await api('leave_start', { profile_id: wpr.id, dir: 'home', role: 'car', seats: 3, confirm: 1 }, TB); assert(s1.ok && s1.quota.left === 29, 'trip counted ' + JSON.stringify(s1));
+    await api('leave_quit', { profile_id: wpr.id, group: s1.group.id }, TB); const s2 = await api('leave_start', { profile_id: wpr.id, dir: 'home', role: 'car', seats: 3, confirm: 1 }, TB); assert(s2.ok && s2.quota.left === 29, 'same direction same day counted once');
+    await api('leave_quit', { profile_id: wpr.id, group: s2.group.id }, TB); await api('admin_flag', { k: 'paid_mode', v: 0 }, AD); ok('partial plate + talabe + kids + leave quota'); assert((await api('me', {}, TB)).info.city === 'تهران', 'me.info'); ok('my info');
     const L2 = await (await fetch(B + '/ads/')).text(); assert(L2.includes('class="rt"') && L2.includes('data-do="swap"') && L2.includes('class="fab"'), 'ads redesign markup'); ok('ads redesign'); }
   // no page may spill past the screen or silently cut text, on a 320px phone up to a large phone
   { const chk = require('./overflow.cjs'), { devices } = require('playwright');

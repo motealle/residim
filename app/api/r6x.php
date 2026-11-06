@@ -10,7 +10,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/r6.php';
 
 function x_schema(): void {
-    static $done = false; if ($done) return; $done = true; $v = (int)getv('xschema', '0'); if ($v >= 4) return; if ($v === 3) { x_schema4(); return; } if ($v === 2) { x_schema3(); x_schema4(); return; } if ($v === 1) { x_schema2(); x_schema3(); x_schema4(); return; }
+    static $done = false; if ($done) return; $done = true; $v = (int)getv('xschema', '0'); if ($v >= 5) return; if ($v === 4) { x_schema5(); return; } if ($v === 3) { x_schema4(); x_schema5(); return; } if ($v === 2) { x_schema3(); x_schema4(); x_schema5(); return; } if ($v === 1) { x_schema2(); x_schema3(); x_schema4(); return; }
     $p = db6(); $K = 'VARCHAR(40)'; $my = $p->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' DEFAULT CHARSET=utf8mb4' : '';
     foreach ([
         "CREATE TABLE IF NOT EXISTS ads (id $K PRIMARY KEY, no INT UNIQUE, user_id $K, kind VARCHAR(12), role VARCHAR(6), g VARCHAR(1), from_city VARCHAR(40), from_area VARCHAR(60), to_city VARCHAR(40), to_area VARCHAR(60), title VARCHAR(90), body TEXT, at INT, days VARCHAR(20), tm VARCHAR(5), seats INT, share VARCHAR(8), audience VARCHAR(8), contacts TEXT, status VARCHAR(10), pin_until INT DEFAULT 0, views INT DEFAULT 0, msgs INT DEFAULT 0, reports INT DEFAULT 0, bumped INT, created INT, updated INT, expires INT)$my",
@@ -27,7 +27,7 @@ function x_schema(): void {
         'CREATE INDEX ix_tg_place ON tgroups(place_id, status)', 'CREATE INDEX ix_tgm_p ON tg_members(profile_id)', 'CREATE INDEX ix_ordu_pl ON ordu(place_id)'] as $s) { try { $p->exec($s); } catch (Throwable $e) {} }
     foreach (['ads_on' => '1', 'ads_review' => '0', 'leave_on' => '1', 'ordu_on' => '1'] as $k => $v) if (getv($k, null, $p) === null) setv($k, $v, $p);
     if (!getv('x_pepper', null, $p)) setv('x_pepper', bin2hex(random_bytes(16)), $p);
-    setv('xschema', '1', $p); x_schema2(); x_schema3(); x_schema4();
+    setv('xschema', '1', $p); x_schema2(); x_schema3(); x_schema4(); x_schema5();
 }
 /** v37: school staff numbers (full access + panel), and the direction of a leave group (home | work). */
 function x_schema2(): void { $p = db6(); $K = 'VARCHAR(40)'; $my = $p->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' DEFAULT CHARSET=utf8mb4' : '';
@@ -37,6 +37,26 @@ function x_schema2(): void { $p = db6(); $K = 'VARCHAR(40)'; $my = $p->getAttrib
 function x_schema3(): void { $p = db6(); foreach (['ALTER TABLE ad_threads ADD COLUMN trip TEXT', 'ALTER TABLE ad_threads ADD COLUMN owner_rate INT DEFAULT 0', 'ALTER TABLE ad_threads ADD COLUMN asker_rate INT DEFAULT 0', 'ALTER TABLE places ADD COLUMN logo TEXT'] as $q) { try { $p->exec($q); } catch (Throwable $e) {} } setv('xschema', '3', $p); }
 /** v38: the member's own fixed details («اطلاعات من»), used to prefill every form. */
 function x_schema4(): void { $p = db6(); try { $p->exec('ALTER TABLE users ADD COLUMN info TEXT'); } catch (Throwable $e) {} setv('xschema', '4', $p); }
+function x_schema5(): void { $p = db6(); try { $p->exec('ALTER TABLE users ADD COLUMN lv_credits INT DEFAULT 0'); } catch (Throwable $e) {}
+    $my = $p->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' DEFAULT CHARSET=utf8mb4' : '';
+    $p->exec("CREATE TABLE IF NOT EXISTS lv_use(user_id VARCHAR(40) NOT NULL, k VARCHAR(16) NOT NULL, at INT NOT NULL, paid INT DEFAULT 0, PRIMARY KEY(user_id, k))$my"); setv('xschema', '5', $p); }
+/* «دارم می‌روم» quota: subscribers, sponsored places and paid teams are unlimited; everyone else rides as our guest — 30 trips in the
+   first (gift) month, then 20 every 30 days — and after that uses prepaid trip passes (counted in trips, never money: no wallet).
+   One trip = one direction on one day, so quitting and re-joining is never charged twice. */
+function lv_quota(array $u, array $prof): array { if (leave_allowed($u, $prof)) return ['unlimited' => true];
+    $usr = row('SELECT created, COALESCE(lv_credits,0) c FROM users WHERE id=?', [$u['user_id']]); $first = time() - (int)($usr['created'] ?? 0) < 30 * 86400;
+    $free = $first ? (int)getv('leave_free_first', '30') : (int)getv('leave_free', '20');
+    $since = $first ? (int)($usr['created'] ?? 0) : time() - 30 * 86400;
+    $used = (int)(row('SELECT COUNT(*) n FROM lv_use WHERE user_id=? AND at>=? AND paid=0', [$u['user_id'], $since])['n'] ?? 0);
+    return ['unlimited' => false, 'first' => $first, 'free' => $free, 'left' => max(0, $free - $used), 'credits' => (int)($usr['c'] ?? 0), 'price' => (int)getv('leave_trip_price', '10000')]; }
+function lv_key(string $dir): string { return date('Ymd') . '-' . $dir; }
+function lv_can(array $u, array $prof, string $dir): void { $Q = lv_quota($u, $prof); if ($Q['unlimited'] || $Q['left'] > 0 || $Q['credits'] > 0) return;
+    if (row('SELECT 1 FROM lv_use WHERE user_id=? AND k=?', [$u['user_id'], lv_key($dir)])) return;
+    NO('سفرهای مهمانِ این ماه تمام شد؛ با اشتراک نامحدود شوید یا بلیت سفر بگیرید.', 402, 'lvpay'); }
+function lv_take(array $u, array $prof, string $dir): void { $Q = lv_quota($u, $prof); if ($Q['unlimited']) return;
+    if (row('SELECT 1 FROM lv_use WHERE user_id=? AND k=?', [$u['user_id'], lv_key($dir)])) return;
+    $paid = 0; if ($Q['left'] <= 0) { if (q('UPDATE users SET lv_credits=lv_credits-1 WHERE id=? AND lv_credits>0', [$u['user_id']])->rowCount() !== 1) NO('بلیت سفر کافی نیست.', 402, 'lvpay'); $paid = 1; }
+    try { q('INSERT INTO lv_use(user_id,k,at,paid) VALUES(?,?,?,?)', [$u['user_id'], lv_key($dir), time(), $paid]); } catch (Throwable $e) { if ($paid) q('UPDATE users SET lv_credits=lv_credits+1 WHERE id=?', [$u['user_id']]); } }
 
 /* ───────── shared helpers ───────── */
 const FA_D = ['0' => '۰', '1' => '۱', '2' => '۲', '3' => '۳', '4' => '۴', '5' => '۵', '6' => '۶', '7' => '۷', '8' => '۸', '9' => '۹'];
@@ -59,6 +79,9 @@ function user_g(string $uid): string { $u = row('SELECT g FROM users WHERE id=?'
     foreach (rows('SELECT data FROM profiles WHERE user_id=? AND complete=1', [$uid]) as $p) { $g = (json_decode((string)$p['data'], true) ?: [])['pg'] ?? ''; if (in_array($g, ['f', 'm'], true)) return $g; } return ''; }
 function set_g(string $uid, string $g): string { $cur = user_g($uid); if ($cur) return $cur; if (!in_array($g, ['f', 'm'], true)) return ''; q('UPDATE users SET g=? WHERE id=?', [$g, $uid]); return $g; }
 function x_premium(string $uid): bool { return is_premium($uid); }
+function dg(string $s): string { return preg_replace('/\D/', '', strtr($s, ['۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4','۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9','٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4','٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9'])); }
+/* plates are kept partial on purpose: the three middle digits + the Iran code are enough to find the car on the day, not to identify its owner */
+function plate_part(string $s): string { $d = dg($s); $n = strlen($d); if ($n >= 7) return substr($d, 2, 3) . ' ایران ' . substr($d, -2); if ($n === 5) return substr($d, 0, 3) . ' ایران ' . substr($d, 3); return substr($d, 0, 3); }
 function need_phone(array $u): void { if (empty($u['phone'])) NO('برای این کار شماره‌ی موبایل را تأیید کنید.', 403, 'verify'); }
 function g_word(string $g): string { return $g === 'm' ? 'آقایان' : 'بانوان'; }
 function chash(string $ph): string { return substr(hash('sha256', $ph . '|' . getv('x_pepper', '')), 0, 24); }
@@ -247,7 +270,7 @@ function x_route(string $a, array $in): void {
             'peer' => trust_of($peer) + ['phone' => (int)$t['owner_replied'] === 1 ? pmask((string)($pp['phone'] ?? '')) : ''], 'my_rate' => (int)($own ? $t['owner_rate'] : $t['asker_rate']), 'can_rate' => (int)$t['owner_replied'] === 1 && (!$ad || !(int)$ad['at'] || (int)$ad['at'] < time() + 3600), 'list' => array_map(fn($m) => ['text' => $m['text'], 'at' => (int)$m['created'], 'mine' => $m['from_user'] === $me], rows('SELECT * FROM ad_msgs WHERE thread_id=? ORDER BY created LIMIT 300', [$t['id']]))]); }
     case 'ad_trip': { $u = auth(); $me = $u['user_id']; $t = row('SELECT * FROM ad_threads WHERE id=?', [(string)($in['id'] ?? '')]); if (!$t || !in_array($me, [$t['owner'], $t['asker']], true)) NO('گفتگو پیدا نشد.', 404);
         if (!(int)$t['owner_replied']) NO('کارت سفر بعد از پاسخِ آگهی‌دهنده باز می‌شود.'); $T = json_decode((string)($t['trip'] ?? ''), true) ?: [];
-        foreach (['car' => 40, 'color' => 20, 'plate' => 20, 'meet' => 80, 'time' => 20] as $k => $n) if (isset($in[$k])) { $v = s1((string)$in[$k], $n); if ($e = x_bad($v, true)) NO($e); $T[$k] = $v; }
+        foreach (['car' => 40, 'color' => 20, 'plate' => 20, 'meet' => 80, 'time' => 20] as $k => $n) if (isset($in[$k])) { $v = $k === 'plate' ? plate_part((string)$in[$k]) : s1((string)$in[$k], $n); if ($e = x_bad($v, true)) NO($e); $T[$k] = $v; }
         $T['by'] = $me === $t['owner'] ? 'owner' : 'asker'; $T['at'] = time(); q('UPDATE ad_threads SET trip=? WHERE id=?', [json_encode($T, JSON_UNESCAPED_UNICODE), $t['id']]);
         q('INSERT INTO ad_msgs(id,thread_id,from_user,text,created) VALUES(?,?,?,?,?)', [uid(), $t['id'], $me, '🧾 کارت سفر به‌روز شد.', time()]); YES(['trip' => $T]); }
     case 'ad_rate': { $u = auth(); $me = $u['user_id']; $t = row('SELECT * FROM ad_threads WHERE id=?', [(string)($in['id'] ?? '')]); if (!$t || !in_array($me, [$t['owner'], $t['asker']], true)) NO('گفتگو پیدا نشد.', 404);
@@ -285,10 +308,10 @@ function x_route(string $a, array $in): void {
             if (tg_member($gr['id'], $me['id'])) { $mine[] = tg_out($gr, $me['id']); continue; }
             if ($gr['g'] !== $g) continue; $ow = row('SELECT * FROM profiles WHERE id=?', [$gr['owner']]); if (!$ow || in_array($ow['id'], (array)($d['blocked'] ?? []), true)) continue;
             if (same_way($pl, $d, pdata($ow))) $near[] = tg_out($gr, $me['id']); }
-        YES(['on' => flag('leave_on'), 'allowed' => leave_allowed($u, $me), 'dir' => (int)date('G') < 11 ? 'work' : 'home', 'place' => ['lat' => (float)$pl['lat'], 'lng' => (float)$pl['lng'], 'name' => $pl['name']], 'mine' => $mine, 'near' => array_slice($near, 0, 6)]); }
+        YES(['on' => flag('leave_on'), 'allowed' => leave_allowed($u, $me), 'quota' => lv_quota($u, $me), 'dir' => (int)date('G') < 11 ? 'work' : 'home', 'place' => ['lat' => (float)$pl['lat'], 'lng' => (float)$pl['lng'], 'name' => $pl['name']], 'mine' => $mine, 'near' => array_slice($near, 0, 6)]); }
     case 'leave_start': case 'leave_join': { if (!flag('leave_on')) NO('«دارم می‌روم» فعلاً خاموش است.', 403); $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? ''));
         if (!$me['complete'] || !in_array($me['kind'], LEAVE_KINDS, true) || !$me['place_id']) NO('«دارم می‌روم» برای مسیرک محل کار یا دانشگاه است.');
-        if (!leave_allowed($u, $me)) NO('«دارم می‌روم» ویژه‌ی اشتراک فردی، تیمی یا سازمانی است.', 402, 'paid');
+        lv_can($u, $me, ($in['dir'] ?? '') === 'work' ? 'work' : 'home');
         $pl = row('SELECT * FROM places WHERE id=?', [$me['place_id']]); $d = pdata($me); $g = (string)($d['pg'] ?? 'f');
         $dir = ($in['dir'] ?? '') === 'work' ? 'work' : 'home';
         $role = ($in['role'] ?? '') === 'car' ? 'car' : 'ride'; $seats = $role === 'car' ? max(1, min(4, (int)($in['seats'] ?? 3))) : max(1, min(3, (int)($in['seats'] ?? 1)));
@@ -314,7 +337,7 @@ function x_route(string $a, array $in): void {
                 if ($sms < 10 && !(int)$o['ufake'] && $o['phone'] && ($od['leave_sms'] ?? 1) && flag('sms_direct') && sms_ready() && x_premium($o['user_id']) && hit('lvsms_' . $o['user_id'], 86400) <= 3) { try { kave_send($o['phone'], ($dir === 'home' ? "همکاری از {$pl['name']} ساعت " . hhmm((int)$gr['at']) . ' به سمت ' . ($hood ?: 'خانه') . ' می‌رود.' : 'همکاری ساعت ' . hhmm((int)$gr['at']) . ' از سمت ' . ($hood ?: 'خانه') . " به {$pl['name']} می‌آید.") . "\nهم‌مسیر شوید: residim.ir", 'leave', $u['user_id']); $sms++; } catch (Throwable $e) {} }
                 if ($sent >= 60) break; }
             ev_log('leave', "🚪 «دارم می‌روم» در {$pl['name']}: $sent همکار باخبر شدند", []); }
-        YES(['group' => tg_out(row('SELECT * FROM tgroups WHERE id=?', [$gr['id']]), $me['id'])]); }
+        lv_take($u, $me, $dir); YES(['group' => tg_out(row('SELECT * FROM tgroups WHERE id=?', [$gr['id']]), $me['id']), 'quota' => lv_quota($u, $me)]); }
     case 'leave_quit': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $gr = row('SELECT * FROM tgroups WHERE id=?', [(string)($in['group'] ?? '')]); if (!$gr || !tg_member($gr['id'], $me['id'])) NO('گروه پیدا نشد.', 404);
         q('DELETE FROM tg_members WHERE group_id=? AND profile_id=?', [$gr['id'], $me['id']]); $left = tg_members($gr['id']);
         if (!$left || !empty($in['done'])) q("UPDATE tgroups SET status='closed' WHERE id=?", [$gr['id']]); elseif ($gr['owner'] === $me['id']) q('UPDATE tgroups SET owner=? WHERE id=?', [$left[0]['profile_id'], $gr['id']]);
@@ -367,7 +390,14 @@ function x_route(string $a, array $in): void {
         YES(['paid' => $paid, 'list' => array_map(fn($r) => ['phone' => pmask($r['phone']), 'raw' => $r['phone'], 'role' => $r['role']], rows('SELECT * FROM place_staff WHERE place_id=? ORDER BY created', [$pl['id']]))]); }
     case 'my_info': { $u = auth(); $me = $u['user_id']; $I = json_decode((string)(row('SELECT info FROM users WHERE id=?', [$me])['info'] ?? ''), true) ?: [];
         if (!empty($in['save'])) { $f = fn($k, $n) => s1((string)($in[$k] ?? ''), $n);
-            foreach (['family' => 40, 'first' => 30, 'rel' => 12, 'city' => 40, 'hood' => 60, 'job' => 40, 'car' => 40, 'color' => 20, 'plate' => 20] as $k => $n) if (array_key_exists($k, $in)) { $v = $f($k, $n); if ($e = x_bad($v, true)) NO($e); $I[$k] = $v; }
+            unset($I['plate']);
+            if (array_key_exists('rel', $in)) { $I['rel'] = in_array($in['rel'], ['mother', 'father', 'grandma', 'grandpa'], true) ? $in['rel'] : ''; unset($in['rel']); }
+            if (array_key_exists('job', $in)) { $I['job'] = in_array($in['job'], ['teacher', 'cleric', 'academic', 'student', 'medic'], true) ? $in['job'] : ''; unset($in['job']); }
+            if (array_key_exists('tcode', $in)) $I['tcode'] = substr(dg((string)$in['tcode']), 0, 12);
+            if (array_key_exists('p3', $in)) $I['p3'] = substr(dg((string)$in['p3']), 0, 3);
+            if (array_key_exists('pir', $in)) $I['pir'] = substr(dg((string)$in['pir']), 0, 2);
+            if (isset($in['kids']) && is_array($in['kids'])) { $jy = (int)date('Y') - (date('md') >= '0321' ? 621 : 622); $I['kids'] = array_values(array_filter(array_map(fn($k) => ['first' => s1((string)($k['first'] ?? ''), 30), 'g' => in_array($k['g'] ?? '', ['f', 'm'], true) ? $k['g'] : '', 'by' => (($b = (int)dg((string)($k['by'] ?? ''))) >= $jy - 30 && $b <= $jy) ? $b : ''], array_slice($in['kids'], 0, 6)), fn($k) => $k['first'] !== '')); }
+            foreach (['family' => 40, 'first' => 30, 'city' => 40, 'hood' => 60, 'car' => 40, 'color' => 20] as $k => $n) if (array_key_exists($k, $in)) { $v = $f($k, $n); if ($e = x_bad($v, true)) NO($e); $I[$k] = $v; }
             if (isset($in['lat'], $in['lng']) && is_numeric($in['lat']) && is_numeric($in['lng']) && abs((float)$in['lat']) <= 90) { $I['lat'] = round((float)$in['lat'], 5); $I['lng'] = round((float)$in['lng'], 5); }
             if (array_key_exists('seats', $in)) $I['seats'] = max(0, min(6, (int)$in['seats']));
             if (isset($in['routes']) && is_array($in['routes'])) $I['routes'] = array_values(array_filter(array_map(fn($r) => ['label' => s1((string)($r['label'] ?? ''), 40), 'from' => s1((string)($r['from'] ?? ''), 60), 'to' => s1((string)($r['to'] ?? ''), 60), 'tm' => preg_match('/^\d{1,2}:\d{2}$/', en_d((string)($r['tm'] ?? ''))) ? en_d((string)$r['tm']) : ''], array_slice($in['routes'], 0, 8)), fn($r) => $r['from'] || $r['to']));
