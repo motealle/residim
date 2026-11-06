@@ -74,7 +74,7 @@ function pitch() {
 function sponsorPoster(D, W) {
   const pl = D.place; let q = ''; try { const c = qrcode(0, 'M'); c.addData('https://residim.ir/' + pl.code); c.make(); q = c.createSvgTag({ cellSize: 6, margin: 1, scalable: true }); } catch (e) {}
   const el = document.createElement('div'); el.id = 'spons';
-  el.innerHTML = `<div class="sp-top"><img src="../assets/icon.svg?v=35" alt=""><b>رسیدیم</b></div><h1>اشتراک ویژه‌ی «رسیدیم» برای ${W.who} <span>${esc(pl.name)}</span> رایگان شد!</h1>
+  el.innerHTML = `<div class="sp-top"><img src="../assets/icon.svg?v=36" alt=""><b>رسیدیم</b></div><h1>اشتراک ویژه‌ی «رسیدیم» برای ${W.who} <span>${esc(pl.name)}</span> رایگان شد!</h1>
     <p class="sp-sub">${W.edu ? 'بچه‌ها را با خانواده‌های هم‌محله نوبتی ببرید و بیاورید؛' : 'با هم‌مسیرهای همین مجموعه با هم بروید، با هم برگردید؛'} منظم، با برنامه‌ی روزانه و هفتگی و سهم منصفانه‌ی هزینه.</p>
     <div class="sp-qr">${q}</div><p class="sp-url">residim.ir/${esc(pl.code)}</p>
     ${D.seats ? `<p class="sp-seats">ظرفیت: ${fa(D.seats)} اکانت – تا پر نشده ثبت‌نام کنید</p>` : ''}<p class="sp-by">با حمایت ${esc(pl.name)}</p>`;
@@ -103,11 +103,12 @@ async function panel(token) {
           <p class="note">فاصله تا مدرسه: ${['زیر ۱ کیلومتر', '۱ تا ۳', '۳ تا ۶', 'بیش از ۶ کیلومتر'].map((t, i) => `${t}: <b>${D.dist[i] < 0 ? 'کمتر از ۳' : fa(D.dist[i])}</b>`).join(' – ')}</p></div>
         <div class="card c6"><h2>محله‌های پرتکرار</h2>${D.hoods.length ? `<div class="hb">${D.hoods.map(([h, n]) => `<div><span>${esc(h)}</span><i style="width:${Math.round(100 * n / D.hoods[0][1])}%"></i><b>${fa(n)}</b></div>`).join('')}</div>` : '<p class="note">هنوز محله‌ای با دست‌کم سه خانواده نیست.</p>'}
           <p class="note">نقش‌ها: ${fa(D.roles.drive || 0)} راننده – ${fa(D.roles.both || 0)} راننده و هزینه – ${fa(D.roles.pay || 0)} فقط هزینه</p></div>
-        <div class="card c6 no-print"><h2>📣 پیام به همه‌ی ${edu ? 'خانواده‌ها' : 'اعضا'}</h2><textarea id="bc" maxlength="220" placeholder="مثلاً: فردا به‌دلیل جلسه‌ی شورای مدرسه، تعطیلی ساعت ۱۲ است."></textarea><button class="btn pri sm" data-bc ${on ? '' : 'disabled'} style="margin-top:8px">فرستادن</button><p class="note">هر دو روز یک پیام؛ در «دعوت‌ها و پیام‌ها»ی اپ هر خانواده.${pl.bc_at ? ' آخرین پیام: ' + new Date(pl.bc_at * 1000).toLocaleDateString('fa-IR') : ''}</p></div>
+        <div class="card c6 no-print"><h2>📣 پیام به همه‌ی ${edu ? 'خانواده‌ها' : 'اعضا'}</h2><textarea id="bc" maxlength="220" placeholder="مثلاً: فردا به‌دلیل جلسه‌ی شورای مدرسه، تعطیلی ساعت ۱۲ است."></textarea><button class="btn pri sm" data-bc ${on ? '' : 'disabled'} style="margin-top:8px">فرستادن</button><p class="note">هر دو روز یک پیام؛ با اعلان گوشی و در «دعوت‌ها و پیام‌ها»ی اپ هر خانواده. برای اطلاعیه، دعوت به جلسه یا معرفی برنامه‌های مدرسه.${pl.bc_at ? ' آخرین پیام: ' + new Date(pl.bc_at * 1000).toLocaleDateString('fa-IR') : ''}</p></div>
         <div class="card c6 no-print"><h2>🏆 لیگ و 📻 رادیوی «راه مدرسه»</h2><label class="sw"><span><b>لیگ راه مدرسه</b><br><small class="note">معمای روزانه و ستاره‌ی تیم‌ها</small></span><input type="checkbox" data-league ${pl.league ? 'checked' : ''} ${on ? '' : 'disabled'}></label>
           <div class="rlist">${pl.radio.map((e, i) => `<div><span>🎧 ${esc(e.title)}</span><button class="btn sm ghost" data-rdel="${i}" ${on ? '' : 'disabled'}>حذف</button></div>`).join('') || '<p class="note">هنوز اپیزودی نگذاشته‌اید.</p>'}</div>
           <div class="form" style="gap:8px"><input id="r-t" placeholder="عنوان اپیزود (مثلاً قصه‌ی صبح شنبه)" maxlength="80" style="font:inherit;padding:10px;border-radius:12px;border:1.5px solid var(--line)"><input id="r-u" dir="ltr" placeholder="https://… لینک فایل صوتی (mp3)" style="font:inherit;padding:10px;border-radius:12px;border:1.5px solid var(--line)"><button class="btn sm dark" data-radd ${on ? '' : 'disabled'}>افزودن به رادیو</button></div></div>
         <div class="card c6"><h2>🖨️ پوستر و لینک ${W.org}</h2>${D.seats ? `<p>اکانت‌های اهدایی: <b>${fa(D.seats_used)} از ${fa(D.seats)}</b> استفاده شده؛ به ترتیب ثبت‌نام.</p><div style="height:10px;border-radius:6px;background:var(--bg);overflow:hidden;margin:6px 0 10px"><i style="display:block;height:100%;width:${Math.min(100, Math.round(100 * D.seats_used / D.seats))}%;background:var(--g)"></i></div>` : ''}<p>لینک ثبت‌نام ${edu ? 'خانواده‌ها' : 'اعضا'}: <b dir="ltr">residim.ir/${esc(pl.code)}</b></p><div id="qr" style="width:150px;margin:10px 0"></div><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap">${on ? `<button class="btn sm dark" data-spons>پوستر «رایگان شد» برای ${W.who.replace('‌های', 'ها').replace('اعضای', 'اعضا')}</button>` : ''}<a class="btn sm pri" href="../${esc(pl.code)}" target="_blank" rel="noopener">باز کردن صفحه‌ی ${W.org}</a></div></div>
+        ${edu ? `<div class="card c12 no-print" id="ordu-slot"><h2>🎒 اردوی دانش‌آموزی و خانوادگی</h2><p class="note">در حال بارگذاری…</p></div>` : ''}
         <div class="card c6"><h2>🔒 حریم خصوصی</h2><p class="note" style="font-size:.92rem">این پنل فقط عددهای تجمیعی دارد. گروه‌های کمتر از سه خانواده نشان داده نمی‌شوند. این لینک را فقط در اختیار مدیریت مدرسه بگذارید.</p></div>
       </div></div></section>`;
     $$('[data-n]').forEach(el => countTo(el, +el.dataset.n)); requestAnimationFrame(() => $$('.bars').forEach(b => b.parentElement.classList.add('in')));
@@ -118,8 +119,29 @@ async function panel(token) {
     $$('[data-rdel]').forEach(b => b.onclick = () => set({ radio: pl.radio.filter((_, i) => i !== +b.dataset.rdel) }));
     const ra = $('[data-radd]'); if (ra) ra.onclick = () => { const t = $('#r-t').value.trim(), u = $('#r-u').value.trim(); if (!t || !/^https:\/\//.test(u)) return toast('عنوان و لینک https فایل صوتی را بنویسید.'); set({ radio: [...pl.radio, { title: t, src: u }] }); };
     const bc = $('[data-bc]'); if (bc) bc.onclick = async () => { const t = $('#bc').value.trim(); if (t.length < 8) return toast('پیام کوتاه است.'); bc.disabled = true; try { const r = await api('school_broadcast', { token, text: t }); toast(`پیام به ${fa(r.n)} خانواده رسید.`); D = await api('school_dash', { token }); draw(); } catch (e) { toast(e.message); bc.disabled = false; } };
+    if (edu) orduPanel(token, on);
   };
   draw();
+}
+/* اردو: the school announces, families answer in the app, one click arranges cars by home proximity and the mahram rules */
+async function orduPanel(token, on) {
+  const el = $('#ordu-slot'); if (!el) return; let L;
+  try { L = (await api('school_ordu', { token, op: 'list' })).list; } catch (e) { el.innerHTML = `<h2>🎒 اردو</h2><p class="note">${esc(e.message)}</p>`; return; }
+  const row = o => { const s = o.stats, pl = o.plan; return `<div class="od-row"><div class="od-h"><b>${esc(o.title)}</b><span class="note">${esc(o.date_t)}، ساعت ${esc(o.time_t)} · ${esc(o.dest)} · ${o.who === 'family' ? 'خانوادگی' : 'دانش‌آموزی'}${o.status !== 'open' ? ' · بسته' : ''}</span></div>
+    <div class="od-k"><span><b>${fa(s.answered)}</b> از ${fa(s.families)} پاسخ</span><span><b>${fa(s.going)}</b> خانواده می‌آیند</span><span><b>${fa(s.kids)}</b> دانش‌آموز</span>${o.who === 'family' ? `<span><b>${fa(s.adults)}</b> بزرگسال</span>` : ''}<span><b>${fa(s.drivers)}</b> ماشین · ${fa(s.seats)} جای خالی</span><span><b>${fa(s.need)}</b> نفر جا لازم دارند</span><span><b>${fa(s.self)}</b> خودشان می‌روند</span></div>
+    ${pl ? `<p class="note">چیدمان (${new Date(pl.at * 1000).toLocaleString('fa-IR')}): <b>${fa(pl.cars.length)} ماشین</b>، ${fa(pl.cars.reduce((a, c) => a + c.families, 0))} خانواده در ماشین‌ها${pl.bus_people ? ` · <b>${fa(pl.bus_people)} نفر</b> (${fa(pl.bus_families)} خانواده) بی‌جا ماندند: برای‌شان سرویس یا اتوبوس بگیرید.` : ' · همه جا دارند.'} هر ماشین یک گفتگوی خودش را دارد.</p>` : ''}
+    ${o.status === 'open' ? `<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm pri" data-oplan="${o.id}" ${on ? '' : 'disabled'}>${pl ? 'چیدن دوباره‌ی ماشین‌ها' : 'چیدن ماشین‌ها'}</button><button class="btn sm ghost" data-oclose="${o.id}">بستن</button></div>` : ''}</div>`; };
+  const inp = (id, ph, t = 'text', x = '') => `<input id="${id}" type="${t}" placeholder="${ph}" ${x} style="font:inherit;padding:10px;border-radius:12px;border:1.5px solid var(--line)">`;
+  el.innerHTML = `<h2>🎒 اردوی دانش‌آموزی و خانوادگی</h2><p class="note">اردو را اعلام کنید. خانواده‌ها در اپ پاسخ می‌دهند: می‌آیند یا نه، چند نفر، ماشین دارند یا جا می‌خواهند. با یک کلیک، ماشین‌ها با نزدیکیِ خانه‌ها چیده می‌شوند. بزرگسالِ نامحرم و دختر و پسرِ بزرگ‌تر در یک ماشین نمی‌نشینند. باقی‌مانده یعنی تعداد صندلیِ اتوبوسی که لازم دارید. مدرسه فقط عددها را می‌بیند.</p>
+    ${L.map(row).join('') || '<p class="note">هنوز اردویی اعلام نشده است.</p>'}
+    <details ${L.length ? '' : 'open'} style="margin-top:12px"><summary><b>+ اعلام اردوی تازه</b></summary><div class="form" style="gap:8px;margin-top:10px">${inp('o-t', 'نام اردو (مثلاً اردوی باغ کتاب)')}${inp('o-d', 'مقصد')}${inp('o-at', '', 'datetime-local')}${inp('o-b', 'ساعت برگشت (مثلاً 14:00)', 'text', 'dir="ltr"')}${inp('o-m', 'جای جمع شدن (مثلاً درِ اصلی مدرسه)')}${inp('o-c', 'هزینه‌ی هر نفر به تومان (اختیاری)', 'number')}
+      <select id="o-w" style="font:inherit;padding:10px;border-radius:12px;border:1.5px solid var(--line)"><option value="kids">دانش‌آموزی (بچه‌ها با رانندگانِ داوطلب)</option><option value="family">خانوادگی (خانواده‌ها با هم)</option></select>
+      <textarea id="o-n" maxlength="400" placeholder="توضیح کوتاه برای خانواده‌ها"></textarea><button class="btn pri sm" data-osave ${on ? '' : 'disabled'}>اعلام به همه‌ی خانواده‌ها</button>${on ? '' : '<p class="note">اردو ویژه‌ی اشتراک مدرسه است.</p>'}</div></details>`;
+  const call = async body => { try { await api('school_ordu', { token, ...body }); toast('انجام شد.'); orduPanel(token, on); } catch (e) { toast(e.message); } };
+  $$('[data-oplan]').forEach(b => b.onclick = () => { b.disabled = true; call({ op: 'plan', id: b.dataset.oplan }); });
+  $$('[data-oclose]').forEach(b => b.onclick = () => call({ op: 'close', id: b.dataset.oclose }));
+  const sv = $('[data-osave]'); if (sv) sv.onclick = () => { const at = Math.floor(new Date($('#o-at').value).getTime() / 1000); if (!at) return toast('تاریخ و ساعت اردو را بگذارید.');
+    call({ op: 'save', title: $('#o-t').value, dest: $('#o-d').value, at, back: $('#o-b').value, meet: $('#o-m').value, cost: +$('#o-c').value || 0, who: $('#o-w').value, note: $('#o-n').value }); };
 }
 
 const pm = location.hash.match(/^#panel\/([A-Za-z0-9]{16,40})/);

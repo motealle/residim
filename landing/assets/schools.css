@@ -192,3 +192,7 @@ footer .wrap{display:grid;gap:10px;justify-items:center}
   #spons .sp-seats{font-size:14pt;font-weight:900;background:#FFD84D;border-radius:6mm;padding:3mm 8mm}
   #spons .sp-by{font-size:13pt;color:#5B6B62}
 }
+.od-row{border:1.5px solid var(--line);border-radius:18px;padding:12px 14px;margin:10px 0;display:grid;gap:8px}
+.od-h{display:grid}.od-k{display:flex;flex-wrap:wrap;gap:6px}
+.od-k span{background:var(--bg);border-radius:99px;padding:2px 12px;font-size:.84rem}
+.c12{grid-column:1/-1}

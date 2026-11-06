@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /t/
+Disallow: /pd/
+Disallow: /b2b/
+Disallow: /ads/?q=
+Allow: /app/api/share.php
+
+Sitemap: https://residim.ir/sitemap.xml

@@ -7,7 +7,7 @@
   const clean = x => x.replace(/\[[^\]]+\]/g, '').replace(/[ً-ْ]/g, '').replace(/\s+/g, ' ').trim();
   const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); };
   const ST = window.STORIES || [], AUD = window.STORY_AUD || {}, FILMS = window.STORY_FILMS || {};
-  const V = '35', FONT = 'Vazirmatn,Tahoma,sans-serif';
+  const V = '36', FONT = 'Vazirmatn,Tahoma,sans-serif';
   /* one palette per story: a→b = art gradient, d = deep tone for text panels, l = light tint */
   const PALS = {
     dawn: { a: '#FF7A59', b: '#FFC46B', d: '#A9361A', l: '#FFF1E8' }, sun: { a: '#F59E0B', b: '#FFD966', d: '#8A4F00', l: '#FFF7DC' },
@@ -101,7 +101,7 @@
     $('#dots').innerHTML = L.map((_, i) => `<i data-i="${i}"></i>`).join('');
     $('#grid').innerHTML = order.map(s => `<button class="gi" data-id="${s.id}" style="${pv(pal(s))}"><span class="art">${sceneSvg(s.scene, pal(s), true)}</span><span class="gt"><b>${esc(s.title)}</b><small>${esc(AUD[s.aud] || '')}${s.main ? ' · فیلم کوتاه' : ''}</small></span></button>`).join('');
   }
-  function mark() { $$('.sc').forEach((c, i) => c.classList.toggle('on', i === cur)); $$('#dots i').forEach((d, i) => d.classList.toggle('on', i === cur)); const s = vis()[cur]; $$('.gi').forEach(g => g.setAttribute('aria-current', !!s && g.dataset.id === s.id)); }
+  function mark() { $$('.sc').forEach((c, i) => c.classList.toggle('on', i === cur)); const DT = $$('#dots i'), n = DT.length, lo = Math.max(0, Math.min(cur - 3, n - 7)); DT.forEach((d, i) => { d.classList.toggle('on', i === cur); d.classList.toggle('far', i < lo || i > lo + 6); d.classList.toggle('edge', (i === lo && lo > 0) || (i === lo + 6 && lo + 6 < n - 1)); }); const cn = $('#cnt'); if (cn) cn.textContent = fa(cur + 1) + ' / ' + fa(n); const s = vis()[cur]; $$('.gi').forEach(g => g.setAttribute('aria-current', !!s && g.dataset.id === s.id)); }
   function go(i, scroll = true, open = true) { const L = vis(); if (!L.length) return; cur = (i + L.length) % L.length; mark();
     if (scroll) { const c = $$('.sc')[cur], tr = $('#track'); if (c && tr) tr.scrollTo({ left: c.offsetLeft - (tr.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' }); }
     if (open) show(L[cur]); }
@@ -119,13 +119,13 @@
 
   /* ───── detail ───── */
   const link = s => `${URL0}?from=${s.id}#${s.id}`; // ?from= lets server logs count visits per story (the app ignores it)
-  const caption = s => `${s.hook}\n\n${s.story}\n\n👈 قصه‌ی کامل و فیلمش: ${link(s)}\nاین را برای گروهی بفرستید که شاید هم‌مسیرتان در آن باشد.\n\nرسیدیم فقط هم‌مسیرها را به هم معرفی می‌کند؛ رفت‌وآمد با تصمیم و مسئولیت خودتان است.\n#رسیدیم #هم_مسیر #هم_سرویس`;
+  const caption = s => `${s.hook}\n✅ ${s.offer || ''}\n\n👈 ${link(s)}\n#رسیدیم #هم_مسیر`;
   const MONEY = [['heart', 'احسانی', 'رایگان، برای ثواب و همسایگی'], ['cal', 'دنگی', 'تقسیم هزینه‌ی بنزین، شفاف'], ['chat', 'به توافق', 'هرطور خودتان قرار بگذارید']];
   const stillCard = s => { const p = pal(s); return `<div class="still" style="${pv(p)}"><div class="hk">${esc(s.hook)}</div>${sceneSvg(s.scene, p)}<div class="ft"><img src="../assets/icon.svg?v=${V}" alt="">رسیدیم · residim.ir</div></div>`; };
   function show(s) { if (!s) return; film.stop(); try { history.replaceState(null, '', '#' + s.id); } catch (e) {}
     const F = FILMS[s.id], p = pal(s);
     $('#det').style.cssText = pv(p);
-    $('#det').innerHTML = `<div class="det"><div class="dh"><span class="who">${esc(s.who)}</span><h2>${esc(s.hook)}</h2></div>
+    $('#det').innerHTML = `<div class="det"><div class="dh"><span class="who">${esc(s.who)}</span><h2>${esc(s.hook)}</h2>${s.offer ? `<p class="offer">${esc(s.offer)}</p>` : ''}</div>
       <div class="stage" id="stage"><span class="demo">نمایش نمونه</span>${F ? '' : stillCard(s)}</div>
       <div class="db"><p class="story">${esc(s.story)}</p>
         <div class="how"><h3>در رسیدیم چطور؟</h3><ol>${s.how.map(h => `<li><span>${esc(h.replace(' (به‌زودی)', ''))}${/به‌زودی/.test(h) ? '<span class="soon">به‌زودی</span>' : ''}</span></li>`).join('')}</ol></div>
@@ -150,29 +150,32 @@
   /* ───── poster (1080×1350 post or 1080×1920 story), drawn on canvas ───── */
   const wrapT = (x, t, w) => { const out = []; let line = ''; for (const wd of t.split(' ')) { const tr = line ? line + ' ' + wd : wd; if (x.measureText(tr).width > w && line) { out.push(line); line = wd; } else line = tr; } if (line) out.push(line); return out; };
   const loadImg = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
-  async function poster(s, tall) { await Promise.all(['900 60px Vazirmatn', '700 34px Vazirmatn'].map(f => document.fonts.load(f).catch(() => {})));
-    const p = pal(s), Wd = 1080, H = tall ? 1920 : 1350, cv = document.createElement('canvas'); cv.width = Wd; cv.height = H; const x = cv.getContext('2d');
-    let g = x.createLinearGradient(0, 0, Wd * .6, H); g.addColorStop(0, p.a); g.addColorStop(.62, p.b); g.addColorStop(1, p.d); x.fillStyle = g; x.fillRect(0, 0, Wd, H);
-    const glow = (cx, cy, r, c) => { const rg = x.createRadialGradient(cx, cy, 0, cx, cy, r); rg.addColorStop(0, c); rg.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = rg; x.fillRect(cx - r, cy - r, r * 2, r * 2); };
-    glow(Wd * .85, H * .12, 520, 'rgba(255,255,255,.35)'); glow(Wd * .1, H * .7, 420, 'rgba(255,255,255,.18)');
-    x.direction = 'rtl'; x.textAlign = 'right'; const R = Wd - 80; let y = tall ? 250 : 150;
-    x.font = '900 32px Vazirmatn'; const kt = 'قصه‌های هم‌مسیری · ' + s.title, kw = x.measureText(kt).width + 56;
-    x.fillStyle = 'rgba(4,20,11,.28)'; x.beginPath(); x.roundRect(R - kw, y - 52, kw, 66, 33); x.fill();
-    x.fillStyle = '#fff'; x.fillText(kt, R - 28, y - 8); y += 100;
-    x.font = `900 ${tall ? 80 : 70}px Vazirmatn`; x.shadowColor = 'rgba(0,0,0,.22)'; x.shadowBlur = 24; x.shadowOffsetY = 6;
-    for (const l of wrapT(x, s.hook, Wd - 160)) { x.fillText(l, R, y); y += tall ? 118 : 104; } x.shadowColor = 'transparent';
-    const art = await loadImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(sceneSvg(s.scene, p, true).replace('<svg class="ms"', '<svg class="ms" width="1840" height="1035"')));
-    const aw = Wd - 120, ah = aw * 9 / 16, ay = y + (tall ? 30 : 0); x.save(); x.shadowColor = 'rgba(4,20,11,.35)'; x.shadowBlur = 60; x.shadowOffsetY = 24; x.fillStyle = '#fff'; x.beginPath(); x.roundRect(60, ay, aw, ah, 44); x.fill(); x.restore();
-    x.save(); x.beginPath(); x.roundRect(68, ay + 8, aw - 16, ah - 16, 38); x.clip(); if (art) x.drawImage(art, 68, ay + 8, aw - 16, ah - 16); x.restore();
-    y = ay + ah + (tall ? 110 : 80); x.fillStyle = 'rgba(255,255,255,.94)'; x.font = `700 ${tall ? 40 : 34}px Vazirmatn`;
-    const fh = tall ? 230 : 170, lh = tall ? 64 : 54, LL = wrapT(x, s.story, Wd - 160), n = Math.min(tall ? 6 : 3, Math.floor(((tall ? H - fh - 190 : H - fh - 30) - y) / lh) + 1);
-    LL.slice(0, n).forEach((l, i) => { x.fillText(i === n - 1 && LL.length > n ? l + '…' : l, R, y); y += lh; });
-    if (tall) { x.font = '900 40px Vazirmatn'; const ct = 'هم‌مسیرتان را پیدا کنید', cw = x.measureText(ct).width + 90, cy = H - fh - 150;
-      x.fillStyle = '#FFC93C'; x.beginPath(); x.roundRect((Wd - cw) / 2, cy, cw, 92, 46); x.fill(); x.fillStyle = '#04140B'; x.textAlign = 'center'; x.fillText(ct, Wd / 2, cy + 60); x.textAlign = 'right'; } g = x.createLinearGradient(0, H - fh, 0, H); g.addColorStop(0, '#04140B'); g.addColorStop(1, '#0B2A1A'); x.fillStyle = g; x.fillRect(0, H - fh, Wd, fh);
-    x.fillStyle = '#1DBF73'; x.fillRect(0, H - fh, Wd, 6); const ic0 = await loadImg(`../assets/icon.svg?v=${V}`), iy = H - fh + (fh - 100) / 2;
-    x.fillStyle = '#1DBF73'; x.beginPath(); x.roundRect(R - 100, iy, 100, 100, 30); x.fill(); if (ic0) x.drawImage(ic0, R - 88, iy + 12, 76, 76);
-    x.fillStyle = '#fff'; x.font = '900 50px Vazirmatn'; x.fillText('رسیدیم', R - 128, iy + 50); x.fillStyle = '#FFC93C'; x.font = '900 30px Vazirmatn'; x.fillText('residim.ir/stories', R - 128, iy + 94);
-    x.textAlign = 'left'; x.fillStyle = '#A9C4B4'; x.font = '700 22px Vazirmatn'; wrapT(x, 'فقط آشنا می‌کنیم؛ رفت‌وآمد با تصمیم و مسئولیت خودتان. نمایش نمونه.', 380).forEach((l, i) => x.fillText(l, 80, iy + 40 + i * 34));
+  async function poster(s, tall) { await Promise.all(['900 60px Vazirmatn', '800 34px Vazirmatn'].map(f => document.fonts.load(f).catch(() => {})));
+    const Wd = 1080, H = tall ? 1920 : 1350, cv = document.createElement('canvas'); cv.width = Wd; cv.height = H; const x = cv.getContext('2d'), INK = '#04140B', GR = '#1DBF73';
+    let g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#22C97B'); g.addColorStop(1, '#13A863'); x.fillStyle = g; x.fillRect(0, 0, Wd, H);
+    x.fillStyle = 'rgba(255,255,255,.10)'; x.beginPath(); x.arc(Wd * .12, H * .1, 330, 0, 7); x.fill();
+    x.direction = 'rtl'; x.textAlign = 'right'; const R = Wd - 90;
+    const logo = await loadImg(`../assets/icon.svg?v=${V}`); x.fillStyle = INK; x.beginPath(); x.roundRect(R - 96, 80, 96, 96, 28); x.fill(); if (logo) x.drawImage(logo, R - 84, 92, 72, 72);
+    x.fillStyle = INK; x.strokeStyle = INK; x.lineJoin = 'round'; x.font = '900 46px Vazirmatn'; x.fillText('رسیدیم', R - 120, 142); x.lineWidth = 1.5; x.strokeText('رسیدیم', R - 120, 142);
+    let y = tall ? 470 : 330; x.font = `900 ${tall ? 92 : 80}px Vazirmatn`; x.fillStyle = INK; const lh = tall ? 140 : 120;
+    x.lineWidth = 2.5; for (const l of wrapT(x, s.hook, Wd - 180).slice(0, 4)) { x.fillText(l, R, y); x.strokeText(l, R, y); y += lh; }
+    const fh = tall ? 200 : 150; x.font = `800 ${tall ? 44 : 38}px Vazirmatn`; const OL = wrapT(x, s.offer || '', Wd - 260).slice(0, 2), olh = tall ? 66 : 56, oh = OL.length * olh + 50, oy = H - fh - (tall ? 150 : 70) - oh;
+    // one motif: a dotted route from a home to the destination
+    const my = Math.round((y - lh * .4 + oy) / 2), ax = R - 40, bx = 170; x.strokeStyle = '#fff'; x.lineWidth = 9; x.lineCap = 'round'; x.setLineDash([2, 26]);
+    x.beginPath(); x.moveTo(ax, my); x.bezierCurveTo(ax - 260, my - 150, bx + 260, my + 150, bx, my); x.stroke(); x.setLineDash([]);
+    const dot = (cx, r, fill) => { x.fillStyle = 'rgba(255,255,255,.28)'; x.beginPath(); x.arc(cx, my, r + 22, 0, 7); x.fill(); x.fillStyle = fill; x.beginPath(); x.arc(cx, my, r, 0, 7); x.fill(); };
+    dot(ax, 38, '#fff'); dot(bx, 50, INK);
+    const ic = await loadImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="96" height="96">${(I[EMO[(s.scene || {}).dest] || 'pin'] || I.pin)('#FFC93C')}</svg>`)), hm = await loadImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="96" height="96">${I.home(GR)}</svg>`));
+    if (ic) x.drawImage(ic, bx - 30, my - 30, 60, 60); if (hm) x.drawImage(hm, ax - 24, my - 24, 48, 48);
+    // the offer, once
+    x.font = `800 ${tall ? 44 : 38}px Vazirmatn`; y = oy + 25 + olh * .72;
+    x.fillStyle = '#fff'; x.beginPath(); x.roundRect(90, oy, Wd - 180, oh, 34); x.fill();
+    x.fillStyle = GR; x.beginPath(); x.arc(R - 30, y - olh * .3, 22, 0, 7); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 6; x.beginPath(); x.moveTo(R - 41, y - olh * .3); x.lineTo(R - 32, y - olh * .3 + 9); x.lineTo(R - 18, y - olh * .3 - 10); x.stroke();
+    x.fillStyle = INK; OL.forEach((l, k) => x.fillText(l, R - 70, y + k * olh));
+    // the address
+    x.fillStyle = INK; x.fillRect(0, H - fh, Wd, fh); x.textAlign = 'center';
+    x.fillStyle = '#FFC93C'; x.font = `900 ${tall ? 64 : 54}px Vazirmatn`; x.fillText('residim.ir', Wd / 2, H - fh / 2 + 6);
+    x.fillStyle = '#8FB09E'; x.font = '700 22px Vazirmatn'; x.fillText('فقط آشنا می‌کنیم؛ رفت‌وآمد با تصمیم و مسئولیت خودتان', Wd / 2, H - fh / 2 + 50);
     return new Promise(r => cv.toBlob(r, 'image/png')); }
 
   /* ───── film: a 9:16 stage whose scenes change on the narration's timecodes ───── */

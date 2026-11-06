@@ -59,5 +59,13 @@ const api = (a, b, t) => fetch(B + '/app/api/r6.php?a=' + a, { method: 'POST', h
     for (const k of ['home', 'conn', 'pays', 'health', 'msgs', 'places', 'users', 'sms', 'posters', 'db']) { await p.click(`.adm-tabs [data-v="${k}"]`); await sleep(500); assert(!(await p.$('.adm .muted:text("در حال خواندن")')) || true); }
     ok('admin tabs at', vp.width); await c.close();
   }
+  // v36: ads board (server-rendered, guest-safe), sitemap, «دارم می‌روم», school trips
+  { const L = await (await fetch(B + '/ads/')).text(); assert(L.includes('application/ld+json') && L.includes('rel="canonical"'), 'ads page seo'); ok('ads page');
+    const sm = await (await fetch(B + '/sitemap.xml')).text(); assert(sm.includes('<urlset') && sm.includes('/ads/'), 'sitemap'); ok('sitemap');
+    const ph = '0912' + String(Date.now()).slice(-7), oo = await api('otp_send', { phone: ph }), TA = (await api('otp_verify', { phone: ph, code: oo.dev_code })).token;
+    const bad = await api('ad_save', { kind: 'daily', role: 'driver', g: 'f', from_city: 'تهران', to_city: 'کرج', tm: '07:30', days: ['sa'], seats: 2, share: 'dong', body: 'تماس ۰۹۱۲۱۲۳۴۵۶۷', adult: 1, rules: 1 }, TA); assert(!bad.ok, 'phone in ad must be refused');
+    const ad = await api('ad_save', { kind: 'daily', role: 'driver', g: 'f', from_city: 'تهران', to_city: 'کرج', tm: '07:30', days: ['sa', 'mo'], seats: 2, share: 'dong', body: 'صبح‌ها از ونک', adult: 1, rules: 1 }, TA); assert(ad.ok && ad.no, 'ad save');
+    const pg = await (await fetch(B + '/ads/' + ad.no)).text(); assert(pg.includes('"Trip"') && !pg.includes(ph), 'ad detail is public and has no phone'); ok('ad post + detail');
+    const lv = await api('leave_state', { profile_id: pr.id }, T); assert(lv.ok, 'leave_state'); ok('leave state'); }
   await b.close(); console.log('ERRORS', JSON.stringify(errs)); if (errs.length) process.exit(2);
 })().catch(e => { console.error('FAIL', e.message.split('\n').slice(0, 3).join(' | ')); process.exit(1); });

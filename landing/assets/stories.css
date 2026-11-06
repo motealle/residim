@@ -199,3 +199,20 @@ body.rec .cap{bottom:130px;left:50px;right:50px;gap:16px}
 body.rec .cap .ln{font-size:44px;border-radius:32px;padding:14px 34px}
 body.rec .cap .ln i{font-size:28px;padding:2px 18px;margin-inline-end:18px;vertical-align:6px}
 @media (max-width:640px){.chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.chips::-webkit-scrollbar{display:none}.chips button{flex:0 0 auto}}
+/* v36: a light, airy top in the brand (the dark band felt heavy); compact slider dots; the offer line */
+.bar{background:#ffffffd9;border-bottom:1px solid var(--line);color:var(--ink)}
+.brand small{color:var(--mut)}.bar nav a{color:#3B4A41}.bar nav a:hover{color:var(--ink)}
+.hero{background:radial-gradient(760px 420px at 88% -12%,#1DBF7338,transparent 62%),radial-gradient(620px 380px at -6% 105%,#FFC93C40,transparent 60%),radial-gradient(520px 340px at 46% 118%,#FF7A5926,transparent 62%),linear-gradient(180deg,#FFFFFF,#F2F7EF);color:var(--ink)}
+.hero::after{opacity:.0}
+.hero::before{content:"";position:absolute;inset:0;background-image:radial-gradient(#04140B14 1.2px,transparent 1.3px);background-size:22px 22px;-webkit-mask-image:linear-gradient(180deg,#000,transparent 85%);mask-image:linear-gradient(180deg,#000,transparent 85%);pointer-events:none}
+.kick{color:#0A6A3F;background:#1DBF7318;border-color:#1DBF7340}.kick::before{background:var(--g);box-shadow:0 0 10px var(--g)}
+.hero h1 em{color:var(--ink);text-shadow:none;background:linear-gradient(transparent 62%,#FFC93C99 62%,#FFC93C99 92%,transparent 92%);padding-inline:4px}
+.hero .lead{color:#3B4A41}
+.hero .acts .ghost{color:var(--ink);border-color:#04140B40}
+.chips button{border-color:var(--line);background:#fff;color:#2D3B33}.chips button:hover{background:#F2F7EF}
+.chips button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.deck i{box-shadow:0 34px 60px -30px #04140B88,inset 0 0 0 1px #ffffff40}
+.dots{flex-wrap:nowrap;max-width:none}.dots i.far{display:none}.dots i.edge{width:5px;height:5px;opacity:.55;align-self:center}
+.wnav .cnt{font-size:.78rem;font-weight:800;color:var(--mut);min-width:44px;text-align:center}
+.det .offer{margin:10px 0 0;display:inline-flex;gap:8px;align-items:flex-start;font-weight:800;font-size:1.02rem;color:var(--d);background:var(--l);border-radius:16px;padding:8px 14px}
+.det .offer::before{content:"✓";flex:0 0 auto;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--a);color:#fff;font-size:.8rem;margin-top:4px}

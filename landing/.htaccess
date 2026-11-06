@@ -23,6 +23,10 @@ RewriteRule ^(.*)$ https://residim.ir/$1 [R=301,L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^([A-Za-z2-9]{8})/?$ app/api/share.php?c=$1 [L,QSA]
+# آگهی‌های هم‌مسیری (server-rendered for search engines) and the live sitemap
+RewriteRule ^ads/?$ app/api/ads.php [L,QSA]
+RewriteRule ^ads/([0-9]{3,7})/?$ app/api/ads.php?no=$1 [L,QSA]
+RewriteRule ^sitemap\.xml$ app/api/sitemap.php [L]
 </IfModule>
 <IfModule mod_mime.c>
 AddType application/manifest+json .webmanifest

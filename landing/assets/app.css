@@ -1215,8 +1215,8 @@ body.px-open{overflow:hidden}
 
 /* ═════════ v21: animated aerial-map wallpaper (chat + the page's empty areas) ═════════ */
 .mapbg{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;contain:strict}
-.mapbg::before{content:"";position:absolute;left:-960px;top:-960px;width:calc(100% + 960px);height:calc(100% + 960px);background:url(mapbg.svg?v=35) 0 0/960px 960px repeat;opacity:.62;animation:mbpan 150s linear infinite;will-change:transform}
-:root[data-theme="dark"] .mapbg::before{background-image:url(mapbg-dark.svg?v=35);opacity:.9}
+.mapbg::before{content:"";position:absolute;left:-960px;top:-960px;width:calc(100% + 960px);height:calc(100% + 960px);background:url(mapbg.svg?v=36) 0 0/960px 960px repeat;opacity:.62;animation:mbpan 150s linear infinite;will-change:transform}
+:root[data-theme="dark"] .mapbg::before{background-image:url(mapbg-dark.svg?v=36);opacity:.9}
 @keyframes mbpan{to{transform:translate3d(960px,960px,0)}} /* camera drifts south-east → north-west */
 @media (prefers-reduced-motion:reduce){.mapbg::before{animation:none}}
 .page-bg{position:fixed;z-index:-1;display:none}
@@ -1536,3 +1536,20 @@ body.chat-open .page-bg,body.map-full .page-bg{visibility:hidden}
 .mi.stories-mi{background:linear-gradient(110deg,#F1EAFF,#E8F1FF)!important;color:#2A1A55}
 .mi.stories-mi .dong-ic{background:#9B7BFF;color:#fff}
 :root[data-theme="dark"] .mi.stories-mi{background:linear-gradient(110deg,#1E1636,#16213A)!important;color:#E3DAFF}
+/* v36: «دارم می‌روم» and trip cards, temporary-group chat */
+.leave-c{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:0 0 12px;border-radius:20px;background:var(--surface);border:1.5px solid var(--line);box-shadow:var(--sh)}
+.leave-c .grow{min-width:0;display:grid;line-height:1.5}.leave-c small{color:var(--muted);font-size:.8rem}
+.leave-c .lv-ic{flex:0 0 auto;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--brand);color:#04140B;font-size:1.3rem}
+.leave-c .lv-ic .i{width:24px;height:24px}
+.leave-c.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,var(--surface))}
+.leave-c.ordu .lv-ic{background:#FFC93C}
+.leave-c .btn{flex:0 0 auto;white-space:nowrap}.leave-c .grow{flex:1 1 auto}
+@media (max-width:359px){.leave-c{flex-wrap:wrap}}
+.lv-g p{margin:6px 0 10px}
+.tg-mem{display:flex;gap:8px;overflow-x:auto;padding:6px 14px 2px;scrollbar-width:none}
+.tg-m{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:4px 12px 4px 10px;font-size:.82rem}
+.tg-m .i{width:16px;height:16px;color:var(--brand-ink)}.tg-m small{color:var(--muted)}.tg-m.me{border-color:var(--brand)}
+#tg-act{gap:6px}
+.mi.ads-mi{background:linear-gradient(110deg,#E6F0FF,#E3F7FB)!important;color:#12306E}
+.mi.ads-mi .dong-ic{background:#3D7BFF;color:#fff}
+:root[data-theme="dark"] .mi.ads-mi{background:linear-gradient(110deg,#13213E,#10282E)!important;color:#D6E4FF}
