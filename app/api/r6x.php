@@ -417,7 +417,7 @@ function x_route(string $a, array $in): void {
         if (!empty($in['save'])) { $f = fn($k, $n) => s1((string)($in[$k] ?? ''), $n);
             unset($I['plate']);
             if (array_key_exists('rel', $in)) { $I['rel'] = in_array($in['rel'], ['mother', 'father', 'grandma', 'grandpa'], true) ? $in['rel'] : ''; unset($in['rel']); }
-            if (array_key_exists('job', $in)) { $I['job'] = in_array($in['job'], ['teacher', 'cleric', 'academic', 'student', 'medic'], true) ? $in['job'] : ''; unset($in['job']); }
+            if (array_key_exists('job', $in)) { $I['job'] = in_array($in['job'], ['teacher', 'cleric', 'academic', 'student', 'medic', 'other'], true) ? $in['job'] : ''; unset($in['job']); }
             if (array_key_exists('tcode', $in)) $I['tcode'] = substr(dg((string)$in['tcode']), 0, 12);
             if (array_key_exists('p3', $in)) $I['p3'] = substr(dg((string)$in['p3']), 0, 3);
             if (array_key_exists('pir', $in)) $I['pir'] = substr(dg((string)$in['pir']), 0, 2);
@@ -425,7 +425,15 @@ function x_route(string $a, array $in): void {
             foreach (['family' => 40, 'first' => 30, 'city' => 40, 'hood' => 60, 'car' => 40, 'color' => 20] as $k => $n) if (array_key_exists($k, $in)) { $v = $f($k, $n); if ($e = x_bad($v, true)) NO($e); $I[$k] = $v; }
             if (isset($in['lat'], $in['lng']) && is_numeric($in['lat']) && is_numeric($in['lng']) && abs((float)$in['lat']) <= 90) { $I['lat'] = round((float)$in['lat'], 5); $I['lng'] = round((float)$in['lng'], 5); }
             if (array_key_exists('seats', $in)) $I['seats'] = max(0, min(6, (int)$in['seats']));
-            if (isset($in['routes']) && is_array($in['routes'])) $I['routes'] = array_values(array_filter(array_map(fn($r) => ['label' => s1((string)($r['label'] ?? ''), 40), 'from' => s1((string)($r['from'] ?? ''), 60), 'to' => s1((string)($r['to'] ?? ''), 60), 'tm' => preg_match('/^\d{1,2}:\d{2}$/', en_d((string)($r['tm'] ?? ''))) ? en_d((string)$r['tm']) : ''], array_slice($in['routes'], 0, 8)), fn($r) => $r['from'] || $r['to']));
+            /* endpoints: named places with a real location (home is separate); routes join two endpoints with a time and weekdays */
+            $ok_ll = fn($a, $b) => is_numeric($a) && is_numeric($b) && abs((float)$a) <= 90 && abs((float)$b) <= 180 && ((float)$a != 0 || (float)$b != 0);
+            if (isset($in['places']) && is_array($in['places'])) $I['places'] = array_values(array_filter(array_map(fn($x) => ['id' => preg_match('/^[a-z0-9]{3,12}$/', (string)($x['id'] ?? '')) ? (string)$x['id'] : substr(md5(uniqid('', true)), 0, 8),
+                'label' => s1((string)($x['label'] ?? ''), 30), 'kind' => in_array($x['kind'] ?? '', ['work', 'edu', 'gym', 'family', 'shop', 'other'], true) ? $x['kind'] : 'other',
+                'lat' => $ok_ll($x['lat'] ?? null, $x['lng'] ?? null) ? round((float)$x['lat'], 6) : null, 'lng' => $ok_ll($x['lat'] ?? null, $x['lng'] ?? null) ? round((float)$x['lng'], 6) : null], array_slice($in['places'], 0, 8)), fn($x) => $x['label'] !== ''));
+            if (isset($in['routes']) && is_array($in['routes'])) $I['routes'] = array_values(array_filter(array_map(fn($r) => ['from' => s1((string)($r['from'] ?? ''), 40), 'to' => s1((string)($r['to'] ?? ''), 40),
+                'tm' => preg_match('/^([01]?\d|2[0-3]):[0-5]\d$/', en_d((string)($r['tm'] ?? ''))) ? en_d((string)$r['tm']) : '', 'days' => array_values(array_unique(array_filter(array_map('intval', (array)($r['days'] ?? [])), fn($d) => $d >= 0 && $d <= 6)))], array_slice($in['routes'], 0, 8)), fn($r) => $r['from'] !== '' && $r['to'] !== '' && $r['from'] !== $r['to']));
+            if (array_key_exists('job_t', $in)) $I['job_t'] = s1((string)$in['job_t'], 40);
+            if (isset($in['trust']) && is_array($in['trust'])) { $tp = dg((string)($in['trust']['phone'] ?? '')); $I['trust'] = ['name' => s1((string)($in['trust']['name'] ?? ''), 30), 'phone' => preg_match('/^09\d{9}$/', $tp) ? $tp : '']; }
             if (!empty($in['g'])) set_g($me, s1((string)$in['g'], 1));
             q('UPDATE users SET info=? WHERE id=?', [json_encode($I, JSON_UNESCAPED_UNICODE), $me]); }
         YES(['info' => $I + ['g' => user_g($me)]]); }

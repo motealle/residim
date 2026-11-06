@@ -28,10 +28,10 @@
   /* ── new / edit ad ── */
   const KINDS = { intercity: 'بین‌شهری', daily: 'رفت‌وآمد روزانه', school: 'مدرسه', uni: 'دانشگاه', work: 'محل کار', event: 'مراسم و سفر کوتاه' };
   const DAYS = { sa: 'ش', su: 'ی', mo: 'د', tu: 'س', we: 'چ', th: 'پ', fr: 'ج' };
-  async function newAd(edit) {
+  async function newAd(edit, pre) {
     let me = { g: '', limit: 3, premium: false, list: [] }; try { me = await api('ad_mine', {}); } catch (e) {}
     let I = {}; if (!edit) try { I = (await api('my_info', {})).info || {}; } catch (e) {}
-    const a = edit || { kind: 'intercity', role: I.car ? 'driver' : 'rider', seats: I.seats || 3, share: 'dong', audience: 'public', from_city: I.city || '', from_area: I.hood || '' }, once = edit ? !!edit.at : a.kind === 'intercity' || a.kind === 'event';
+    const a = edit || Object.assign({ kind: 'intercity', role: I.car ? 'driver' : 'rider', seats: I.seats || 3, share: 'dong', audience: 'public', from_city: I.city || '', from_area: I.hood || '', to_city: I.city || '' }, pre || {}), once = edit ? !!edit.at : a.kind === 'intercity' || a.kind === 'event';
     const ch = (n, v, t, on) => `<label class="ch"><input type="radio" name="${n}" value="${v}" ${on ? 'checked' : ''}><span>${t}</span></label>`;
     const dt = edit && edit.at ? new Date(edit.at * 1000 - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16) : '';
     open(edit ? 'ویرایش آگهی' : 'ثبت آگهی رایگان', `<form id="af" class="frm">
@@ -75,14 +75,15 @@
   async function thread(id, ownerHint, host) {
     host = host || $('#ad-thread'); if (!id) { host.innerHTML = `<p class="mut">آگهیِ خودتان است. پیام‌ها در «آگهی‌ها و پیام‌های من» است.</p><button class="btn ghost sm" data-do="me">باز کردن</button>`; return; }
     let r; try { r = await api('ad_thread', { id }); } catch (e) { return toast(e.message); }
-    const P = r.peer || {}, A = r.ad || {}; let T = r.trip || {};
+    const P = r.peer || {}, A = r.ad || {}; let T = r.trip || {}, TR = {};
+    try { TR = ((await api('my_info', {})).info || {}).trust || {}; } catch (e) {}
     if (!T.car && r.phone_ok && (r.own ? A.role === 'driver' : A.role === 'rider')) try { const I = (await api('my_info', {})).info || {}; if (I.car) T = Object.assign({ car: I.car, color: I.color, plate: I.p3 ? I.p3 + (I.pir ? ' ایران ' + I.pir : '') : '' }, T); } catch (e) {}
     const who = `<p class="trust">${r.own ? 'پرسنده' : 'آگهی‌دهنده'}: ${P.verified ? 'شماره‌ی تأییدشده' : 'شماره تأیید نشده'} · عضو از ${esc(P.since_t || '')}${P.good ? ` · <b>${fa(P.good)} همسفرِ راضی</b>` : ''}${P.bad ? ` · ${fa(P.bad)} ناراضی` : ''}${P.new ? ' · <span class="newacc">حساب تازه</span>' : ''}${P.phone ? ` · <span dir="ltr">${esc(fa(P.phone))}</span>` : ''}</p>`;
     const card = r.phone_ok ? `<details class="tripc" ${T.car || T.meet ? 'open' : ''}><summary>🧾 کارت سفر ${T.car || T.meet ? '' : '(پیش از حرکت پر کنید)'}</summary>
         <form class="frm two" id="tf"><label>ماشین<input name="car" maxlength="40" value="${esc(T.car || '')}" placeholder="مثلاً پژو ۲۰۶"></label><label>رنگ<input name="color" maxlength="20" value="${esc(T.color || '')}"></label>
         <label>پلاک (فقط سه رقم وسط و ایران)<input name="plate" maxlength="20" inputmode="numeric" value="${esc(T.plate || '')}" placeholder="۳۴۵ ایران ۶۷"></label><label>ساعت<input name="time" maxlength="20" value="${esc(T.time || '')}" placeholder="۶:۳۰"></label>
         <label style="grid-column:1/-1">جای سوار شدن (شلوغ و شناخته‌شده)<input name="meet" maxlength="80" value="${esc(T.meet || '')}" placeholder="مثلاً جلوی ورودی مترو صادقیه"></label>
-        <div class="row" style="grid-column:1/-1"><button class="btn sm pri">ذخیره</button><button type="button" class="btn sm ghost" id="tshare">فرستادن برای یک آشنا</button><span class="mut">پلیس ۱۱۰ · اورژانس ۱۱۵</span></div></form></details>` : '';
+        <div class="row" style="grid-column:1/-1"><button class="btn sm pri">ذخیره</button><button type="button" class="btn sm ghost" id="tshare">${TR.phone ? 'فرستادن برای ' + esc(TR.name || 'آشنا') : 'فرستادن برای یک آشنا'}</button><span class="mut">پلیس ۱۱۰ · اورژانس ۱۱۵</span></div></form></details>` : '';
     const rate = r.can_rate ? (r.my_rate ? `<p class="mut">نظرتان ثبت شد: ${r.my_rate > 0 ? '👍 راضی' : '👎 ناراضی'}. ممنون.</p>` : `<div class="rate"><span>سفر انجام شد؟ از همسفرتان راضی بودید؟</span><button class="btn sm ghost" data-rate="1">👍 راضی</button><button class="btn sm ghost" data-rate="-1">👎 ناراضی</button></div>`) : '';
     host.innerHTML = `<div class="th">${who}<div class="th-l">${r.list.map(m => `<div class="m ${m.mine ? 'me' : ''}"><span>${esc(m.text)}</span><small>${fa(new Date(m.at * 1000).toLocaleString('fa-IR', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }))}</small></div>`).join('')}</div>
       ${r.blocked ? '<p class="mut">این گفتگو بسته شده است.</p>' : `<form class="tbox" data-th="${id}"><textarea maxlength="500" placeholder="${r.phone_ok ? 'پیام… (حالا می‌توانید شماره هم بدهید)' : 'پیام…'}" required></textarea><button class="btn pri">فرستادن</button></form>`}
@@ -92,6 +93,8 @@
     host.querySelector('[data-block]').onclick = async e => { try { await api('ad_block', { id, v: +e.target.dataset.v }); thread(id, 0, host); } catch (er) { toast(er.message); } };
     const tf = host.querySelector('#tf'); if (tf) { tf.onsubmit = async e => { e.preventDefault(); const fd = Object.fromEntries(new FormData(tf)); try { await api('ad_trip', { id, ...fd }); toast('کارت سفر ذخیره شد.'); thread(id, 0, host); } catch (er) { toast(er.message); } };
       host.querySelector('#tshare').onclick = () => { const fd = Object.fromEntries(new FormData(tf)), txt = `🧾 کارت سفرِ من (رسیدیم)\n${A.title || ''}\n${A.when || ''}\nماشین: ${fd.car || '—'} ${fd.color || ''} · پلاک: ${fd.plate || '—'}\nساعت: ${fd.time || '—'} · سوار شدن: ${fd.meet || '—'}\nهمسفر: ${P.phone || 'شماره پس از پاسخ'} · عضو از ${P.since_t || ''}\nآگهی: residim.ir/ads/${A.no || ''}`;
+        // the trusted person from «اطلاعات من» gets it as an SMS draft; otherwise the share sheet / clipboard
+        if (TR.phone) { navigator.clipboard && navigator.clipboard.writeText(txt).catch(() => {}); location.href = `sms:${TR.phone}?&body=${encodeURIComponent(txt)}`; setTimeout(() => toast('اگر پیامک باز نشد، متن کپی شده؛ برای ' + (TR.name || 'آشنا') + ' بفرستید.'), 900); return; }
         if (navigator.share) navigator.share({ text: txt }).catch(() => {}); else navigator.clipboard.writeText(txt).then(() => toast('کپی شد؛ برای یک آشنا بفرستید.'), () => toast(txt)); }; }
     host.querySelectorAll('[data-rate]').forEach(b => b.onclick = async () => { const v = +b.dataset.rate; let why = ''; if (v < 0) { why = window.prompt ? (prompt('چه مشکلی پیش آمد؟ (کوتاه؛ فقط تیم رسیدیم می‌بیند)') || '') : ''; }
       try { await api('ad_rate', { id, v, why }); toast(v > 0 ? 'ممنون! این به همسفرهای بعدی اعتماد می‌دهد.' : 'ثبت شد؛ بررسی می‌کنیم.'); thread(id, 0, host); } catch (er) { toast(er.message); } });
@@ -128,5 +131,9 @@
   /* a «contacts» ad is rendered here for the chosen members only */
   const P = $('#ad-private');
   if (P && signed()) api('ad_get', { no: +P.dataset.no }).then(r => { const a = r.ad; P.innerHTML = `<div class="ad-tags"><span class="t">${esc(a.kind_t)}</span><span class="t g">${esc(a.g_t)}</span><span class="t">👥 فقط آشنایان</span></div><h1>${esc(a.title)}</h1><p class="when">🕒 ${esc(a.when)}</p>${a.body ? `<p class="body">${esc(a.body)}</p>` : ''}<div class="ad-act"><button class="btn pri" data-do="msg">پیام</button></div><div id="ad-thread"></div>`; P.classList.add('ad-d'); P.dataset.g = a.g; }).catch(e => { P.querySelector('.lead').textContent = e.message; });
-  if (location.hash === '#new') need(() => newAd()); else if (location.hash === '#me') need(() => mine());
+  // «#new&from_area=…&to_area=…&tm=…&days=0134» — a repeated route from «اطلاعات من» becomes a daily ad in one tap
+  if (location.hash.startsWith('#new&')) { const Q = new URLSearchParams(location.hash.slice(5)), DK = Object.keys(DAYS), pre = { kind: 'daily' };
+    ['from_area', 'to_area', 'tm'].forEach(k => { const v = (Q.get(k) || '').slice(0, 40); if (v) pre[k] = v; }); const d = (Q.get('days') || '').replace(/[^0-6]/g, ''); if (d) pre.days = [...new Set(d)].map(i => DK[+i]).join(',');
+    need(() => newAd(null, pre)); }
+  else if (location.hash === '#new') need(() => newAd()); else if (location.hash === '#me') need(() => mine());
 })();

@@ -109,7 +109,7 @@ const SND = { ctx: null };
 const SND_FILE = { arrive: 'arrived', done: 'done', door: 'door', urgent: 'urgent', boarded: 'boarded', start: 'start', invite: 'invite', team: 'team', remind: 'remind', msg: 'msg' };
 const SND_ALT = { door: 'honk', urgent: 'honk', boarded: 'step', start: 'whoosh', invite: 'ok', team: 'done', remind: 'ok', msg: 'tap' };
 function sndLoad(name) { const c = SND.ctx; if (!c) return; SND.buf = SND.buf || {}; if (SND.buf[name] !== undefined) return; SND.buf[name] = null;
-  fetch('assets/snd/' + name + '.mp3?v=40').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
+  fetch('assets/snd/' + name + '.mp3?v=41').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
 function snd(kind) {
   if (S.sound !== false && SND_FILE[kind]) { try { if (!SND.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) SND.ctx = new AC(); }
     const c = SND.ctx; if (c) { if (c.state === 'suspended') c.resume(); const nm = SND_FILE[kind]; sndLoad(nm); Object.values(SND_FILE).forEach(sndLoad); const b = SND.buf[nm];
@@ -267,7 +267,7 @@ async function mapLib() {
     }
     await loadCss('assets/maplibre-gl.css');
     await loadJs('assets/maplibre-gl.js', () => !!window.maplibregl, 12000);
-    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=40', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
+    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=41', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
     return (MapKit.lib = { name: 'libre', G: window.maplibregl });
   })();
   try { return await MapKit.loading; } catch (e) { MapKit.failed = true; MapKit.loading = null; throw e; }
@@ -276,7 +276,7 @@ async function makeMap(el, center, zoom) {
   const L = await mapLib();
   let map;
   if (L.name === 'neshan') map = new L.G.Map({ mapType: (isDark() && L.G.Map.mapTypes.neshanVectorNight) || L.G.Map.mapTypes.neshanVector, container: el, zoom, pitch: 0, center: [center[1], center[0]], minZoom: 4, maxZoom: 19, trackResize: true, mapKey: CFG.web_key, poi: false, traffic: false, mapTypeControllerOptions: { show: false } });
-  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=40' : 'assets/map-style.json?v=40', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=41' : 'assets/map-style.json?v=41', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('map-timeout')), 10000);
     map.on('load', () => { clearTimeout(t); res(); });
@@ -966,9 +966,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=40" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=41" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)} <span class="pchip">${ic('down', '')}</span></b><small>${p.team ? esc(teamName(p.team)) + ' – ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</small></span>`; }
-  else t = `<img src="assets/icon.svg?v=40" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=41" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -1048,7 +1048,7 @@ function drawer(keep) {
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const grp = (k, i, t, body) => `<div class="grp"><button class="sec-h" data-a="toggle" data-v="${k}" aria-expanded="${!!ui.open[k]}"><span>${ic(i, 'i')} ${t}</span>${ic('down', 'i chev' + (ui.open[k] ? ' open' : ''))}</button><div class="plist ${ui.open[k] ? '' : 'closed'}" style="max-height:${ui.open[k] ? 700 : 0}px">${body}</div></div>`;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=40" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=41" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     <div class="sec-h"><span>مسیرک‌های من <button class="q-mark" data-a="glossary" aria-label="مسیرک یعنی چه؟">؟</button></span><button class="link small" data-a="new-profile">${ic('plus')}تازه</button></div>
     <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${!x.complete && !x.shared ? `<button class="pdel" data-a="prof-del" data-id="${x.id}" aria-label="پاک کردن «${esc(x.label)}»">${ic('close')}</button>` : ''}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیرک را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
     ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیرک دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
@@ -1073,7 +1073,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۴۰</small></span>` : `<span>نسخه‌ی وب ۴۰${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
+    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۴۱</small></span>` : `<span>نسخه‌ی وب ۴۱${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -1142,7 +1142,7 @@ async function ambView() {
       <div class="row"><input id="amb-pl" dir="ltr" placeholder="WPXJUG5A" maxlength="8" style="flex:1"><button class="btn ac" data-a="amb-make">ساختن</button></div><div id="amb-out"></div></section>
     <section class="card stack"><h2>ایده‌های سریع</h2><ol class="steps3"><li>پوستر A5 را روی تابلوی اعلانات مدرسه (با اجازه‌ی مدرسه) بچسبانید.</li><li>متن آماده و لینک را در گروه کلاس و کانال مدرسه بگذارید؛ صبح‌های شنبه بهترین زمان است.</li><li>از ۲ خانواده‌ی هم‌محله بخواهید با هم ثبت‌نام کنند؛ تیم زودتر شکل می‌گیرد.</li></ol></section>
     ${A.list.length ? `<section class="card"><h2>ثبت‌شده‌ها</h2><table><tr><th>تاریخ</th><th>مکان</th><th>نوع</th><th>مبلغ</th></tr>${A.list.slice(0, 60).map(x => `<tr><td>${jLabel(new Date(x.created * 1000))}</td><td>${esc(x.place || '—')}</td><td>${x.kind === 'team' ? 'تیم شد' : 'ثبت‌نام'}</td><td>${money(x.amount)}${+x.paid ? ' ✓' : ''}</td></tr>`).join('')}</table></section>` : ''}</div>`;
-  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=40" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
+  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=41" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
 }
 function reportHtml(p, T) {
   const H = (ui.hist && ui.hist.trips) || [], done = H.filter(x => x.status === 'done').sort((a, b) => a.date < b.date ? -1 : 1), b = balances(T), now = new Date();
@@ -1176,7 +1176,7 @@ async function saveBlob(blob, name, title, text) {
 }
 /** Render an element (inside #print-root) to a PNG or a paged A4 PDF that never cuts through a row or a line. */
 async function elToFile(el, kind, name, title) {
-  try { await loadJs('assets/html2canvas.min.js?v=40', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=40', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
+  try { await loadJs('assets/html2canvas.min.js?v=41', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=41', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
   try { await document.fonts.ready; } catch (e) {}
   const cv = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }); let blob;
   if (kind === 'png') blob = await new Promise(res => cv.toBlob(res, 'image/png'));
@@ -1776,38 +1776,75 @@ function pager(key, list, row, wrap = x => x, size = 20) {
 }
 /* ═════════ v36: «دارم می‌روم» (workplace), school trips (اردو), temporary-group chat, ads moderation ═════════ */
 const LV_KINDS = ['work', 'uni'];
-/* «اطلاعات من»: the fixed facts of the member, kept once; every new or unfinished mesirak, ad and trip card is prefilled from here, and a finished mesirak writes back */
-const MI_REL = ['mother', 'father', 'grandma', 'grandpa'];
+/* «اطلاعات من» — the member's fixed facts: who I am, home + my named endpoints (each on the map), kids, car, the trips I repeat and one
+   trusted person. Every new or unfinished mesirak, ad and trip card is prefilled from here; a finished mesirak writes back. Private. */
+const MI_REL = ['mother', 'father', 'grandma', 'grandpa'], MI_JOBS = [...JOBS, ['other', 'سایر…']];
+const MI_PK = { work: ['💼', 'محل کار'], edu: ['🎓', 'درس'], gym: ['🏋️', 'ورزش'], family: ['👵', 'خانواده'], shop: ['🛒', 'خرید'], other: ['📍', 'جای دیگر'] };
+const MI_DAYS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+const miPct = I => { const c = [I.first || I.family, I.g, I.lat, (I.places || []).some(x => x.lat), (I.routes || []).length, I.car || I.seats === 0, I.trust && I.trust.phone]; return Math.round(100 * c.filter(Boolean).length / c.length); };
+const miPlaces = () => [{ id: 'home', label: 'خانه', kind: 'home', lat: ui.mi.pos && ui.mi.pos.lat }, ...ui.mi.places];
+const miPName = id => { const x = miPlaces().find(q => q.id === id); return x ? x.label : ''; };
 async function myInfoSheet() {
   let I = ME.info || {}; try { I = (await api('my_info', {})).info || {}; ME.info = I; } catch (e) {}
   const src = (P || []).filter(x => x.complete && !x.shared && x.data && x.data.lat);
-  const auto = (P || []).filter(x => x.complete && x.place).map(x => `<li>${kindIc(x.kind)}<span><b>${esc(x.label)}</b> · خانه ← ${esc(x.place.name)}</span></li>`).join('');
-  ui.mi = { routes: JSON.parse(JSON.stringify(I.routes || [])), kids: JSON.parse(JSON.stringify(I.kids || [])), g: I.g || '', rel: I.rel || '', job: I.job || '', pos: I.lat ? { lat: I.lat, lng: I.lng } : null, locked: !!I.g, src: src[0] ? src[0].id : '' };
-  const inp = (k, l, ph = '', x = '') => `<div class="field"><label for="mi-${k}">${l}</label><input id="mi-${k}" value="${esc(I[k] == null ? '' : String(I[k]))}" placeholder="${ph}" ${x}></div>`;
-  sheet('اطلاعات من', `<div class="stack mi-sheet">
-    <p class="muted small">یک بار بنویسید؛ مسیرک‌های تازه و نیمه‌کاره، آگهی‌ها و کارت سفر از همین‌جا پر می‌شوند و هر مسیرکی که کامل کنید این‌جا را هم به‌روز می‌کند. فقط برای خودتان است.</p>
-    <h3>${ic('user')} خودم</h3><div class="grid2">${inp('first', 'نام')}${inp('family', 'نام خانوادگی')}</div>
-    <div class="field"><span class="lbl">جنسیت</span><div class="chips" id="mi-gs">${[['f', 'خانم'], ['m', 'آقا']].map(([v, t]) => `<button class="chip" data-a="mi-g" data-v="${v}" aria-pressed="${ui.mi.g === v}" ${ui.mi.locked ? 'disabled' : ''}>${t}</button>`).join('')}</div>${ui.mi.locked ? '<small class="muted">برای امنیت هم‌سفرها یک بار ثبت می‌شود؛ تغییرش با پشتیبانی.</small>' : '<small class="muted">فقط یک بار ثبت می‌شود؛ آگهی‌ها و همکاران هم‌جنس با همین پیدا می‌شوند.</small>'}</div>
-    <div class="field"><span class="lbl">اگر برای فرزندان می‌آیید، نسبت شما</span><div class="chips" id="mi-rels">${MI_REL.map(v => `<button class="chip" data-a="mi-rel" data-v="${v}" aria-pressed="${ui.mi.rel === v}">${REL[v][0]}</button>`).join('')}</div></div>
-    <div class="field"><span class="lbl">شغل (اختیاری)</span><div class="chips" id="mi-jobs">${JOBS.map(([v, t]) => `<button class="chip" data-a="mi-job" data-v="${v}" aria-pressed="${ui.mi.job === v}">${t}</button>`).join('')}</div></div>
-    <div class="field mi-tl" id="mi-tl" ${ui.mi.job === 'cleric' ? '' : 'hidden'}><label for="mi-tcode">کد طلبگی (اختیاری)</label><input id="mi-tcode" value="${esc(I.tcode || '')}" inputmode="numeric" dir="ltr" placeholder="مثلاً ۸۸۰۰۱۲۳۴"><small class="muted">برای طرح‌های رایگانِ طلاب، پس از استعلام از مرکز خدمات حوزه فعال می‌شود.</small></div>
-    <h3>${ic('pin')} خانه</h3><div class="grid2">${inp('city', 'شهر', 'مثلاً تهران')}${inp('hood', 'محله', 'مثلاً ونک')}</div>
-    <div class="loc-card ${I.lat ? 'set' : ''}" id="mi-home">${ic(I.lat ? 'check' : 'pin')}<span>${I.lat ? 'نقطه‌ی خانه ثبت شده' : 'نقطه‌ی خانه هنوز ثبت نشده'}</span></div>
-    <div class="chips"><button class="btn sm line" data-a="mi-map">${ic('map')}انتخاب روی نقشه</button><button class="btn sm line" data-a="mi-here">${ic('locate')}موقعیت فعلی</button>${src[0] ? `<button class="btn sm line" data-a="mi-from">از «${esc(src[0].label)}»</button>` : ''}</div>
-    <h3>${ic('kinder')} فرزندان (اگر دارید)</h3><p class="muted small">اسم کوچک، دختر یا پسر، سال تولد؛ برای قانون هم‌جنسی و ظرفیت ماشین. فقط هم‌تیمی‌ها اسم را می‌بینند.</p><div id="mi-kids">${miKids()}</div><button class="btn sm line" data-a="mi-kadd">${ic('plus')}فرزند</button>
-    <h3>${ic('car')} ماشین (اگر دارید)</h3><div class="grid2">${inp('car', 'ماشین', 'مثلاً پژو ۲۰۶')}${inp('color', 'رنگ')}${inp('seats', 'جای خالی معمول', '۳', 'inputmode="numeric"')}</div>
-    <div class="field"><span class="lbl">نشانی پلاک برای پیدا کردن ماشین (اختیاری)</span><div class="plate" dir="ltr"><span class="pl-x" aria-hidden="true">•• ب</span><input id="mi-p3" value="${esc(I.p3 || '')}" inputmode="numeric" maxlength="3" placeholder="۳۴۵" aria-label="سه رقم وسط پلاک"><span class="pl-ir">ایران<input id="mi-pir" value="${esc(I.pir || '')}" inputmode="numeric" maxlength="2" placeholder="۶۷" aria-label="کد ایران"></span></div><small class="muted">پلاک کامل را نمی‌گیریم؛ همین سه رقم و کد ایران کافی است تا روز حرکت هم‌سفر ماشین را گم نکند.</small></div>
-    <h3>${ic('map')} مسیرهای پرتکرار</h3>${auto ? `<ul class="mi-auto">${auto}</ul>` : ''}<div id="mi-routes">${miRoutes()}</div><button class="btn sm line" data-a="mi-radd">${ic('plus')}مسیر دیگر</button>
-    <button class="btn ac block" data-a="mi-save">ذخیره</button></div>`);
+  ui.mi = { routes: JSON.parse(JSON.stringify(I.routes || [])).map(r => Object.assign({ days: [] }, r)), kids: JSON.parse(JSON.stringify(I.kids || [])), places: JSON.parse(JSON.stringify(I.places || [])),
+    g: I.g || '', rel: I.rel || '', job: I.job || '', seats: I.seats || 0, pos: I.lat ? { lat: I.lat, lng: I.lng } : null, locked: !!I.g, src: src[0] ? src[0].id : '' };
+  // places from finished mesiraks become endpoints in one tap
+  const sugg = (P || []).filter(x => x.complete && x.place && x.place.lat && !ui.mi.places.some(q => q.label === x.place.name)).slice(0, 3);
+  const inp = (k, l, ph = '', x = '') => `<label class="mi-f"><span>${l}</span><input id="mi-${k}" value="${esc(I[k] == null ? '' : String(I[k]))}" placeholder="${ph}" ${x}></label>`;
+  const sec = (icn, t, sub, body, tone = '') => `<section class="mi-sec ${tone}"><header><span class="mi-bub">${icn}</span><span><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}</span></header>${body}</section>`;
+  const pct = miPct(I), nm = (I.first || '') + ' ' + (I.family || '');
+  sheet('اطلاعات من', `<div class="mi-sheet">
+    <div class="mi-hero"><div class="mi-ring" style="--p:${pct}"><span>${esc((I.first || I.family || '؟').trim().charAt(0) || '؟')}</span></div>
+      <div class="grow"><b>${esc(nm.trim() || 'خودتان را معرفی کنید')}</b><small>${pct >= 100 ? 'کامل است؛ هر فرم تازه خودکار پر می‌شود ✨' : `${fa(pct)}٪ کامل · هرچه کامل‌تر، فرم‌ها کوتاه‌تر`}</small><span class="mi-lock">${ic('shield')} فقط برای خودتان؛ به کسی نشان داده نمی‌شود</span></div></div>
+    ${sec('🙂', 'خودم', '', `<div class="mi-two">${inp('first', 'نام', 'مثلاً باران')}${inp('family', 'نام خانوادگی', 'مثلاً آسمان')}</div>
+      <div class="mi-lbl">جنسیت${ui.mi.locked ? ' <small>· قفل؛ تغییر با پشتیبانی</small>' : ''}</div><div class="mi-seg" id="mi-gs">${[['f', '👩', 'خانم'], ['m', '👨', 'آقا']].map(([v, e, t]) => `<button data-a="mi-g" data-v="${v}" aria-pressed="${ui.mi.g === v}" ${ui.mi.locked ? 'disabled' : ''}><i>${e}</i>${t}</button>`).join('')}</div>
+      <div class="mi-lbl">اگر برای فرزند می‌آیید، شما…</div><div class="mi-pills" id="mi-rels">${MI_REL.map(v => `<button class="mi-pill" data-a="mi-rel" data-v="${v}" aria-pressed="${ui.mi.rel === v}">${REL[v][0]}</button>`).join('')}</div>
+      <div class="mi-lbl">شغل</div><div class="mi-pills" id="mi-jobs">${MI_JOBS.map(([v, t]) => `<button class="mi-pill" data-a="mi-job" data-v="${v}" aria-pressed="${ui.mi.job === v}">${t}</button>`).join('')}</div>
+      <label class="mi-f" id="mi-jt" ${ui.mi.job === 'other' ? '' : 'hidden'}><span>عنوان شغل</span><input id="mi-job_t" value="${esc(I.job_t || '')}" maxlength="40" placeholder="مثلاً حسابدار، پرستار، برنامه‌نویس"></label>
+      <label class="mi-f" id="mi-tl" ${ui.mi.job === 'cleric' ? '' : 'hidden'}><span>کد طلبگی (اختیاری)</span><input id="mi-tcode" value="${esc(I.tcode || '')}" inputmode="numeric" dir="ltr" placeholder="۸۸۰۰۱۲۳۴"><small>برای طرح‌های رایگانِ طلاب، پس از استعلام از مرکز خدمات حوزه.</small></label>`)}
+    ${sec('🏡', 'خانه و جاهای من', 'هر جا را یک بار روی نقشه بگذارید؛ مسیرها از همین‌ها ساخته می‌شوند', `<div class="mi-two">${inp('city', 'شهر', 'مثلاً تهران')}${inp('hood', 'محله', 'مثلاً ونک')}</div>
+      <div class="mi-pls" id="mi-pls">${miPls()}</div>
+      <div class="mi-add"><span class="mi-lbl">جای تازه:</span>${Object.entries(MI_PK).map(([k, [e, t]]) => `<button class="mi-pill" data-a="mi-padd" data-v="${k}"><i>${e}</i>${t}</button>`).join('')}</div>
+      ${sugg.length ? `<div class="mi-sugg">${ic('spark')}<span>از مسیرک‌هایتان:</span>${sugg.map(x => `<button class="mi-pill" data-a="mi-psug" data-id="${x.id}">+ ${esc(x.place.name)}</button>`).join('')}</div>` : ''}`)}
+    ${sec('🔁', 'مسیرهای پرتکرار', 'از کجا به کجا، چه ساعتی، چه روزهایی', `<div id="mi-routes">${miRoutes()}</div><button class="mi-plus" data-a="mi-radd">${ic('plus')}مسیر تازه</button>`, 'warm')}
+    ${sec('🧒', 'فرزندان', 'برای قانون هم‌جنسی و ظرفیت ماشین؛ اسم فقط برای هم‌تیمی‌ها', `<div id="mi-kids">${miKids()}</div><button class="mi-plus" data-a="mi-kadd">${ic('plus')}فرزند</button>`)}
+    ${sec('🚗', 'ماشین', 'اگر ندارید خالی بگذارید', `<div class="mi-two">${inp('car', 'ماشین', 'مثلاً پژو ۲۰۶')}${inp('color', 'رنگ', 'مثلاً سفید')}</div>
+      <div class="mi-lbl">جای خالیِ معمول</div><div class="mi-knuck" id="mi-seats">${[1, 2, 3, 4].map(n => `<button data-a="mi-seat" data-v="${n}" aria-pressed="${ui.mi.seats === n}" aria-label="${fa(n)} جا"><b>${fa(n)}</b><i>${'●'.repeat(n)}</i></button>`).join('')}</div>
+      <div class="mi-lbl">نشانی پلاک برای پیدا کردن ماشین (اختیاری)</div><div class="plate" dir="ltr"><span class="pl-x" aria-hidden="true">•• ب</span><input id="mi-p3" value="${esc(I.p3 || '')}" inputmode="numeric" maxlength="3" placeholder="۳۴۵" aria-label="سه رقم وسط پلاک"><span class="pl-ir">ایران<input id="mi-pir" value="${esc(I.pir || '')}" inputmode="numeric" maxlength="2" placeholder="۶۷" aria-label="کد ایران"></span></div><small class="mi-note">پلاک کامل را نمی‌گیریم؛ همین سه رقم و کد ایران کافی است تا روز حرکت ماشین گم نشود.</small>`)}
+    ${sec('🫶', 'آشنای مورد اعتماد', 'کارت سفر با یک تپ برای او فرستاده می‌شود', `<div class="mi-two"><label class="mi-f"><span>نام</span><input id="mi-trn" value="${esc((I.trust || {}).name || '')}" maxlength="30" placeholder="مثلاً خواهرم"></label><label class="mi-f"><span>شماره</span><input id="mi-trp" value="${esc((I.trust || {}).phone ? fa((I.trust || {}).phone).replace(/٬/g, '') : '')}" inputmode="tel" dir="ltr" maxlength="11" placeholder="۰۹۱۲…"></label></div>`, 'warm')}
+    <div class="mi-save"><button class="btn ac block" data-a="mi-save">${ic('check')}ذخیره</button></div></div>`);
 }
-const miRoutes = () => ui.mi.routes.map((r, i) => `<div class="mi-r"><input data-ri="${i}" data-rk="from" value="${esc(r.from)}" placeholder="از (مثلاً خانه)"><input data-ri="${i}" data-rk="to" value="${esc(r.to)}" placeholder="به (مثلاً باشگاه)"><input data-ri="${i}" data-rk="tm" value="${esc(r.tm)}" placeholder="ساعت" dir="ltr"><button class="icon-btn" data-a="mi-rdel" data-v="${i}" aria-label="حذف">${ic('close')}</button></div>`).join('');
-const miKids = () => ui.mi.kids.map((k, i) => `<div class="mi-k"><input data-ki="${i}" data-kk="first" value="${esc(k.first || '')}" placeholder="اسم کوچک"><select data-ki="${i}" data-kk="g" aria-label="دختر یا پسر"><option value="">دختر/پسر</option><option value="f" ${k.g === 'f' ? 'selected' : ''}>دختر</option><option value="m" ${k.g === 'm' ? 'selected' : ''}>پسر</option></select><input data-ki="${i}" data-kk="by" value="${esc(k.by ? fa(k.by) : '')}" inputmode="numeric" maxlength="4" placeholder="سال تولد" dir="ltr"><button class="icon-btn" data-a="mi-kdel" data-v="${i}" aria-label="حذف">${ic('close')}</button></div>`).join('');
-const miGrab = () => { $$('#mi-routes [data-ri]').forEach(i => { ui.mi.routes[+i.dataset.ri][i.dataset.rk] = i.value; }); $$('#mi-kids [data-ki]').forEach(i => { const k = ui.mi.kids[+i.dataset.ki]; k[i.dataset.kk] = i.dataset.kk === 'by' ? (+en(i.value) || '') : i.value; }); };
-const miHome = t => { const b = $('#mi-home'); if (b) { b.className = 'loc-card set'; b.innerHTML = ic('check') + `<span>${t}</span>`; } };
+const miPls = () => `<div class="mi-pl home ${ui.mi.pos ? 'set' : ''}"><i>🏡</i><span><b>خانه</b><small>${ui.mi.pos ? 'روی نقشه ثبت شده' : 'هنوز روی نقشه نیست'}</small></span><button class="mi-mini" data-a="mi-map" data-id="home" aria-label="خانه روی نقشه">${ic('map')}</button><button class="mi-mini" data-a="mi-here" aria-label="موقعیت فعلی">${ic('locate')}</button>${ui.mi.src && !ui.mi.pos ? `<button class="mi-mini" data-a="mi-from" aria-label="از مسیرک">${ic('copy')}</button>` : ''}</div>`
+  + ui.mi.places.map((x, i) => `<div class="mi-pl ${x.lat ? 'set' : ''}"><i>${(MI_PK[x.kind] || MI_PK.other)[0]}</i><span><input class="mi-pin" data-pi="${i}" value="${esc(x.label)}" maxlength="30" aria-label="نام این جا"><small>${x.lat ? (x.addr ? esc(x.addr) : 'روی نقشه ثبت شده') : 'روی نقشه بگذارید ←'}</small></span><button class="mi-mini ${x.lat ? '' : 'go'}" data-a="mi-map" data-id="${x.id}" aria-label="روی نقشه">${ic('map')}</button><button class="mi-mini" data-a="mi-pdel" data-v="${i}" aria-label="حذف">${ic('close')}</button></div>`).join('');
+const miRoutes = () => ui.mi.routes.length ? ui.mi.routes.map((r, i) => { const opt = sel => miPlaces().map(x => `<option value="${x.id}" ${x.id === sel ? 'selected' : ''}>${esc(x.label)}</option>`).join('');
+  return `<div class="mi-rt"><div class="mi-rt-ln"><select data-ri="${i}" data-rk="from" aria-label="از">${opt(r.from)}</select><span class="mi-arw" aria-hidden="true">←</span><select data-ri="${i}" data-rk="to" aria-label="به"><option value="">به کجا؟</option>${opt(r.to)}</select></div>
+    <div class="mi-rt-ln"><button class="mi-time ${r.tm ? '' : 'empty'}" data-a="mi-tm" data-v="${i}">${ic('clock2')}<b>${r.tm ? fa(r.tm) : 'ساعت'}</b></button><div class="mi-days">${MI_DAYS.map((d, k) => `<button data-a="mi-day" data-v="${i}" data-d="${k}" aria-pressed="${(r.days || []).includes(k)}" aria-label="${d}">${d}</button>`).join('')}</div></div>
+    <div class="mi-rt-ln end">${r.to ? `<a class="mi-link" href="ads/#new&from_area=${encodeURIComponent(miPName(r.from))}&to_area=${encodeURIComponent(miPName(r.to))}&tm=${encodeURIComponent(r.tm || '')}&days=${(r.days || []).join('')}">${ic('flag')}آگهی هم‌مسیری برای این مسیر</a>` : '<span></span>'}<button class="mi-mini" data-a="mi-rdel" data-v="${i}" aria-label="حذف مسیر">${ic('close')}</button></div></div>`; }).join('')
+  : `<p class="mi-empty">مثلاً «خانه ← باشگاه، ۱۸:۰۰، شنبه و سه‌شنبه». این‌ها پایه‌ی پیشنهادهای هم‌مسیری‌اند.</p>`;
+const miKids = () => ui.mi.kids.map((k, i) => `<div class="mi-k"><input data-ki="${i}" data-kk="first" value="${esc(k.first || '')}" placeholder="اسم کوچک"><div class="mi-seg sm">${[['f', '👧'], ['m', '👦']].map(([v, e]) => `<button data-a="mi-kg" data-v="${i}" data-g="${v}" aria-pressed="${k.g === v}" aria-label="${v === 'f' ? 'دختر' : 'پسر'}">${e}</button>`).join('')}</div><input data-ki="${i}" data-kk="by" value="${esc(k.by ? fa(k.by) : '')}" inputmode="numeric" maxlength="4" placeholder="سال تولد" dir="ltr"><button class="mi-mini" data-a="mi-kdel" data-v="${i}" aria-label="حذف">${ic('close')}</button></div>`).join('');
+const miGrab = () => { $$('#mi-routes [data-ri]').forEach(i => { ui.mi.routes[+i.dataset.ri][i.dataset.rk] = i.value; }); $$('#mi-kids [data-ki]').forEach(i => { const k = ui.mi.kids[+i.dataset.ki]; k[i.dataset.kk] = i.dataset.kk === 'by' ? (+en(i.value) || '') : i.value; }); $$('#mi-pls [data-pi]').forEach(i => { ui.mi.places[+i.dataset.pi].label = i.value.trim(); }); };
+const miRe = () => { miGrab(); $('#mi-pls').innerHTML = miPls(); $('#mi-routes').innerHTML = miRoutes(); };
+/* a playful time picker: two snapping wheels (hour, 5-minute steps) plus the common times as one-tap chips */
+function miTimePick(i) {
+  const r = ui.mi.routes[i], [h0, m0] = (r.tm || '07:30').split(':').map(Number), H = [...Array(24).keys()], M = [...Array(12).keys()].map(x => x * 5);
+  const pop = document.createElement('div'); pop.className = 'tp-pop'; pop.innerHTML = `<div class="tp-card" role="dialog" aria-label="انتخاب ساعت"><b>چه ساعتی راه می‌افتید؟</b>
+    <div class="tp-quick">${['06:30', '07:00', '07:30', '13:00', '14:00', '16:00', '17:00', '18:00'].map(t => `<button data-t="${t}">${fa(t)}</button>`).join('')}</div>
+    <div class="tp-wheels" dir="ltr"><div class="tp-w" data-w="h">${H.map(x => `<span>${fa(String(x).padStart(2, '0'))}</span>`).join('')}</div><i>:</i><div class="tp-w" data-w="m">${M.map(x => `<span>${fa(String(x).padStart(2, '0'))}</span>`).join('')}</div><div class="tp-band" aria-hidden="true"></div></div>
+    <div class="tp-act"><button class="btn line" data-x="clr">بدون ساعت</button><button class="btn ac" data-x="ok">${ic('check')}همین</button></div></div>`;
+  document.body.appendChild(pop); const IH = 44, wh = pop.querySelector('[data-w="h"]'), wm = pop.querySelector('[data-w="m"]');
+  const pick = w => Math.round(w.scrollTop / IH), mark = w => { const k = pick(w); [...w.children].forEach((c, j) => c.classList.toggle('on', j === k)); };
+  requestAnimationFrame(() => { wh.scrollTop = h0 * IH; wm.scrollTop = Math.round(m0 / 5) * IH; mark(wh); mark(wm); });
+  [wh, wm].forEach(w => { w.addEventListener('scroll', () => mark(w), { passive: true }); w.addEventListener('click', e => { const k = [...w.children].indexOf(e.target.closest('span')); if (k >= 0) w.scrollTo({ top: k * IH, behavior: 'smooth' }); }); });
+  const done = tm => { miGrab(); ui.mi.routes[i].tm = tm; pop.remove(); $('#mi-routes').innerHTML = miRoutes(); };
+  pop.addEventListener('click', e => { const q = e.target.closest('[data-t]'), x = e.target.closest('[data-x]'); if (q) return done(q.dataset.t);
+    if (x) return done(x.dataset.x === 'ok' ? String(H[Math.min(23, pick(wh))]).padStart(2, '0') + ':' + String(M[Math.min(11, pick(wm))]).padStart(2, '0') : '');
+    if (e.target === pop) pop.remove(); });
+}
 /* wizard ⇄ «اطلاعات من»: fill only what the wizard does not have yet; never overwrite a mesirak's own answers */
 function fillFromInfo(w) {
   const I = ME.info; if (!I || !S.token) return 0; let n = 0; const put = (k, v) => { if (v != null && v !== '' && (w.d[k] == null || w.d[k] === '')) { w.d[k] = v; n++; } };
-  put('family', I.family); put('hood', I.hood); put('job', I.job); if (I.lat && !w.d.lat) { w.d.lat = I.lat; w.d.lng = I.lng; n++; }
+  put('family', I.family); put('hood', I.hood); if (I.job !== 'other') put('job', I.job); if (I.lat && !w.d.lat) { w.d.lat = I.lat; w.d.lng = I.lng; n++; }
   if (wChild(w)) { if (I.rel && REL[I.rel] && !w.d.rel) { w.d.rel = I.rel; w.d.pg = REL[I.rel][1]; n++; } } else put('pg', I.g);
   if (I.seats && w.mode === 'new' && !w.pid) w.d.seats = I.seats;
   if (wChild(w) && (I.kids || []).length && !(w.d.kids || []).some(k => k.first)) { const g = placeGender(w), ks = I.kids.filter(k => !g || g === 'fm' || !k.g || k.g === g);
@@ -2245,7 +2282,7 @@ function jrView(J) {
   <section class="card jr-dx"><h3>🩺 تشخیص</h3><ul>${D.map(f => `<li class="is-${f.lv}"><span class="jr-dxi">${f.ic}</span><span><b>${esc(f.t)}</b>${f.fix ? `<small>${esc(f.fix)}</small>` : ''}</span></li>`).join('')}</ul></section>
   ${J.profiles.length > 1 ? `<div class="jr-ptabs no-print">${J.profiles.map((p, i) => `<button data-a="jr-prof" data-v="${i}" aria-pressed="${p === P}">${kindIc(p.kind)}<span>${esc(p.place ? p.place.name : p.label)}</span>${p.team ? '<i>تیم</i>' : ''}</button>`).join('')}</div>` : ''}
   <section class="card jr-swc"><h3>🗺️ مسیر در فرایند رسیدیم ${P && P.place ? `<small>${esc(P.place.name)}${P.place.city ? '، ' + esc(P.place.city) : ''}</small>` : ''}</h3>
-    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=40" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
+    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=41" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
       <div class="jr-grid" style="--n:${S.length}">${[0, 1, 2].map(l => `<i class="jr-lane l${l}" style="grid-column:${l + 2}"></i>`).join('')}<svg class="jr-wires" aria-hidden="true"></svg>
         ${S.map((s, i) => `<span class="jr-no is-${s.st}" style="grid-row:${i + 1}">${fa(i + 1)}</span><div class="jr-node is-${s.st} l${s.lane}" style="grid-row:${i + 1};grid-column:${s.lane + 2};--d:${i}" data-i="${i}">${i === cur ? `<span class="jr-here">${shapeAv(P ? P.id : u.id, 30)}<em>اینجاست</em></span>` : ''}<b><i>${s.ic}</i>${s.t}</b><small>${esc(s.sub || '')}</small>${s.at ? `<time>${jrAgo(s.at)}</time>` : ''}</div>`).join('')}
       </div></div>
@@ -2620,18 +2657,32 @@ async function act(a, el) {
       try { const r = await api('pay_start', { plan: 'lv', qty: +el.dataset.v, agree: 1, mobile: S.phone || '' }); if (!/^https:\/\/([a-z0-9.-]+\.(zarinpal\.com|shaparak\.ir|payping\.ir)|residim\.ir\/app\/api\/pay\.php)/i.test(r.url)) throw new Error('نشانی درگاه نامعتبر است.'); location.href = r.url; } catch (e) { el.disabled = false; fail(e); } return; }
     case 'mi-g': { if (ui.mi.locked) return; ui.mi.g = el.dataset.v; $$('[data-a="mi-g"]').forEach(b => b.setAttribute('aria-pressed', b === el)); return; }
     case 'mi-rel': { ui.mi.rel = ui.mi.rel === el.dataset.v ? '' : el.dataset.v; $$('[data-a="mi-rel"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.mi.rel)); if (ui.mi.rel && !ui.mi.locked && !ui.mi.g) { ui.mi.g = REL[ui.mi.rel][1]; $$('[data-a="mi-g"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.mi.g)); } return; }
-    case 'mi-job': { ui.mi.job = ui.mi.job === el.dataset.v ? '' : el.dataset.v; $$('[data-a="mi-job"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.mi.job)); $('#mi-tl').hidden = ui.mi.job !== 'cleric'; return; }
-    case 'mi-map': { const c = ui.mi.pos ? [ui.mi.pos.lat, ui.mi.pos.lng] : [35.7, 51.39]; return pickOnMap('موقعیت خانه', c, ll => { ui.mi.pos = { lat: ll[0], lng: ll[1] }; const h = $('#mi-hood'); if (h && !h.value && PKM.hood) h.value = PKM.hood; miHome(PKM.addr ? esc(PKM.addr) : 'نقطه‌ی خانه انتخاب شد (پس از ذخیره)'); }); }
-    case 'mi-here': { const h = await here(); if (!h) return toast('موقعیت در دسترس نیست؛ «انتخاب روی نقشه» را بزنید.'); ui.mi.pos = h; return miHome('موقعیت فعلی (پس از ذخیره)'); }
-    case 'mi-from': { const x = (P || []).find(q => q.id === ui.mi.src); if (x) { ui.mi.pos = { lat: x.data.lat, lng: x.data.lng }; if (!$('#mi-hood').value) $('#mi-hood').value = x.data.hood || ''; miHome(`از «${esc(x.label)}» (پس از ذخیره)`); } return; }
-    case 'mi-radd': { miGrab(); if (ui.mi.routes.length >= 8) return; ui.mi.routes.push({ from: 'خانه', to: '', tm: '' }); $('#mi-routes').innerHTML = miRoutes(); return; }
+    case 'mi-job': { ui.mi.job = ui.mi.job === el.dataset.v ? '' : el.dataset.v; $$('[data-a="mi-job"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.mi.job)); $('#mi-tl').hidden = ui.mi.job !== 'cleric'; $('#mi-jt').hidden = ui.mi.job !== 'other'; if (ui.mi.job === 'other') $('#mi-job_t').focus(); return; }
+    case 'mi-seat': { const n = +el.dataset.v; ui.mi.seats = ui.mi.seats === n ? 0 : n; $$('[data-a="mi-seat"]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === ui.mi.seats)); return; }
+    case 'mi-map': { miGrab(); const id = el.dataset.id, x = id === 'home' ? null : ui.mi.places.find(q => q.id === id), cur = id === 'home' ? ui.mi.pos : x && x.lat ? x : ui.mi.pos;
+      return pickOnMap(id === 'home' ? 'خانه کجاست؟' : `«${x ? x.label : ''}» کجاست؟`, cur ? [cur.lat, cur.lng] : [35.7, 51.39], ll => {
+        if (id === 'home') { ui.mi.pos = { lat: ll[0], lng: ll[1] }; const h = $('#mi-hood'); if (h && !h.value && PKM.hood) h.value = PKM.hood; } else if (x) { x.lat = ll[0]; x.lng = ll[1]; x.addr = PKM.addr || ''; }
+        $('#mi-pls').innerHTML = miPls(); }); }
+    case 'mi-here': { const h = await here(); if (!h) return toast('موقعیت در دسترس نیست؛ دکمه‌ی نقشه را بزنید.'); miGrab(); ui.mi.pos = h; $('#mi-pls').innerHTML = miPls(); return toast('خانه = موقعیت فعلی (پس از ذخیره)'); }
+    case 'mi-from': { const x = (P || []).find(q => q.id === ui.mi.src); if (x) { miGrab(); ui.mi.pos = { lat: x.data.lat, lng: x.data.lng }; if (!$('#mi-hood').value) $('#mi-hood').value = x.data.hood || ''; $('#mi-pls').innerHTML = miPls(); } return; }
+    case 'mi-padd': { miGrab(); if (ui.mi.places.length >= 8) return toast('حداکثر ۸ جا.'); const k = el.dataset.v, id = Math.random().toString(36).slice(2, 10); ui.mi.places.push({ id, label: k === 'other' ? '' : MI_PK[k][1], kind: k, lat: null, lng: null });
+      miRe(); const inp = $(`#mi-pls [data-pi="${ui.mi.places.length - 1}"]`); if (k === 'other') { inp && inp.focus(); return; } return act('mi-map', { dataset: { id } }); }
+    case 'mi-psug': { const x = (P || []).find(q => q.id === el.dataset.id); if (!x || ui.mi.places.length >= 8) return; miGrab(); ui.mi.places.push({ id: Math.random().toString(36).slice(2, 10), label: x.place.name.slice(0, 30), kind: ['school', 'kinder', 'uni'].includes(x.kind) ? 'edu' : x.kind === 'work' ? 'work' : x.kind === 'sport' ? 'gym' : 'other', lat: x.place.lat, lng: x.place.lng }); el.remove(); return miRe(); }
+    case 'mi-pdel': { miGrab(); const x = ui.mi.places.splice(+el.dataset.v, 1)[0]; if (x) ui.mi.routes.forEach(r => { if (r.from === x.id) r.from = 'home'; if (r.to === x.id) r.to = ''; }); $('#mi-pls').innerHTML = miPls(); $('#mi-routes').innerHTML = miRoutes(); return; }
+    case 'mi-radd': { miGrab(); if (ui.mi.routes.length >= 8) return; const f = ui.mi.places.find(x => !ui.mi.routes.some(r => r.to === x.id)); ui.mi.routes.push({ from: 'home', to: f ? f.id : '', tm: '', days: [0, 1, 2, 3, 4] }); $('#mi-routes').innerHTML = miRoutes(); if (!ui.mi.places.length) toast('اول یک «جای تازه» اضافه کنید تا مقصد داشته باشید.'); return; }
     case 'mi-rdel': { miGrab(); ui.mi.routes.splice(+el.dataset.v, 1); $('#mi-routes').innerHTML = miRoutes(); return; }
+    case 'mi-tm': return miTimePick(+el.dataset.v);
+    case 'mi-day': { miGrab(); const r = ui.mi.routes[+el.dataset.v], d = +el.dataset.d; r.days = r.days.includes(d) ? r.days.filter(x => x !== d) : [...r.days, d].sort(); el.setAttribute('aria-pressed', r.days.includes(d)); return; }
     case 'mi-kadd': { miGrab(); if (ui.mi.kids.length >= 6) return; ui.mi.kids.push({ first: '', g: '', by: '' }); $('#mi-kids').innerHTML = miKids(); return; }
     case 'mi-kdel': { miGrab(); ui.mi.kids.splice(+el.dataset.v, 1); $('#mi-kids').innerHTML = miKids(); return; }
+    case 'mi-kg': { miGrab(); ui.mi.kids[+el.dataset.v].g = el.dataset.g; $('#mi-kids').innerHTML = miKids(); return; }
     case 'mi-save': { miGrab(); const v = k => ($('#mi-' + k) || {}).value || '';
-      const kids = ui.mi.kids.filter(k => k.first.trim()); if (kids.some(k => !k.g)) return toast('برای هر فرزند «دختر» یا «پسر» را انتخاب کنید.');
-      try { const r = await api('my_info', Object.assign({ save: 1, first: v('first'), family: v('family'), rel: ui.mi.rel, job: ui.mi.job, tcode: ui.mi.job === 'cleric' ? en(v('tcode')) : '', city: v('city'), hood: v('hood'), car: v('car'), color: v('color'), p3: en(v('p3')), pir: en(v('pir')), seats: +en(v('seats')) || 0, routes: ui.mi.routes, kids, g: ui.mi.locked ? '' : ui.mi.g }, ui.mi.pos || {}));
-        ME.info = r.info; closeLayer(); toast('ذخیره شد؛ فرم‌های بعدی پیش‌پر می‌شوند.');
+      const kids = ui.mi.kids.filter(k => (k.first || '').trim()); if (kids.some(k => !k.g)) return toast('برای هر فرزند 👧 یا 👦 را بزنید.');
+      const places = ui.mi.places.filter(x => x.label); if (places.some(x => !x.lat)) return toast(`«${places.find(x => !x.lat).label}» هنوز روی نقشه نیست؛ دکمه‌ی نقشه‌اش را بزنید.`);
+      const trp = en(v('trp')).replace(/\D/g, ''); if (trp && !/^09\d{9}$/.test(trp)) return toast('شماره‌ی آشنا را کامل بنویسید (۰۹…).');
+      try { const r = await api('my_info', Object.assign({ save: 1, first: v('first'), family: v('family'), rel: ui.mi.rel, job: ui.mi.job, job_t: ui.mi.job === 'other' ? v('job_t') : '', tcode: ui.mi.job === 'cleric' ? en(v('tcode')) : '', city: v('city'), hood: v('hood'), car: v('car'), color: v('color'), p3: en(v('p3')), pir: en(v('pir')), seats: ui.mi.seats,
+          places: places.map(({ id, label, kind, lat, lng }) => ({ id, label, kind, lat, lng })), routes: ui.mi.routes.filter(r => r.to), kids, trust: { name: v('trn'), phone: trp }, g: ui.mi.locked ? '' : ui.mi.g }, ui.mi.pos || {}));
+        ME.info = r.info; closeLayer(); toast(`ذخیره شد · ${fa(miPct(r.info))}٪ کامل`);
         const half = (P || []).find(x => !x.complete && !x.shared); if (half) setTimeout(() => offerUndo(`مسیرک «${half.label}» نیمه‌کاره است؛ با این اطلاعات ادامه دهیم؟`, () => wizOpen(half, { mode: 'resume' }), 'ادامه'), 600); } catch (e) { toast(e.message); } return; }
     case 'lv-start': return leaveStartSheet(el.dataset.id);
     case 'intent': { const x = (P || []).find(q => q.id === el.dataset.id); if (!x) return; if (S.active !== x.id) { S.active = x.id; ui.leave = null; persist(); } closeLayer(); renderMain(); ui.lvDir = el.dataset.v; return leaveStartSheet(); }
