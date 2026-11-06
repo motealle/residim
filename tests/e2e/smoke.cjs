@@ -89,7 +89,23 @@ const api = (a, b, t) => fetch(B + '/app/api/r6.php?a=' + a, { method: 'POST', h
     const q0 = (await api('leave_state', { profile_id: wpr.id }, TB)).quota; assert(q0 && !q0.unlimited && q0.free === 30 && q0.left === 30, 'quota first month ' + JSON.stringify(q0));
     const s1 = await api('leave_start', { profile_id: wpr.id, dir: 'home', role: 'car', seats: 3, confirm: 1 }, TB); assert(s1.ok && s1.quota.left === 29, 'trip counted ' + JSON.stringify(s1));
     await api('leave_quit', { profile_id: wpr.id, group: s1.group.id }, TB); const s2 = await api('leave_start', { profile_id: wpr.id, dir: 'home', role: 'car', seats: 3, confirm: 1 }, TB); assert(s2.ok && s2.quota.left === 29, 'same direction same day counted once');
-    await api('leave_quit', { profile_id: wpr.id, group: s2.group.id }, TB); await api('admin_flag', { k: 'paid_mode', v: 0 }, AD); ok('partial plate + talabe + kids + leave quota'); assert((await api('me', {}, TB)).info.city === 'تهران', 'me.info'); ok('my info');
+    await api('leave_quit', { profile_id: wpr.id, group: s2.group.id }, TB); await api('admin_flag', { k: 'paid_mode', v: 0 }, AD); ok('partial plate + talabe + kids + leave quota');
+    // complement broadcast: a driver leaves → riders (not drivers) of the same gender nearby hear it, with the distance, even from a neighbouring workplace
+    const mk = async (pre) => { const ph = pre + String(Date.now()).slice(-7), o = await api('otp_send', { phone: ph }); return (await api('otp_verify', { phone: ph, code: o.dev_code })).token; };
+    const TE = await mk('0931'), TC = await mk('0932'), TD = await mk('0933');
+    const wp2 = (await api('place_create', { kind: 'work', name: 'برج آزمون آرام', city: 'تهران', gender: 'fm', lat: 35.7072, lng: 51.40, force: true }, TC)).place;
+    const P = async (t, place, role, lat) => (await api('profile_save', { kind: 'work', label: 'کار', place_id: place, complete: 1, data: { family: 'نسیم', pg: 'f', lat, lng: 51.43, hood: 'تجریش', role, seats: role === 'pay' ? 0 : 3, rules_at: 1, contact: 'app' } }, t)).profile;
+    const pe = await P(TE, wp.id, 'drive', 35.75), pc = await P(TC, wp2.id, 'pay', 35.758), pd = await P(TD, wp.id, 'drive', 35.751);
+    const ge = await api('leave_start', { profile_id: pe.id, dir: 'home', role: 'car', seats: 2, confirm: 1 }, TE); assert(ge.ok, 'driver leaves ' + JSON.stringify(ge));
+    const nc = (await api('inbox', { profile_id: pc.id }, TC)).notes, nd = (await api('inbox', { profile_id: pd.id }, TD)).notes;
+    const hasC = JSON.stringify(nc).includes('خانه‌اش حدود'), hasD = JSON.stringify(nd).includes('خانه‌اش حدود');
+    assert(hasC && !hasD, 'complement broadcast (rider notified with distance, driver not) ' + JSON.stringify(nc).slice(0, 300));
+    const sc = await api('leave_state', { profile_id: pc.id }, TC); const ng = (sc.near || []).find(g => g.id === ge.group.id);
+    assert(ng && ng.gap_t && ng.from_t, 'neighbouring workplace sees the group with distance ' + JSON.stringify(sc).slice(0, 300));
+    assert((await api('leave_join', { profile_id: pc.id, group: ge.group.id, role: 'ride', confirm: 1 }, TC)).ok, 'neighbour joins');
+    const tc = await api('tg_chat', { group: ge.group.id, profile_id: pe.id }, TE); assert(JSON.stringify(tc).includes('به گروه آمد'), 'join echoed in group chat');
+    assert((await api('leave_pref', { profile_id: pc.id, on: 0 }, TC)).on === false && (await api('leave_state', { profile_id: pc.id }, TC)).hear === false, 'leave opt-out');
+    ok('complement broadcast + neighbouring workplace + distance'); assert((await api('me', {}, TB)).info.city === 'تهران', 'me.info'); ok('my info');
     const L2 = await (await fetch(B + '/ads/')).text(); assert(L2.includes('class="rt"') && L2.includes('data-do="swap"') && L2.includes('class="fab"'), 'ads redesign markup'); ok('ads redesign'); }
   // no page may spill past the screen or silently cut text, on a 320px phone up to a large phone
   { const chk = require('./overflow.cjs'), { devices } = require('playwright');

@@ -1643,3 +1643,5 @@ body.chat-open .page-bg,body.map-full .page-bg{visibility:hidden}
 .adm-page table th{font-size:.76rem;letter-spacing:.01em;background:var(--surface-2)}.adm-page table tr:hover td{background:color-mix(in srgb,var(--gc) 6%,transparent)}
 .adm-page .hint{border-radius:16px}
 @media (max-width:640px){.adm-page>.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.adm-page>.grid>*{padding:10px 8px!important;min-height:0}.adm-page>.grid b,.adm-page>.grid .big{font-size:1.25rem}.adm-page>.grid small,.adm-page>.grid span{font-size:.72rem}.adm-grp{padding:6px 8px}.adm-gt{font-size:.68rem}}
+.lv-gap{display:flex;align-items:center;gap:6px;margin:4px 0 0;color:var(--mut)}.lv-gap svg{width:15px;height:15px;color:var(--ac);flex:0 0 auto}
+.lv-hear{display:flex;align-items:flex-start;gap:8px;margin:0 0 6px;color:var(--mut)}.lv-hear input{margin-top:3px;accent-color:var(--ac)}

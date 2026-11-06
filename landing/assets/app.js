@@ -109,7 +109,7 @@ const SND = { ctx: null };
 const SND_FILE = { arrive: 'arrived', done: 'done', door: 'door', urgent: 'urgent', boarded: 'boarded', start: 'start', invite: 'invite', team: 'team', remind: 'remind', msg: 'msg' };
 const SND_ALT = { door: 'honk', urgent: 'honk', boarded: 'step', start: 'whoosh', invite: 'ok', team: 'done', remind: 'ok', msg: 'tap' };
 function sndLoad(name) { const c = SND.ctx; if (!c) return; SND.buf = SND.buf || {}; if (SND.buf[name] !== undefined) return; SND.buf[name] = null;
-  fetch('assets/snd/' + name + '.mp3?v=39').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
+  fetch('assets/snd/' + name + '.mp3?v=40').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
 function snd(kind) {
   if (S.sound !== false && SND_FILE[kind]) { try { if (!SND.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) SND.ctx = new AC(); }
     const c = SND.ctx; if (c) { if (c.state === 'suspended') c.resume(); const nm = SND_FILE[kind]; sndLoad(nm); Object.values(SND_FILE).forEach(sndLoad); const b = SND.buf[nm];
@@ -267,7 +267,7 @@ async function mapLib() {
     }
     await loadCss('assets/maplibre-gl.css');
     await loadJs('assets/maplibre-gl.js', () => !!window.maplibregl, 12000);
-    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=39', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
+    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=40', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
     return (MapKit.lib = { name: 'libre', G: window.maplibregl });
   })();
   try { return await MapKit.loading; } catch (e) { MapKit.failed = true; MapKit.loading = null; throw e; }
@@ -276,7 +276,7 @@ async function makeMap(el, center, zoom) {
   const L = await mapLib();
   let map;
   if (L.name === 'neshan') map = new L.G.Map({ mapType: (isDark() && L.G.Map.mapTypes.neshanVectorNight) || L.G.Map.mapTypes.neshanVector, container: el, zoom, pitch: 0, center: [center[1], center[0]], minZoom: 4, maxZoom: 19, trackResize: true, mapKey: CFG.web_key, poi: false, traffic: false, mapTypeControllerOptions: { show: false } });
-  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=39' : 'assets/map-style.json?v=39', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=40' : 'assets/map-style.json?v=40', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('map-timeout')), 10000);
     map.on('load', () => { clearTimeout(t); res(); });
@@ -966,9 +966,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=39" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=40" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)} <span class="pchip">${ic('down', '')}</span></b><small>${p.team ? esc(teamName(p.team)) + ' – ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</small></span>`; }
-  else t = `<img src="assets/icon.svg?v=39" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=40" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -1048,7 +1048,7 @@ function drawer(keep) {
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const grp = (k, i, t, body) => `<div class="grp"><button class="sec-h" data-a="toggle" data-v="${k}" aria-expanded="${!!ui.open[k]}"><span>${ic(i, 'i')} ${t}</span>${ic('down', 'i chev' + (ui.open[k] ? ' open' : ''))}</button><div class="plist ${ui.open[k] ? '' : 'closed'}" style="max-height:${ui.open[k] ? 700 : 0}px">${body}</div></div>`;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=39" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=40" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     <div class="sec-h"><span>مسیرک‌های من <button class="q-mark" data-a="glossary" aria-label="مسیرک یعنی چه؟">؟</button></span><button class="link small" data-a="new-profile">${ic('plus')}تازه</button></div>
     <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${!x.complete && !x.shared ? `<button class="pdel" data-a="prof-del" data-id="${x.id}" aria-label="پاک کردن «${esc(x.label)}»">${ic('close')}</button>` : ''}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیرک را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
     ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیرک دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
@@ -1073,7 +1073,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۳۹</small></span>` : `<span>نسخه‌ی وب ۳۹${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
+    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۴۰</small></span>` : `<span>نسخه‌ی وب ۴۰${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -1142,7 +1142,7 @@ async function ambView() {
       <div class="row"><input id="amb-pl" dir="ltr" placeholder="WPXJUG5A" maxlength="8" style="flex:1"><button class="btn ac" data-a="amb-make">ساختن</button></div><div id="amb-out"></div></section>
     <section class="card stack"><h2>ایده‌های سریع</h2><ol class="steps3"><li>پوستر A5 را روی تابلوی اعلانات مدرسه (با اجازه‌ی مدرسه) بچسبانید.</li><li>متن آماده و لینک را در گروه کلاس و کانال مدرسه بگذارید؛ صبح‌های شنبه بهترین زمان است.</li><li>از ۲ خانواده‌ی هم‌محله بخواهید با هم ثبت‌نام کنند؛ تیم زودتر شکل می‌گیرد.</li></ol></section>
     ${A.list.length ? `<section class="card"><h2>ثبت‌شده‌ها</h2><table><tr><th>تاریخ</th><th>مکان</th><th>نوع</th><th>مبلغ</th></tr>${A.list.slice(0, 60).map(x => `<tr><td>${jLabel(new Date(x.created * 1000))}</td><td>${esc(x.place || '—')}</td><td>${x.kind === 'team' ? 'تیم شد' : 'ثبت‌نام'}</td><td>${money(x.amount)}${+x.paid ? ' ✓' : ''}</td></tr>`).join('')}</table></section>` : ''}</div>`;
-  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=39" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
+  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=40" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
 }
 function reportHtml(p, T) {
   const H = (ui.hist && ui.hist.trips) || [], done = H.filter(x => x.status === 'done').sort((a, b) => a.date < b.date ? -1 : 1), b = balances(T), now = new Date();
@@ -1176,7 +1176,7 @@ async function saveBlob(blob, name, title, text) {
 }
 /** Render an element (inside #print-root) to a PNG or a paged A4 PDF that never cuts through a row or a line. */
 async function elToFile(el, kind, name, title) {
-  try { await loadJs('assets/html2canvas.min.js?v=39', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=39', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
+  try { await loadJs('assets/html2canvas.min.js?v=40', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=40', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
   try { await document.fonts.ready; } catch (e) {}
   const cv = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }); let blob;
   if (kind === 'png') blob = await new Promise(res => cv.toBlob(res, 'image/png'));
@@ -1852,7 +1852,7 @@ function leaveStartSheet(gid) {
   const p = active(), L = ui.leave || {};
   { const Q = L.quota; if (L.allowed === false && (!Q || (!Q.unlimited && !Q.left && !Q.credits))) return lvPaySheet(); }
   const g = gid && (L.near || []).find(x => x.id === gid);
-  ui.lv = { in: 0, dir: g ? g.dir || 'home' : ui.lvDir || L.dir || lvDir0(), role: p.data && p.data.role === 'pay' ? 'ride' : 'car', seats: Math.max(1, Math.min(4, (p.data && +p.data.seats) || 3)), group: gid || null, confirm: false }; ui.lvDir = null;
+  ui.lv = { in: 0, dir: g ? g.dir || 'home' : ui.lvDir || L.dir || lvDir0(), role: p.data && p.data.role === 'pay' ? 'ride' : 'car', seats: Math.max(1, Math.min(4, (p.data && +p.data.seats) || 3)), group: gid || null, confirm: false, pid: p.id, hear: L.hear !== false }; ui.lvDir = null;
   sheet(g ? 'من هم می‌آیم' : 'می‌خواهم بروم', `<div class="stack lv-sheet" id="lv-body">${lvBody(g)}</div>`, 'همکارانِ هم‌جنسی که هم‌مسیر شما هستند باخبر می‌شوند. نشانی دقیق و شماره‌ی کسی نشان داده نمی‌شود.');
 }
 /* out of guest trips: subscribe (unlimited) or take trip passes — counted in trips, never kept as money */
@@ -1868,7 +1868,8 @@ function lvPaySheet() {
 function lvBody(g) {
   const v = ui.lv, chip = (k, val, t) => `<button class="chip" data-a="lv-set" data-k="${k}" data-v="${val}" aria-pressed="${String(v[k]) === String(val)}">${t}</button>`;
   const Q = (ui.leave || {}).quota, qline = Q && !Q.unlimited ? `<p class="lv-q small">${ic('ticket')}<span>${Q.left ? `${fa(Q.left)} سفرِ مهمانِ رسیدیم مانده${Q.first ? ' (ماه هدیه)' : ''}` : `${fa(Q.credits)} بلیت سفر دارید`}${Q.left && Q.credits ? ` · ${fa(Q.credits)} بلیت` : ''}</span></p>` : '';
-  return qline + `${g ? `<div class="hint">${ic('team')}<span class="grow small">گروه ساعت ${esc(g.at_t)}: ${g.members.map(m => esc(m.name)).join('، ')}</span></div>` : `<div class="field"><label>کجا؟</label><div class="chips">${chip('dir', 'home', '🏠 به خانه')}${chip('dir', 'work', '🏢 به ' + esc((active().place || {}).name || 'محل کار'))}</div></div><div class="field"><label>کِی راه می‌افتید؟</label><div class="chips">${chip('in', 0, 'همین حالا')}${chip('in', 15, '۱۵ دقیقه‌ی دیگر')}${chip('in', 30, 'نیم ساعت دیگر')}${chip('in', 60, 'یک ساعت دیگر')}</div></div>`}
+  const hear = `<label class="lv-hear small"><input type="checkbox" data-a="lv-hear" ${v.hear ? 'checked' : ''}><span>وقتی هم‌مسیری نزدیک (حتی از مجموعه‌های کناری) می‌رود، به من هم خبر بده</span></label>`;
+  return qline + hear + `${g ? `<div class="hint">${ic('team')}<span class="grow small">گروه ساعت ${esc(g.at_t)}: ${g.members.map(m => esc(m.name)).join('، ')}</span></div>` : `<div class="field"><label>کجا؟</label><div class="chips">${chip('dir', 'home', '🏠 به خانه')}${chip('dir', 'work', '🏢 به ' + esc((active().place || {}).name || 'محل کار'))}</div></div><div class="field"><label>کِی راه می‌افتید؟</label><div class="chips">${chip('in', 0, 'همین حالا')}${chip('in', 15, '۱۵ دقیقه‌ی دیگر')}${chip('in', 30, 'نیم ساعت دیگر')}${chip('in', 60, 'یک ساعت دیگر')}</div></div>`}
     <div class="field"><label>چطور می‌روید؟</label><div class="chips">${chip('role', 'car', 'با ماشین؛ جای خالی دارم')}${chip('role', 'ride', 'بی‌ماشین؛ جا می‌خواهم')}</div></div>
     ${v.role === 'car' ? `<div class="field"><label>چند جای خالی؟</label><div class="chips">${[1, 2, 3, 4].map(n => chip('seats', n, fa(n))).join('')}</div></div>` : ''}
     <p class="muted small" id="lv-loc">${ic('locate')} برای اطمینان، موقعیت شما فقط همین یک بار با ${v.dir === 'work' ? 'خانه' : 'محل کار'} مقایسه می‌شود و جایی ذخیره نمی‌شود.</p>
@@ -1884,7 +1885,8 @@ async function leaveGo(confirm) {
 }
 function leaveNearSheet() {
   const L = ui.leave || { near: [] };
-  sheet('همکارانی که همین حالا می‌روند', L.near.length ? `<div class="stack">${L.near.map(g => `<div class="card lv-g"><div class="row between"><b>ساعت ${esc(g.at_t)}</b><span class="tag">${g.car_seats ? (g.free > 0 ? fa(g.free) + ' جای خالی' : 'ماشین پر') : 'بی‌ماشین'}</span></div>
+  sheet('هم‌مسیرهایی که همین حالا می‌روند', L.near.length ? `<div class="stack">${L.near.map(g => `<div class="card lv-g"><div class="row between"><b>ساعت ${esc(g.at_t)}</b><span class="tag">${g.car_seats ? (g.free > 0 ? fa(g.free) + ' جای خالی' : 'ماشین پر') : 'بی‌ماشین'}</span></div>
+    ${g.gap_t || g.from_t ? `<p class="lv-gap small">${ic('pin')}<span>${g.gap_t ? `خانه‌ی سازنده‌ی گروه حدود <b>${esc(g.gap_t)}</b> از خانه‌ی شما` : ''}${g.from_t ? ` · از ${esc(g.from_t)}` : ''}</span></p>` : ''}
     <p class="small">${g.members.map(m => `${esc(m.name)}${m.hood ? ' (سمت ' + esc(m.hood) + ')' : ''} ${m.role === 'car' ? '🚗' : '🚶'}`).join(' · ')}</p><button class="btn sm ac" data-a="lv-start" data-id="${g.id}">من هم می‌آیم</button></div>`).join('')}</div>` : '<p class="muted">فعلاً کسی اعلام رفتن نکرده است.</p>');
 }
 /* temporary group chat (leave groups and trip cars) — same look as the team chat */
@@ -2243,7 +2245,7 @@ function jrView(J) {
   <section class="card jr-dx"><h3>🩺 تشخیص</h3><ul>${D.map(f => `<li class="is-${f.lv}"><span class="jr-dxi">${f.ic}</span><span><b>${esc(f.t)}</b>${f.fix ? `<small>${esc(f.fix)}</small>` : ''}</span></li>`).join('')}</ul></section>
   ${J.profiles.length > 1 ? `<div class="jr-ptabs no-print">${J.profiles.map((p, i) => `<button data-a="jr-prof" data-v="${i}" aria-pressed="${p === P}">${kindIc(p.kind)}<span>${esc(p.place ? p.place.name : p.label)}</span>${p.team ? '<i>تیم</i>' : ''}</button>`).join('')}</div>` : ''}
   <section class="card jr-swc"><h3>🗺️ مسیر در فرایند رسیدیم ${P && P.place ? `<small>${esc(P.place.name)}${P.place.city ? '، ' + esc(P.place.city) : ''}</small>` : ''}</h3>
-    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=39" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
+    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=40" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
       <div class="jr-grid" style="--n:${S.length}">${[0, 1, 2].map(l => `<i class="jr-lane l${l}" style="grid-column:${l + 2}"></i>`).join('')}<svg class="jr-wires" aria-hidden="true"></svg>
         ${S.map((s, i) => `<span class="jr-no is-${s.st}" style="grid-row:${i + 1}">${fa(i + 1)}</span><div class="jr-node is-${s.st} l${s.lane}" style="grid-row:${i + 1};grid-column:${s.lane + 2};--d:${i}" data-i="${i}">${i === cur ? `<span class="jr-here">${shapeAv(P ? P.id : u.id, 30)}<em>اینجاست</em></span>` : ''}<b><i>${s.ic}</i>${s.t}</b><small>${esc(s.sub || '')}</small>${s.at ? `<time>${jrAgo(s.at)}</time>` : ''}</div>`).join('')}
       </div></div>
@@ -2613,6 +2615,7 @@ async function act(a, el) {
     case 'chat-close': ui.tg = null; return chatClose();
     case 'host-ok': { S.hostSeen = { day: new Date().toDateString(), msg: ME.host && ME.host.msg ? ME.host.msg.at : 0 }; persist(); const c = el.closest('.host-c'); if (c) c.remove(); return; }
     case 'my-info': return myInfoSheet();
+    case 'lv-hear': { const on = el.checked; try { await api('leave_pref', { profile_id: ui.lv.pid, on: on ? 1 : 0 }); ui.lv.hear = on; toast(on ? 'خبرِ هم‌مسیرهای نزدیک روشن شد.' : 'دیگر خبرِ رفتنِ دیگران برایتان نمی‌آید.'); } catch (e) { el.checked = !on; fail(e); } return; }
     case 'lv-buy': { if (!$('#lvp-ok').checked) return toast('اول شرایط خرید را بپذیرید.'); el.disabled = true;
       try { const r = await api('pay_start', { plan: 'lv', qty: +el.dataset.v, agree: 1, mobile: S.phone || '' }); if (!/^https:\/\/([a-z0-9.-]+\.(zarinpal\.com|shaparak\.ir|payping\.ir)|residim\.ir\/app\/api\/pay\.php)/i.test(r.url)) throw new Error('نشانی درگاه نامعتبر است.'); location.href = r.url; } catch (e) { el.disabled = false; fail(e); } return; }
     case 'mi-g': { if (ui.mi.locked) return; ui.mi.g = el.dataset.v; $$('[data-a="mi-g"]').forEach(b => b.setAttribute('aria-pressed', b === el)); return; }
@@ -2934,6 +2937,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('toggle', e => { const d = e.target; if (d && d.dataset && d.dataset.dk) { ui.dOpen = ui.dOpen || {}; ui.dOpen[d.dataset.dk] = d.open; } }, true);
 document.addEventListener('input', e => { const el = e.target; if (el.dataset && el.dataset.ti != null && ui.tipsEd) ui.tipsEd[+el.dataset.ti][el.dataset.tf] = el.value; });
 document.addEventListener('change', e => { const el = e.target;
+  if (el.matches('[data-a="lv-hear"]')) return act('lv-hear', el);
   if (el.matches('[data-a="sl-st"]')) { api('admin_school_lead_set', { id: el.dataset.id, status: el.value }, true).then(() => { const x = (ui.sch || []).find(z => z.id === el.dataset.id); if (x) x.status = el.value; toast('ذخیره شد.'); }).catch(fail); return; }
   if (el.matches('[data-a="launch-man"]')) { api('admin_launch_set', { k: el.dataset.k, v: el.checked ? 1 : 0 }, true).then(() => { ui.launch.manual[el.dataset.k] = el.checked; renderMain(); }).catch(fail); return; }
   if (el.matches('[data-a="ev-sound"]')) { S.evSound = el.checked; persist(); return; }
@@ -3036,5 +3040,15 @@ window.__rs = { PM, dockFun, liveTick, get S() { return S; }, get P() { return P
     if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx)) { armed = false; return; }
     if (dx < -60 && Math.abs(dx) > Math.abs(dy) * 1.8 && Date.now() - t0 < 700) { armed = false; if (!busy()) { try { navigator.vibrate && navigator.vibrate(8); } catch (x) {} drawer(); } } }, { passive: true });
   addEventListener('touchend', () => { armed = false; }, { passive: true });
+  /* and the mirror gesture: an open drawer follows a rightward drag and closes past ~70px (or on a quick flick) */
+  let dr = null, dx0 = 0, dy0 = 0, dt0 = 0, drag = 0, lock = '';
+  addEventListener('touchstart', e => { dr = null; const el = e.target, d = el && el.closest && el.closest('#layer .drawer'); if (!d || e.touches.length !== 1 || el.closest('input,textarea,select,[data-noswipe]') || scrollsX(el)) return;
+    dr = d; dx0 = e.touches[0].clientX; dy0 = e.touches[0].clientY; dt0 = Date.now(); drag = 0; lock = ''; }, { passive: true });
+  addEventListener('touchmove', e => { if (!dr) return; const t = e.touches[0], dx = t.clientX - dx0, dy = t.clientY - dy0;
+    if (!lock) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; lock = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'x' : 'y'; }
+    if (lock !== 'x') return; drag = Math.max(0, dx); dr.style.animation = 'none'; dr.style.transition = 'none'; dr.style.transform = `translateX(${drag}px)`; }, { passive: true });
+  addEventListener('touchend', () => { if (!dr) return; const d = dr; dr = null; if (lock !== 'x') return; const fast = drag > 30 && Date.now() - dt0 < 250;
+    if (drag > 70 || fast) { d.style.transition = 'transform .18s ease-in'; d.style.transform = 'translateX(105%)'; setTimeout(() => { closeLayer(); }, 170); }
+    else { d.style.transition = 'transform .2s ease-out'; d.style.transform = ''; } }, { passive: true });
 })();
 })();
