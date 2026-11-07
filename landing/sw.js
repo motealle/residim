@@ -1,5 +1,5 @@
-const CACHE='residim-41-v1';
-const SHELL=['./','index.html','manifest.webmanifest','radio.json','assets/app.css?v=41','assets/app.js?v=41','assets/map-style.json?v=41','assets/map-style-dark.json?v=41','assets/qrcode.js?v=41','assets/maplibre-gl.css','assets/icon.svg?v=41','assets/mapbg.svg?v=41','assets/snd/door.mp3?v=41','assets/snd/arrived.mp3?v=41','assets/snd/urgent.mp3?v=41','assets/icon-192.png','assets/icon-512.png','assets/vazirmatn.woff2'];
+const CACHE='residim-42-v1';
+const SHELL=['./','index.html','manifest.webmanifest','radio.json','assets/app.css?v=42','assets/app.js?v=42','assets/map-style.json?v=42','assets/map-style-dark.json?v=42','assets/qrcode.js?v=42','assets/maplibre-gl.css','assets/icon.svg?v=42','assets/mapbg.svg?v=42','assets/snd/door.mp3?v=42','assets/snd/arrived.mp3?v=42','assets/snd/urgent.mp3?v=42','assets/icon-192.png','assets/icon-512.png','assets/vazirmatn.woff2'];
 const SCOPE=new URL('./',self.registration.scope).pathname;
 const TILES='residim-tiles-v1',MAX=900,AGE=14*864e5;
 const MAPS=/(^|\.)(openfreemap\.org|neshan\.org)$/;
@@ -8,14 +8,18 @@ async function tile(req,age){const c=await caches.open(TILES);const h=await c.ma
   try{const r=await fetch(req);if(r.ok&&r.type!=='opaque'){const b=await r.clone().blob();const hd=new Headers(r.headers);hd.set('x-at',String(Date.now()));c.put(req,new Response(b,{status:r.status,headers:hd}));trim(c)}return r}catch(e){if(h)return h;throw e}}
 let trimT=0;async function trim(c){if(Date.now()-trimT<30000)return;trimT=Date.now();const k=await c.keys();for(let i=0;i<k.length-MAX;i++)await c.delete(k[i])}
 const OTHER=/^\/(app|t|test|smoke)\//;
-self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
+self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL.map(x=>new Request(x,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>/^residim-\d+-v/.test(n)&&n!==CACHE).map(n=>caches.delete(n)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{
   const u=new URL(e.request.url);
   if(e.request.method==='GET'&&MAPS.test(u.hostname)&&u.protocol==='https:'){e.respondWith(tile(e.request,/\.json$/.test(u.pathname)?864e5:AGE));return}
   if(e.request.method!=='GET'||u.origin!==location.origin||!u.pathname.startsWith(SCOPE))return;
   if(SCOPE==='/'&&OTHER.test(u.pathname))return; // root copy never touches /app or /t
-  if(e.request.mode==='navigate'){const root=/^\/(index\.html)?$/.test(new URL(e.request.url).pathname);e.respondWith(fetch(e.request).then(r=>{if(root&&r.ok){const c=r.clone();caches.open(CACHE).then(x=>x.put('index.html',c))}return r}).catch(()=>caches.open(CACHE).then(c=>c.match('index.html'))));return}
+  // the app's own page opens from this version's cache: instant, offline-proof and always matching the cached assets.
+  // A release ships a new sw.js; the page notices it, installs it in the background and reloads itself at a safe moment.
+  if(e.request.mode==='navigate'){const p=u.pathname,app=SCOPE==='/'?/^\/(index\.html)?$/.test(p):p===SCOPE||p===SCOPE+'index.html';
+    if(app){e.respondWith(caches.open(CACHE).then(c=>c.match('index.html')).then(h=>h||fetch(e.request).then(r=>{if(r.ok){const c=r.clone();caches.open(CACHE).then(x=>x.put('index.html',c))}return r})).catch(()=>fetch(e.request)));return}
+    e.respondWith(fetch(e.request).catch(()=>caches.open(CACHE).then(c=>c.match('index.html'))));return}
   if(u.pathname.endsWith('radio.json')){e.respondWith(fetch(e.request).then(r=>{const c=r.clone();caches.open(CACHE).then(x=>x.put(e.request,c));return r}).catch(()=>caches.open(CACHE).then(c=>c.match(e.request))));return}
   e.respondWith(caches.open(CACHE).then(c=>c.match(e.request)).then(h=>h||fetch(e.request).then(r=>{if(r.ok){const c=r.clone();caches.open(CACHE).then(x=>x.put(e.request,c))}return r})));
 });

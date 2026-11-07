@@ -9,8 +9,11 @@
   async function api(a, body) { let r, j; try { r = await fetch('/app/api/r6.php?a=' + a, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Token': st().token || '' }, body: JSON.stringify(body || {}) }); j = await r.json(); } catch (e) { throw Object.assign(new Error('اتصال برقرار نشد؛ اینترنت را بررسی کنید.'), { code: 'net' }); }
     if (!j.ok) { if (j.error === 'auth') save({ token: null }); throw Object.assign(new Error(j.message || 'خطا'), { code: j.error }); } return j; }
   const D = $('#dlg');
-  const open = (title, html, wide) => { D.innerHTML = `<div class="scrim" data-x></div><div class="box ${wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="dl-t"><div class="bh"><h2 id="dl-t">${title}</h2><button class="x" data-x aria-label="بستن">✕</button></div><div class="bb" id="bb">${html}</div></div>`; D.hidden = false; document.body.classList.add('lock'); setTimeout(() => { const f = D.querySelector('input,textarea,select,button:not([data-x])'); f && f.focus(); }, 50); };
-  const close = () => { D.hidden = true; D.innerHTML = ''; document.body.classList.remove('lock'); };
+  const open1 = (title, html, wide) => { D.innerHTML = `<div class="scrim" data-x></div><div class="box ${wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="dl-t"><div class="bh"><h2 id="dl-t">${title}</h2><button class="x" data-x aria-label="بستن">✕</button></div><div class="bb" id="bb">${html}</div></div>`; D.hidden = false; document.body.classList.add('lock'); setTimeout(() => { const f = D.querySelector('input,textarea,select,button:not([data-x])'); f && f.focus(); }, 50); };
+  const open = (...a) => { const r = open1(...a); try { if (!(history.state && history.state.dlg)) history.pushState({ dlg: 1 }, ''); } catch (e) {} return r; };
+  const close = () => { const was = !D.hidden; D.hidden = true; D.innerHTML = ''; document.body.classList.remove('lock'); if (was && history.state && history.state.dlg) history.back(); };
+  // phone «back» closes the open dialog instead of leaving the page (and losing what was typed)
+  addEventListener('popstate', () => { if (!D.hidden) { D.hidden = true; D.innerHTML = ''; document.body.classList.remove('lock'); } });
   D.addEventListener('click', e => { if (e.target.closest('[data-x]')) close(); });
   addEventListener('keydown', e => { if (e.key === 'Escape' && !D.hidden) close(); });
   const signed = () => !!(st().token && st().phone);
@@ -51,14 +54,18 @@
       <label class="ok"><input type="checkbox" name="adult" required> ۱۸ سال یا بیشتر دارم.</label>
       <label class="ok"><input type="checkbox" name="rules" required> قوانین را می‌پذیرم: این آگهی فقط برای هم‌مسیری است و سودی در کار نیست. شماره، پیوند و نشانیِ دقیق نمی‌نویسم. با هم‌جنس‌ها هم‌مسیر می‌شوم و رفت‌وآمد با مسئولیت خودم است.</label>
       <button class="btn pri block">${edit ? 'ذخیره' : 'انتشار آگهی'}</button><p class="mut">آگهی فعال: ${fa(me.list.filter(x => x.status === 'live').length)} از ${fa(me.limit)}${me.premium ? ' (اشتراک)' : ' · با اشتراک تا ۱۰ آگهی'}</p></form>`, true);
-    const F = $('#af'), tog = () => { const one = F.when.value === 'one'; $('#w-one').hidden = !one; $('#w-rep').hidden = one; $('#ct').hidden = F.audience.value !== 'contacts'; $('#seat-l').textContent = F.role.value === 'rider' ? 'چند نفرید؟' : 'چند جای خالی؟'; };
+    const F = $('#af'), DK = 'residim-ad-draft', tog = () => { const one = F.when.value === 'one'; $('#w-one').hidden = !one; $('#w-rep').hidden = one; $('#ct').hidden = F.audience.value !== 'contacts'; $('#seat-l').textContent = F.role.value === 'rider' ? 'چند نفرید؟' : 'چند جای خالی؟'; };
     F.addEventListener('change', tog);
+    // a new ad keeps a local draft while typing (back, reload or a call won't lose it); cleared once it is published
+    if (!edit) { try { const d = JSON.parse(localStorage.getItem(DK) || 'null'); if (d && Date.now() - d.at < 12 * 3600e3 && !pre) { Object.entries(d.v).forEach(([k, v]) => { const els = F.querySelectorAll(`[name="${k}"]`); els.forEach(el => { if (el.type === 'checkbox' || el.type === 'radio') el.checked = [].concat(v).includes(el.value); else el.value = [].concat(v)[0]; }); }); tog(); toast('پیش‌نویس قبلی‌تان برگشت.'); } } catch (e) {}
+      let dt = 0; const keep = () => { clearTimeout(dt); dt = setTimeout(() => { try { const v = {}; new FormData(F).forEach((x, k) => { if (k === 'adult' || k === 'rules') return; v[k] = k in v ? [].concat(v[k], x) : x; }); localStorage.setItem(DK, JSON.stringify({ at: Date.now(), v })); } catch (e) {} }, 400); };
+      F.addEventListener('input', keep); F.addEventListener('change', keep); }
     const pk = $('#pick'); if (pk) pk.onclick = async () => { try { const L = await navigator.contacts.select(['tel'], { multiple: true }); const T = L.flatMap(c => c.tel || []); F.contacts.value = [...new Set([...F.contacts.value.split('\n'), ...T].map(x => x.trim()).filter(Boolean))].join('\n'); } catch (e) {} };
     F.onsubmit = async e => { e.preventDefault(); const fd = new FormData(F), one = fd.get('when') === 'one', b = F.querySelector('button.pri'); b.disabled = true;
       const at = one && fd.get('at') ? Math.floor(new Date(fd.get('at')).getTime() / 1000) : 0;
       const body = { no: edit ? edit.no : 0, kind: fd.get('kind'), role: fd.get('role'), g: fd.get('g') || '', from_city: fd.get('from_city'), from_area: fd.get('from_area'), to_city: fd.get('to_city'), to_area: fd.get('to_area'), at, days: one ? [] : fd.getAll('days'), tm: one ? '' : fd.get('tm'), seats: +fd.get('seats'), share: fd.get('share'), body: fd.get('body'), audience: fd.get('audience'), contacts: String(fd.get('contacts') || '').split(/[\n,]+/).map(x => en(x).replace(/\D/g, '')).filter(Boolean), adult: fd.get('adult') ? 1 : 0, rules: fd.get('rules') ? 1 : 0 };
       if (one && !at) { b.disabled = false; return toast('تاریخ و ساعت سفر را بگذارید.'); }
-      try { const r = await api('ad_save', body); toast(r.status === 'pending' ? 'ثبت شد؛ پس از بررسی نمایش داده می‌شود.' : 'آگهی منتشر شد!'); setTimeout(() => location.href = '/ads/' + r.no, 600); } catch (er) { toast(er.message); b.disabled = false; } };
+      try { const r = await api('ad_save', body); try { localStorage.removeItem(DK); } catch (x) {} toast(r.status === 'pending' ? 'ثبت شد؛ پس از بررسی نمایش داده می‌شود.' : 'آگهی منتشر شد!'); setTimeout(() => location.href = '/ads/' + r.no, 600); } catch (er) { toast(er.message); b.disabled = false; } };
   }
 
   /* ── messaging on an ad page ── */

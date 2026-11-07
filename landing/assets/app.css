@@ -1709,3 +1709,6 @@ body.chat-open .page-bg,body.map-full .page-bg{visibility:hidden}
 .tp-act{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
 @keyframes up{from{transform:translateY(30px);opacity:0}}
 @media (prefers-reduced-motion:reduce){.mi-mini.go{animation:none}.tp-card,.tp-pop{animation:none}}
+.upd-gate{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:24px;background:radial-gradient(500px 300px at 50% 0,#1DBF7344,transparent 70%),var(--bg)}
+.upd-c{width:min(380px,100%);display:grid;gap:12px;justify-items:center;text-align:center}.upd-c img{border-radius:22px;box-shadow:0 16px 30px -16px #04140B88}.upd-c h2{margin:6px 0 0}.upd-c p{color:var(--mut);margin:0}
+.wrow.now .d small{color:inherit;opacity:.85}
