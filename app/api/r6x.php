@@ -57,6 +57,18 @@ function home_gap(array $a, array $b): ?int { return isset($a['lat'], $b['lat'])
 function km_t(int $m): string { return $m < 1000 ? fa_d((string)(max(1, (int)round($m / 100)) * 100)) . ' متر' : fa_d(str_replace('.', '٫', (string)round($m / 1000, 1))) . ' کیلومتر'; }
 /* a neighbour of the same gender, matching direction, whose home is close: same workplace → same_way (route-aware); a neighbouring one → homes ≤3 km */
 function lv_match(array $pl, array $d, array $od, bool $same): ?int { $gap = home_gap($d, $od); if ($gap === null) return null; if ($same) return same_way($pl, $d, $od) ? $gap : null; return $gap <= 3000 ? $gap : null; }
+/* wizard → «اطلاعات من»: the latest finished mesirak is the freshest truth for name, home, role and car seats; kids merge by first name */
+function info_from_wizard(string $uid, array $d): void { x_schema(); $I = json_decode((string)(row('SELECT info FROM users WHERE id=?', [$uid])['info'] ?? ''), true) ?: [];
+    foreach (['family' => 40, 'hood' => 60] as $k => $n) if (!empty($d[$k])) $I[$k] = s1((string)$d[$k], $n);
+    if (in_array($d['job'] ?? '', ['teacher', 'cleric', 'academic', 'student', 'medic'], true)) $I['job'] = $d['job'];
+    if (in_array($d['rel'] ?? '', ['mother', 'father', 'grandma', 'grandpa'], true)) $I['rel'] = $d['rel'];
+    if (isset($d['lat'], $d['lng']) && is_numeric($d['lat']) && is_numeric($d['lng']) && (float)$d['lat'] != 0) { $I['lat'] = round((float)$d['lat'], 6); $I['lng'] = round((float)$d['lng'], 6); }
+    if (($d['role'] ?? 'pay') !== 'pay' && (int)($d['seats'] ?? 0) > 0) $I['seats'] = min(8, (int)$d['seats']);
+    $ks = array_values(array_filter((array)($d['kids'] ?? []), fn($k) => is_array($k) && trim((string)($k['first'] ?? '')) !== ''));
+    if ($ks) { $have = array_values(array_filter((array)($I['kids'] ?? []), fn($h) => !in_array($h['first'] ?? '', array_map(fn($k) => trim((string)$k['first']), $ks), true)));
+        $I['kids'] = array_slice(array_merge($have, array_map(fn($k) => ['first' => s1((string)$k['first'], 30), 'g' => in_array($k['g'] ?? '', ['f', 'm'], true) ? $k['g'] : '', 'by' => (int)($k['by'] ?? 0) ?: ''], $ks)), 0, 6); }
+    if (!empty($d['pg']) && in_array($d['pg'], ['f', 'm'], true)) set_g($uid, $d['pg']);
+    q('UPDATE users SET info=? WHERE id=?', [json_encode($I, JSON_UNESCAPED_UNICODE), $uid]); }
 function lv_key(string $dir): string { return date('Ymd') . '-' . $dir; }
 function lv_can(array $u, array $prof, string $dir): void { $Q = lv_quota($u, $prof); if ($Q['unlimited'] || $Q['left'] > 0 || $Q['credits'] > 0) return;
     if (row('SELECT 1 FROM lv_use WHERE user_id=? AND k=?', [$u['user_id'], lv_key($dir)])) return;

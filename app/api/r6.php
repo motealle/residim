@@ -942,6 +942,7 @@ case 'profile_save': {
     if ($complete && (!$old || !(int)$old['complete']) && $place) { // tell neighbours (≤2km) in the same place
         foreach (rows('SELECT * FROM profiles WHERE place_id=? AND complete=1 AND id<>? AND fake=0', [$place, $id]) as $o) { $od = pdata($o); if (isset($od['lat'], $data['lat']) && hav((float)$od['lat'], (float)$od['lng'], (float)$data['lat'], (float)$data['lng']) <= 2000) note($o['id'], 'خانواده‌ی ' . ($data['family'] ?? '') . ' نزدیک شما به «' . (row('SELECT name FROM places WHERE id=?', [$place])['name'] ?? '') . '» پیوستند. سری به هم‌مسیرها بزنید!', 'neighbor', $id); }
     }
+    if ($complete && !(int)($p['shared'] ?? 0)) { try { require_once __DIR__ . '/r6x.php'; info_from_wizard($u['user_id'], $data); } catch (Throwable $e) {} } // a finished mesirak updates «اطلاعات من»
     if (!empty($in['ref']) && (int)$p['complete']) ref_credit((string)$in['ref'], $u['user_id'], $p, 'profile');
     YES(['profile' => profile_out($p)]);
 }
