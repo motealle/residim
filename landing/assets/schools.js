@@ -74,7 +74,7 @@ function pitch() {
 function sponsorPoster(D, W) {
   const pl = D.place; let q = ''; try { const c = qrcode(0, 'M'); c.addData('https://residim.ir/' + pl.code); c.make(); q = c.createSvgTag({ cellSize: 6, margin: 1, scalable: true }); } catch (e) {}
   const el = document.createElement('div'); el.id = 'spons';
-  el.innerHTML = `<div class="sp-top"><img src="../assets/icon.svg?v=43" alt=""><b>رسیدیم</b></div><h1>اشتراک ویژه‌ی «رسیدیم» برای ${W.who} <span>${esc(pl.name)}</span> رایگان شد!</h1>
+  el.innerHTML = `<div class="sp-top"><img src="../assets/icon.svg?v=44" alt=""><b>رسیدیم</b></div><h1>اشتراک ویژه‌ی «رسیدیم» برای ${W.who} <span>${esc(pl.name)}</span> رایگان شد!</h1>
     <p class="sp-sub">${W.edu ? 'بچه‌ها را با خانواده‌های هم‌محله نوبتی ببرید و بیاورید؛' : 'با هم‌مسیرهای همین مجموعه با هم بروید، با هم برگردید؛'} منظم، با برنامه‌ی روزانه و هفتگی و سهم منصفانه‌ی هزینه.</p>
     <div class="sp-qr">${q}</div><p class="sp-url">residim.ir/${esc(pl.code)}</p>
     ${D.seats ? `<p class="sp-seats">ظرفیت: ${fa(D.seats)} اکانت – تا پر نشده ثبت‌نام کنید</p>` : ''}<p class="sp-by">با حمایت ${esc(pl.name)}</p>`;
@@ -111,6 +111,7 @@ async function panel(token) {
         <div class="card c12 no-print perks"><h2>✨ ${on ? 'آنچه اشتراک شما باز کرده' : 'با اشتراک ' + W.org + ' باز می‌شود'}</h2><div class="pk">${[['🎁', 'همه مهمانِ شما', 'هر خانواده همه‌ی امکاناتِ ویژه‌ی رسیدیم را رایگان دارد و در اپ می‌بیند «مهمانِ ' + esc(pl.name) + '».'], ['🎒', 'اردو با ماشین خانواده‌ها', 'اعلام، پاسخ و چیدن خودکار ماشین‌ها با قانون محرم و نامحرم.'], ['📣', 'پیام به همه با اعلان', 'اطلاعیه، دعوت به جلسه، تعطیلی و برنامه‌ها.'], ['👥', 'کادر با دسترسی کامل', 'تا ۵ شماره: مدیر پنل، یا کادری که امکانات کامل دارد.'], ['🏷️', 'لوگوی مدرسه در اپ خانواده‌ها', 'کنار «مهمانِ ' + esc(pl.name) + ' هستید» و پیام‌های مدرسه.'], ['🖨️', 'پوستر و لینک اختصاصی', 'برای گروه‌های کلاس و تابلوی اعلانات.'], ['📊', 'گزارش ترافیک دمِ در', 'سفرها، محله‌ها و ماشین‌های کمتر.']].map(([i, t, d]) => `<div><b>${i} ${t}</b><span>${d}</span></div>`).join('')}</div></div>
         <div class="card c6 no-print" id="staff-slot"><h2>👥 کادر مدرسه</h2><p class="note">در حال بارگذاری…</p></div>
         <div class="card c6 no-print"><h2>🏷️ لوگوی ${W.org}</h2><p class="note">خانواده‌ها لوگو را کنار «مهمانِ ${esc(pl.name)} هستید» و پیام‌های مدرسه در اپ می‌بینند. تصویر مربع، PNG یا JPG.</p><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><img id="lg-prev" alt="" width="72" height="72" style="border-radius:18px;background:var(--bg);object-fit:contain" ${pl.logo ? `src="${esc(pl.logo)}"` : 'hidden'}><label class="btn ghost sm" style="cursor:pointer">انتخاب تصویر<input type="file" id="lg-in" accept="image/png,image/jpeg,image/webp" hidden ${on ? '' : 'disabled'}></label>${pl.logo ? '<button class="btn ghost sm" id="lg-del">برداشتن</button>' : ''}</div>${on ? '' : '<p class="note">ویژه‌ی اشتراک.</p>'}</div>
+        ${D.fleet ? `<div class="card c12 no-print"><h2>🗺️ همکاران روی نقشه</h2><p class="note">${fa(D.fleet.length)} نفر · نقطه‌ی سبز: ماشین‌دار، آبی: بی‌ماشین؛ دایره‌های هاله‌ای یعنی آن همکار خواسته فقط محدوده‌اش دیده شود.</p><div id="fleet-map" class="fleet-map"></div></div>` : ''}
         ${edu ? `<div class="card c12 no-print" id="ordu-slot"><h2>🎒 اردوی دانش‌آموزی و خانوادگی</h2><p class="note">در حال بارگذاری…</p></div>` : ''}
         <div class="card c6"><h2>🔒 حریم خصوصی</h2><p class="note" style="font-size:.92rem">این پنل فقط عددهای تجمیعی دارد. گروه‌های کمتر از سه خانواده نشان داده نمی‌شوند. این لینک را فقط در اختیار مدیریت مدرسه بگذارید.</p></div>
       </div></div></section>`;
@@ -124,6 +125,15 @@ async function panel(token) {
     const bc = $('[data-bc]'); if (bc) bc.onclick = async () => { const t = $('#bc').value.trim(); if (t.length < 8) return toast('پیام کوتاه است.'); bc.disabled = true; try { const r = await api('school_broadcast', { token, text: t }); toast(`پیام به ${fa(r.n)} خانواده رسید.`); D = await api('school_dash', { token }); draw(); } catch (e) { toast(e.message); bc.disabled = false; } };
     if (edu) orduPanel(token, on);
     staffPanel(token, on);
+    if (D.fleet && D.fleet.length) fleetMap(D);
+    // preview before buying: every control is shown, none acts
+    if (D.demo) { main.querySelectorAll('.card input, .card textarea, .card select, .card button').forEach(e => { e.disabled = true; }); const isOrg = pl.kind === 'work' || pl.kind === 'uni';
+      main.insertAdjacentHTML('afterbegin', `<div class="demo-bar no-print"><b>🔍 پیش‌نمایش پنل «رسیدیم ${isOrg ? 'سازمان' : 'مدرسه'}»</b><span>همه‌ی بخش‌ها همان پنل واقعی است؛ داده‌ها نمونه‌اند و دکمه‌ها در پیش‌نمایش کار نمی‌کنند.</span><a class="btn pri sm" href="${isOrg ? '/orgs/' : '/schools/'}#lead">پنل رایگانِ خودمان</a></div>`); }
+    // trial → two free 30-day extensions (announcements stay off during an extension; buying turns them back on)
+    { const tier = pl.plan_tier || '', left = pl.plan_until * 1000 - Date.now(), box = main.querySelector('.pn-h .no-print');
+      if (box && /^(trial|ext1|ext2)$/.test(tier)) box.insertAdjacentHTML('afterbegin', `<span class="badge on">${tier === 'trial' ? '🎁 ماه رایگان' : '⏳ تمدید رایگان'}</span>${tier !== 'ext2' && left < 7 * 864e5 ? '<button class="btn sm dark" data-ext>تمدید رایگانِ ۳۰ روز</button>' : ''}`);
+      const ex = main.querySelector('[data-ext]'); if (ex && !D.demo) ex.onclick = async () => { ex.disabled = true; try { const r = await api('school_extend', { token }); toast('۳۰ روز تمدید شد؛ در این مدت اطلاعیه غیرفعال است.'); setTimeout(() => location.reload(), 900); } catch (e) { toast(e.message); ex.disabled = false; } };
+      if (/^ext/.test(tier)) { const bc = main.querySelector('[data-bc]'); if (bc) { bc.disabled = true; bc.insertAdjacentHTML('afterend', '<p class="note">در دوره‌ی تمدید رایگان، اطلاعیه و پیام غیرفعال است؛ با خرید اشتراک دوباره باز می‌شود.</p>'); } } }
     const li = $('#lg-in'); if (li) li.onchange = () => { const f = li.files[0]; if (!f) return; const img = new Image(); img.onload = async () => { const c = document.createElement('canvas'), z = 256, k = Math.min(1, z / Math.max(img.width, img.height)); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
       const d = c.toDataURL('image/png'); try { const r = await api('school_logo', { token, data: d.length > 150000 ? c.toDataURL('image/jpeg', .85) : d }); $('#lg-prev').src = r.logo; $('#lg-prev').hidden = false; toast('لوگو ذخیره شد.'); } catch (e) { toast(e.message); } }; img.src = URL.createObjectURL(f); };
     const ld = $('#lg-del'); if (ld) ld.onclick = async () => { try { await api('school_logo', { token, data: '' }); $('#lg-prev').hidden = true; ld.remove(); } catch (e) { toast(e.message); } };
@@ -162,5 +172,21 @@ async function orduPanel(token, on) {
     call({ op: 'save', title: $('#o-t').value, dest: $('#o-d').value, at, back: $('#o-b').value, meet: $('#o-m').value, cost: +$('#o-c').value || 0, who: $('#o-w').value, note: $('#o-n').value }); };
 }
 
-const pm = location.hash.match(/^#panel\/([A-Za-z0-9]{16,40})/);
+const pm = location.hash.match(/^#panel\/([A-Za-z0-9]{16,40}|demo-(?:school|org))/);
+addEventListener('hashchange', () => { if (/^#panel\//.test(location.hash)) location.reload(); });
 if (pm) panel(pm[1]); else if (document.body.dataset.page !== 'b2b') pitch();
+/* «رسیدیم سازمان»: members map (flag org_fleet). Exact points for the organisation; «فقط محدوده» members show as a soft ~600 m halo */
+function fleetMap(D) {
+  const box = document.getElementById('fleet-map'); if (!box) return;
+  const load = (tag, at) => new Promise((ok, no) => { const e = document.createElement(tag); Object.assign(e, at); e.onload = ok; e.onerror = no; document.head.appendChild(e); });
+  (window.maplibregl ? Promise.resolve() : Promise.all([load('link', { rel: 'stylesheet', href: '/assets/maplibre-gl.css' }), load('script', { src: '/assets/maplibre-gl.js' })])).then(() => {
+    const m = new maplibregl.Map({ container: box, style: '/assets/map-style.json', center: [D.place.lng, D.place.lat], zoom: 11, attributionControl: { compact: true } });
+    m.on('load', () => { const F = D.fleet, circ = (lat, lng, r) => { const c = []; for (let i = 0; i <= 40; i++) { const a = i / 40 * 2 * Math.PI; c.push([lng + r / (111320 * Math.cos(lat * Math.PI / 180)) * Math.cos(a), lat + r / 110540 * Math.sin(a)]); } return c; };
+      m.addSource('halo', { type: 'geojson', data: { type: 'FeatureCollection', features: F.filter(x => x.halo).map(x => ({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [circ(x.lat, x.lng, 600)] }, properties: { car: x.car } })) } });
+      m.addLayer({ id: 'halo', type: 'fill', source: 'halo', paint: { 'fill-color': ['case', ['get', 'car'], '#1DBF73', '#4F8CFF'], 'fill-opacity': .18 } });
+      m.addSource('pts', { type: 'geojson', data: { type: 'FeatureCollection', features: F.filter(x => !x.halo).map(x => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [x.lng, x.lat] }, properties: { car: x.car, n: x.name } })) } });
+      m.addLayer({ id: 'pts', type: 'circle', source: 'pts', paint: { 'circle-radius': 6, 'circle-color': ['case', ['get', 'car'], '#1DBF73', '#4F8CFF'], 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } });
+      const el = document.createElement('div'); el.textContent = '🏢'; el.style.cssText = 'font-size:26px;filter:drop-shadow(0 4px 6px #0006)'; new maplibregl.Marker({ element: el }).setLngLat([D.place.lng, D.place.lat]).addTo(m);
+      const b = new maplibregl.LngLatBounds(); F.forEach(x => b.extend([x.lng, x.lat])); b.extend([D.place.lng, D.place.lat]); m.fitBounds(b, { padding: 40, maxZoom: 14, duration: 0 }); });
+  }).catch(() => { box.innerHTML = '<p class="note">نقشه بارگذاری نشد.</p>'; });
+}

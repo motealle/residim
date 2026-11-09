@@ -108,7 +108,16 @@ const api = (a, b, t) => fetch(B + '/app/api/r6.php?a=' + a, { method: 'POST', h
     assert((await api('leave_join', { profile_id: pc.id, group: ge.group.id, role: 'ride', confirm: 1 }, TC)).ok, 'neighbour joins');
     const tc = await api('tg_chat', { group: ge.group.id, profile_id: pe.id }, TE); assert(JSON.stringify(tc).includes('به گروه آمد'), 'join echoed in group chat');
     assert((await api('leave_pref', { profile_id: pc.id, on: 0 }, TC)).on === false && (await api('leave_state', { profile_id: pc.id }, TC)).hear === false, 'leave opt-out');
-    ok('complement broadcast + neighbouring workplace + distance'); assert((await api('me', {}, TB)).info.city === 'تهران', 'me.info'); ok('my info');
+    ok('complement broadcast + neighbouring workplace + distance');
+    // v44: preferred co-travellers + halo privacy; panel preview, free extension, no announcements during an extension
+    { const m = await api('my_info', { save: 1, halo: 1, pref: [{ name: 'خواهرم', phone: '09120000001' }, { name: 'تکراری', phone: '09120000001' }, { name: 'بد', phone: '123' }] }, TC);
+      assert(m.ok && m.info.halo === true && m.info.pref.length === 1, 'pref + halo ' + JSON.stringify(m.info));
+      const AD2 = (await api('admin_login', { u: 'mot', p: 'mot' })).token, pc2 = await api('admin_school_plan', { code: wp2.code, months: 1, tier: 'trial' }, AD2); assert(pc2.ok, 'trial plan ' + JSON.stringify(pc2));
+      const tok = pc2.link.split('#panel/')[1]; await api('admin_flag', { k: 'org_fleet', v: 1 }, AD2);
+      const D = await api('school_dash', { token: tok }, ''); assert(D.ok && Array.isArray(D.fleet) && D.fleet.some(f => f.halo), 'fleet with halo ' + JSON.stringify(D.fleet));
+      assert((await api('school_extend', { token: tok }, '')).ok === false, 'no extension before the last week');
+      await api('admin_setting', { k: 'demo_org', v: wp2.code }, AD2); const dm = await api('school_dash', { token: 'demo-org' }, ''); assert(dm.ok && dm.demo, 'demo panel');
+      await api('admin_flag', { k: 'org_fleet', v: 0 }, AD2); ok('pref + halo + fleet + demo + extension rule'); } assert((await api('me', {}, TB)).info.city === 'تهران', 'me.info'); ok('my info');
     const L2 = await (await fetch(B + '/ads/')).text(); assert(L2.includes('class="rt"') && L2.includes('data-do="swap"') && L2.includes('class="fab"'), 'ads redesign markup'); ok('ads redesign'); }
   // no page may spill past the screen or silently cut text, on a 320px phone up to a large phone
   { const chk = require('./overflow.cjs'), { devices } = require('playwright');

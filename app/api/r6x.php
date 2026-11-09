@@ -69,6 +69,15 @@ function info_from_wizard(string $uid, array $d): void { x_schema(); $I = json_d
         $I['kids'] = array_slice(array_merge($have, array_map(fn($k) => ['first' => s1((string)$k['first'], 30), 'g' => in_array($k['g'] ?? '', ['f', 'm'], true) ? $k['g'] : '', 'by' => (int)($k['by'] ?? 0) ?: ''], $ks)), 0, 6); }
     if (!empty($d['pg']) && in_array($d['pg'], ['f', 'm'], true)) set_g($uid, $d['pg']);
     q('UPDATE users SET info=? WHERE id=?', [json_encode($I, JSON_UNESCAPED_UNICODE), $uid]); }
+/* route reminders, piggy-backed on traffic (no cron on the host): at most every 5 min, members whose repeated route («اطلاعات من»)
+   starts in 10–25 minutes today get one push — once per route per day. Tehran time, Iranian week (Sat=0). */
+function route_tick(): void { if ((int)getv('rt_tick', '0') > time() - 300) return; setv('rt_tick', (string)time()); x_schema();
+    $tz = new DateTimeZone('Asia/Tehran'); $now = new DateTime('now', $tz); $hm = (int)$now->format('G') * 60 + (int)$now->format('i'); $dw = ((int)$now->format('w') + 1) % 7; $day = $now->format('Ymd'); $n = 0;
+    foreach (rows("SELECT id, info FROM users WHERE info LIKE '%\"routes\"%' LIMIT 3000") as $u) { $I = json_decode((string)$u['info'], true) ?: []; if (!empty($I['remind_off'])) continue;
+        $names = ['home' => 'خانه']; foreach ((array)($I['places'] ?? []) as $pl) $names[$pl['id']] = $pl['label'];
+        foreach ((array)($I['routes'] ?? []) as $k => $r) { if (empty($r['tm']) || ($r['days'] && !in_array($dw, (array)$r['days'], true))) continue; [$h, $m] = array_map('intval', explode(':', $r['tm'])); $dd = $h * 60 + $m - $hm;
+            if ($dd < 10 || $dd > 25 || hit('rt_' . $u['id'] . '_' . $k . '_' . $day, 86400) > 1) continue;
+            push_queue([$u['id']], '🚗 ' . ($names[$r['to']] ?? 'مسیر همیشگی') . ' ساعت ' . fa_d($r['tm']), 'از ' . ($names[$r['from']] ?? 'خانه') . '؛ هم‌مسیرهای نزدیک را ببینید یا با یک تپ اعلام کنید.', 'route'); if (++$n >= 200) return; } } }
 function lv_key(string $dir): string { return date('Ymd') . '-' . $dir; }
 function lv_can(array $u, array $prof, string $dir): void { $Q = lv_quota($u, $prof); if ($Q['unlimited'] || $Q['left'] > 0 || $Q['credits'] > 0) return;
     if (row('SELECT 1 FROM lv_use WHERE user_id=? AND k=?', [$u['user_id'], lv_key($dir)])) return;
@@ -357,7 +366,14 @@ function x_route(string $a, array $in): void {
         if (!empty($me['team_id']) && hit('lvteam_' . $me['id'] . $dir, 43200) <= 1) q('INSERT INTO msgs(id,team_id,profile_id,text,created) VALUES(?,?,?,?,?)', [uid(), $me['team_id'], 'system', "🚪 $who ساعت " . hhmm((int)$gr['at']) . ($dir === 'home' ? ' به خانه می‌رود' : " به {$pl['name']} می‌آید") . " ($rt). هم‌مسیرید؟ از منو «دارم می‌روم» را بزنید.", time()]);
         /* who hears it: the COMPLEMENT of my car status (I drive → people without a car; I have none → people with a car), same gender,
            same direction, home close by (distance stated) — from my workplace and from neighbouring ones (≤1.5 km). Closest first. */
-        if (!empty($new)) { $sent = 0; $sms = 0; $pushed = []; $NP = lv_places($pl); $ph = implode(',', array_fill(0, count($NP), '?')); $C = [];
+        if (!empty($new)) { $sent = 0; $sms = 0; $pushed = [];
+            // my preferred co-travellers (chosen from my contacts) hear it first — same gender, any of their work/uni mesiraks
+            $MI = json_decode((string)(row('SELECT info FROM users WHERE id=?', [$u['user_id']])['info'] ?? ''), true) ?: []; $PP = array_column((array)($MI['pref'] ?? []), 'phone');
+            if ($PP) { $ph2 = implode(',', array_fill(0, count($PP), '?'));
+                foreach (rows("SELECT p.id, p.user_id, p.data FROM profiles p JOIN users u ON u.id=p.user_id WHERE u.phone IN ($ph2) AND p.complete=1 AND p.kind IN ('work','uni') AND p.user_id<>?", [...$PP, $u['user_id']]) as $o) {
+                    $od = pdata($o); if (($od['pg'] ?? 'f') !== $g || !empty($od['leave_off']) || in_array($me['id'], (array)($od['blocked'] ?? []), true) || isset($pushed[$o['user_id']])) continue;
+                    $t = "⭐ $who (از هم‌سفرهای ترجیحی شما) ساعت " . hhmm((int)$gr['at']) . ($dir === 'home' ? ' به خانه می‌رود' : ' سر کار می‌رود') . ($role === 'car' ? '؛ ' . fa_d($seats) . ' جای خالی دارد.' : '؛ دنبال ماشین است.');
+                    note($o['id'], $t, 'near', $gr['id']); $pushed[$o['user_id']] = 1; push_queue([$o['user_id']], '⭐ هم‌سفرِ شما راه افتاد', mb_substr($t, 0, 150), 'near'); $sent++; } } $NP = lv_places($pl); $ph = implode(',', array_fill(0, count($NP), '?')); $C = [];
             foreach (rows("SELECT p.*, u.phone, u.fake ufake FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.place_id IN ($ph) AND p.complete=1 AND p.user_id<>? AND p.kind IN (?,?) LIMIT 1500", [...array_keys($NP), $u['user_id'], 'work', 'uni']) as $o) {
                 $od = pdata($o); if (($od['pg'] ?? 'f') !== $g || !empty($od['leave_off']) || in_array($me['id'], (array)($od['blocked'] ?? []), true) || in_array($o['id'], (array)($d['blocked'] ?? []), true)) continue;
                 $hasCar = ($od['role'] ?? 'pay') !== 'pay' && (int)($od['seats'] ?? 1) > 0; if ($role === 'car' ? $hasCar && ($od['role'] ?? '') === 'drive' : !$hasCar) continue;
@@ -445,6 +461,8 @@ function x_route(string $a, array $in): void {
             if (isset($in['routes']) && is_array($in['routes'])) $I['routes'] = array_values(array_filter(array_map(fn($r) => ['from' => s1((string)($r['from'] ?? ''), 40), 'to' => s1((string)($r['to'] ?? ''), 40),
                 'tm' => preg_match('/^([01]?\d|2[0-3]):[0-5]\d$/', en_d((string)($r['tm'] ?? ''))) ? en_d((string)$r['tm']) : '', 'days' => array_values(array_unique(array_filter(array_map('intval', (array)($r['days'] ?? [])), fn($d) => $d >= 0 && $d <= 6)))], array_slice($in['routes'], 0, 8)), fn($r) => $r['from'] !== '' && $r['to'] !== '' && $r['from'] !== $r['to']));
             if (array_key_exists('job_t', $in)) $I['job_t'] = s1((string)$in['job_t'], 40);
+            if (array_key_exists('halo', $in)) $I['halo'] = !empty($in['halo']);
+            if (isset($in['pref']) && is_array($in['pref'])) { $seen = []; $I['pref'] = array_values(array_filter(array_map(function ($c) use (&$seen) { $ph = dg((string)($c['phone'] ?? '')); if (!preg_match('/^09\d{9}$/', $ph) || isset($seen[$ph])) return null; $seen[$ph] = 1; return ['name' => s1((string)($c['name'] ?? ''), 30), 'phone' => $ph]; }, array_slice($in['pref'], 0, 10)))); }
             if (isset($in['trust']) && is_array($in['trust'])) { $tp = dg((string)($in['trust']['phone'] ?? '')); $I['trust'] = ['name' => s1((string)($in['trust']['name'] ?? ''), 30), 'phone' => preg_match('/^09\d{9}$/', $tp) ? $tp : '']; }
             if (!empty($in['g'])) set_g($me, s1((string)$in['g'], 1));
             q('UPDATE users SET info=? WHERE id=?', [json_encode($I, JSON_UNESCAPED_UNICODE), $me]); }

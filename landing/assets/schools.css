@@ -203,3 +203,5 @@ footer .wrap{display:grid;gap:10px;justify-items:center}
 @media (max-width:380px){.est{padding:20px 16px;border-radius:26px}}
 @media (min-width:900px){.est{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)}}
 .range{min-width:0}.range input{min-width:0;flex:1 1 auto}.range output{min-width:72px;flex:0 0 auto}
+.fleet-map{height:360px;border-radius:18px;overflow:hidden;margin-top:10px;background:#EEF2F6}
+.demo-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 16px;padding:12px 16px;border-radius:18px;background:linear-gradient(100deg,#0F2A44,#1E4A73);color:#fff}.demo-bar span{opacity:.85;font-size:.88rem;flex:1 1 260px}
