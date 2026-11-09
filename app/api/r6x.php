@@ -61,7 +61,7 @@ function lv_match(array $pl, array $d, array $od, bool $same): ?int { $gap = hom
 function info_from_wizard(string $uid, array $d): void { x_schema(); $I = json_decode((string)(row('SELECT info FROM users WHERE id=?', [$uid])['info'] ?? ''), true) ?: [];
     foreach (['family' => 40, 'hood' => 60] as $k => $n) if (!empty($d[$k])) $I[$k] = s1((string)$d[$k], $n);
     if (in_array($d['job'] ?? '', ['teacher', 'cleric', 'academic', 'student', 'medic'], true)) $I['job'] = $d['job'];
-    if (in_array($d['rel'] ?? '', ['mother', 'father', 'grandma', 'grandpa'], true)) $I['rel'] = $d['rel'];
+    if (in_array($d['rel'] ?? '', ['mother', 'father', 'grandma', 'grandpa', 'sister', 'brother'], true)) $I['rel'] = $d['rel'];
     if (isset($d['lat'], $d['lng']) && is_numeric($d['lat']) && is_numeric($d['lng']) && (float)$d['lat'] != 0) { $I['lat'] = round((float)$d['lat'], 6); $I['lng'] = round((float)$d['lng'], 6); }
     if (($d['role'] ?? 'pay') !== 'pay' && (int)($d['seats'] ?? 0) > 0) $I['seats'] = min(8, (int)$d['seats']);
     $ks = array_values(array_filter((array)($d['kids'] ?? []), fn($k) => is_array($k) && trim((string)($k['first'] ?? '')) !== ''));
@@ -444,7 +444,7 @@ function x_route(string $a, array $in): void {
     case 'my_info': { $u = auth(); $me = $u['user_id']; $I = json_decode((string)(row('SELECT info FROM users WHERE id=?', [$me])['info'] ?? ''), true) ?: [];
         if (!empty($in['save'])) { $f = fn($k, $n) => s1((string)($in[$k] ?? ''), $n);
             unset($I['plate']);
-            if (array_key_exists('rel', $in)) { $I['rel'] = in_array($in['rel'], ['mother', 'father', 'grandma', 'grandpa'], true) ? $in['rel'] : ''; unset($in['rel']); }
+            if (array_key_exists('rel', $in)) { $I['rel'] = in_array($in['rel'], ['mother', 'father', 'grandma', 'grandpa', 'sister', 'brother', 'other'], true) ? $in['rel'] : ''; $I['rel_t'] = $I['rel'] === 'other' ? mb_substr(trim((string)($in['rel_t'] ?? '')), 0, 30) : ''; unset($in['rel'], $in['rel_t']); }
             if (array_key_exists('job', $in)) { $I['job'] = in_array($in['job'], ['teacher', 'cleric', 'academic', 'student', 'medic', 'other'], true) ? $in['job'] : ''; unset($in['job']); }
             if (array_key_exists('tcode', $in)) $I['tcode'] = substr(dg((string)$in['tcode']), 0, 12);
             if (array_key_exists('p3', $in)) $I['p3'] = substr(dg((string)$in['p3']), 0, 3);

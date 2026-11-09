@@ -74,7 +74,7 @@ function pitch() {
 function sponsorPoster(D, W) {
   const pl = D.place; let q = ''; try { const c = qrcode(0, 'M'); c.addData('https://residim.ir/' + pl.code); c.make(); q = c.createSvgTag({ cellSize: 6, margin: 1, scalable: true }); } catch (e) {}
   const el = document.createElement('div'); el.id = 'spons';
-  el.innerHTML = `<div class="sp-top"><img src="../assets/icon.svg?v=45" alt=""><b>رسیدیم</b></div><h1>اشتراک ویژه‌ی «رسیدیم» برای ${W.who} <span>${esc(pl.name)}</span> رایگان شد!</h1>
+  el.innerHTML = `<div class="sp-top"><img src="../assets/icon.svg?v=46" alt=""><b>رسیدیم</b></div><h1>اشتراک ویژه‌ی «رسیدیم» برای ${W.who} <span>${esc(pl.name)}</span> رایگان شد!</h1>
     <p class="sp-sub">${W.edu ? 'بچه‌ها را با خانواده‌های هم‌محله نوبتی ببرید و بیاورید؛' : 'با هم‌مسیرهای همین مجموعه با هم بروید، با هم برگردید؛'} منظم، با برنامه‌ی روزانه و هفتگی و سهم منصفانه‌ی هزینه.</p>
     <div class="sp-qr">${q}</div><p class="sp-url">residim.ir/${esc(pl.code)}</p>
     ${D.seats ? `<p class="sp-seats">ظرفیت: ${fa(D.seats)} اکانت – تا پر نشده ثبت‌نام کنید</p>` : ''}<p class="sp-by">با حمایت ${esc(pl.name)}</p>`;
