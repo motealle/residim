@@ -109,7 +109,7 @@ const SND = { ctx: null };
 const SND_FILE = { arrive: 'arrived', done: 'done', door: 'door', urgent: 'urgent', boarded: 'boarded', start: 'start', invite: 'invite', team: 'team', remind: 'remind', msg: 'msg' };
 const SND_ALT = { door: 'honk', urgent: 'honk', boarded: 'step', start: 'whoosh', invite: 'ok', team: 'done', remind: 'ok', msg: 'tap' };
 function sndLoad(name) { const c = SND.ctx; if (!c) return; SND.buf = SND.buf || {}; if (SND.buf[name] !== undefined) return; SND.buf[name] = null;
-  fetch('assets/snd/' + name + '.mp3?v=42').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
+  fetch('assets/snd/' + name + '.mp3?v=43').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
 function snd(kind) {
   if (S.sound !== false && SND_FILE[kind]) { try { if (!SND.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) SND.ctx = new AC(); }
     const c = SND.ctx; if (c) { if (c.state === 'suspended') c.resume(); const nm = SND_FILE[kind]; sndLoad(nm); Object.values(SND_FILE).forEach(sndLoad); const b = SND.buf[nm];
@@ -267,7 +267,7 @@ async function mapLib() {
     }
     await loadCss('assets/maplibre-gl.css');
     await loadJs('assets/maplibre-gl.js', () => !!window.maplibregl, 12000);
-    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=42', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
+    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=43', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
     return (MapKit.lib = { name: 'libre', G: window.maplibregl });
   })();
   try { return await MapKit.loading; } catch (e) { MapKit.failed = true; MapKit.loading = null; throw e; }
@@ -276,7 +276,7 @@ async function makeMap(el, center, zoom) {
   const L = await mapLib();
   let map;
   if (L.name === 'neshan') map = new L.G.Map({ mapType: (isDark() && L.G.Map.mapTypes.neshanVectorNight) || L.G.Map.mapTypes.neshanVector, container: el, zoom, pitch: 0, center: [center[1], center[0]], minZoom: 4, maxZoom: 19, trackResize: true, mapKey: CFG.web_key, poi: false, traffic: false, mapTypeControllerOptions: { show: false } });
-  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=42' : 'assets/map-style.json?v=42', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=43' : 'assets/map-style.json?v=43', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('map-timeout')), 10000);
     map.on('load', () => { clearTimeout(t); res(); });
@@ -966,9 +966,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=42" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=43" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow" style="min-width:0"><b>${esc(p.label)} <span class="pchip">${ic('down', '')}</span></b><small>${p.team ? esc(teamName(p.team)) + ' – ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</small></span>`; }
-  else t = `<img src="assets/icon.svg?v=42" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=43" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -976,6 +976,7 @@ function renderTop() {
 function paintBell() { const n = ui.inbox ? ui.inbox.invites.length + ui.inbox.unread : 0; const p = active(); $('#bell').innerHTML = ic('bell') + (n ? `<span class="badge">${fa(n)}</span>` : ''); $('#bell').classList.toggle('hide', !(p && p.complete && S.token) || ui.admin); }
 function renderMain(anim) {
   const main = $('#main'), p = active(), dock = $('#dock'), keepY = !anim ? scrollY : null;
+  document.body.classList.toggle('scene-org', sceneOrg()); if (S.go && goAllowed() && !$('#go-root .go')) setTimeout(goOpen, 0);
   // background refreshes rebuild #main: hold its height while it is replaced and keep the reader where they were
   if (keepY != null && main) { main.style.minHeight = main.offsetHeight + 'px'; requestAnimationFrame(() => { if (Math.abs(scrollY - keepY) > 4) scrollTo(0, keepY); requestAnimationFrame(() => { main.style.minHeight = ''; if (Math.abs(scrollY - keepY) > 4) scrollTo(0, keepY); }); }); }
   if (PM.node && PM.node.parentNode) PM.node.parentNode.removeChild(PM.node);
@@ -1048,7 +1049,7 @@ function drawer(keep) {
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const grp = (k, i, t, body) => `<div class="grp"><button class="sec-h" data-a="toggle" data-v="${k}" aria-expanded="${!!ui.open[k]}"><span>${ic(i, 'i')} ${t}</span>${ic('down', 'i chev' + (ui.open[k] ? ' open' : ''))}</button><div class="plist ${ui.open[k] ? '' : 'closed'}" style="max-height:${ui.open[k] ? 700 : 0}px">${body}</div></div>`;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=42" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=43" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     <div class="sec-h"><span>مسیرک‌های من <button class="q-mark" data-a="glossary" aria-label="مسیرک یعنی چه؟">؟</button></span><button class="link small" data-a="new-profile">${ic('plus')}تازه</button></div>
     <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${!x.complete && !x.shared ? `<button class="pdel" data-a="prof-del" data-id="${x.id}" aria-label="پاک کردن «${esc(x.label)}»">${ic('close')}</button>` : ''}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیرک را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
     ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیرک دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
@@ -1056,11 +1057,14 @@ function drawer(keep) {
     ${p && p.team && leagueOn(p) ? `<div class="tiles"><button class="tile" data-a="quiz">${ic('trophy')}<span>لیگ راه ${esc(destWord(p))}</span></button></div>` : ''}
     ${ME.host ? `<div class="host-b">${ME.host.logo ? `<img src="${esc(ME.host.logo)}" alt="" width="40" height="40">` : ic('spark')}<span class="grow"><b>مهمانِ ${esc(ME.host.name)} هستید</b><small>${ME.host.staff ? 'به‌عنوان کادر مدرسه' : 'مدرسه اشتراک گرفته و همه را مهمان کرده است'}؛ همه‌ی امکاناتِ ویژه تا ${esc(new Date(ME.host.until * 1000).toLocaleDateString('fa-IR', { month: 'long', day: 'numeric' }))} برایتان باز است.</small></span></div>` : ''}
     ${intentRow(ps)}
+    ${S.token && goAllowed() ? (S.go ? mi('go-exit', 'list', 'حالت معمولی <small class="muted">· همه‌ی امکانات</small>') : mi('go-open', 'spark', 'حالت سریع <small class="muted">· نقشه و یک تپ (آزمایشی)</small>')) : ''}
     ${S.token ? mi('my-info', 'user', `اطلاعات من <small class="muted">${ME.info && (ME.info.lat || ME.info.car || (ME.info.routes || []).length) ? '· پیش‌پرکنِ فرم‌ها' : '· یک بار بنویسید'}</small>`) : ''}
     ${(ME.staff || []).filter(x => x.admin).map(x => `<button class="mi schools-mi" data-a="staff-panel" data-id="${x.place_id}"><span class="dong-ic">${ic('school')}</span><span class="grow"><b>پنل ${esc(x.name)}</b><small>شما مدیرِ پنل این مدرسه‌اید</small></span>${ic('back')}</button>`).join('')}
     <div class="sep"></div>
     <div class="qtiles">${CFG.flags.ads !== false ? `<a class="qt q-ads" href="/ads/">${ic('list')}<span>آگهی‌ها</span></a>` : ''}${CFG.flags.stories !== false ? `<a class="qt q-st" href="stories/">${ic('spark')}<span>قصه‌ها</span></a>` : ''}${CFG.donate && (CFG.donate.card || CFG.donate.gateway) ? `<button class="qt q-dg" data-a="donate">${ic('heart')}<span>دنگ خیر</span></button>` : ''}</div>
-    <a class="mi schools-mi" href="schools/"><span class="dong-ic">${ic('school')}</span><span class="grow"><b>رسیدیم برای مدارس</b><small>پنل مدرسه، اردو با ماشین خانواده‌ها، پیام به همه</small></span>${ic('back')}</a>
+    ${(() => { const sc = `<a class="mi schools-mi" href="schools/"><span class="dong-ic">${ic('school')}</span><span class="grow"><b>رسیدیم برای مدارس</b><small>پنل مدرسه، اردو با ماشین خانواده‌ها، پیام به همه</small></span>${ic('back')}</a>`,
+      og = `<a class="mi schools-mi orgs-mi" href="orgs/"><span class="dong-ic">${ic('brief')}</span><span class="grow"><b>رسیدیم برای سازمان‌ها</b><small>ایاب‌وذهاب همکاران، پنل منابع انسانی، پایلوت رایگان</small></span>${ic('back')}</a>`;
+      return sceneOrg() ? og + sc : sc + og; })()}
     ${standalone() || NATIVE || S.installed ? '' : `<button class="mi slim" data-a="install-pwa">${ic('install')}<span class="grow">نصب رسیدیم روی این دستگاه</span></button>`}
     ${grp('help', 'guide', 'راهنما و ارتباط', mi('guide', 'guide', 'راهنمای رسیدیم') + mi('glossary', 'book', 'واژه‌نامه‌ی رسیدیم') + mi('notif-guide', 'bell', 'چه خبری کجا می‌رسد؟') + `<a class="mi" href="pricing/">${ic('coin')}<span class="grow">تعرفه‌ها: رایگان کجاست، پولی کجا</span></a>` + mi('support', 'ticket', 'پشتیبانی (مشکلی دارم)') + mi('feedback', 'spark', 'نظر و پیشنهاد ⭐') + mi('about', 'heart', 'درباره‌ی ما'))}
     ${grp('set', 'gear', 'تنظیمات', `<label class="mi"><span style="display:contents">${ic('sound')}</span><span class="grow">صداهای اپ</span><input type="checkbox" class="tgl" data-a="sound" ${S.sound !== false ? 'checked' : ''}></label>` + mi('notify', 'bell', 'اعلان‌ها') + mi('sub', 'spark', CFG.flags.paid_mode ? 'اشتراک تیم' : 'اشتراک تیم (فعلاً رایگان)') + mi('radio', 'radio', 'رادیو رسیدیم') + mi('rules', 'shield', 'قوانین و حریم خصوصی') + (S.token ? mi('logout', 'logout', 'خروج از حساب') : ''))}
@@ -1073,7 +1077,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۴۲</small></span>` : `<span>نسخه‌ی وب ۴۲${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
+    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۴۳</small></span>` : `<span>نسخه‌ی وب ۴۳${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -1142,7 +1146,7 @@ async function ambView() {
       <div class="row"><input id="amb-pl" dir="ltr" placeholder="WPXJUG5A" maxlength="8" style="flex:1"><button class="btn ac" data-a="amb-make">ساختن</button></div><div id="amb-out"></div></section>
     <section class="card stack"><h2>ایده‌های سریع</h2><ol class="steps3"><li>پوستر A5 را روی تابلوی اعلانات مدرسه (با اجازه‌ی مدرسه) بچسبانید.</li><li>متن آماده و لینک را در گروه کلاس و کانال مدرسه بگذارید؛ صبح‌های شنبه بهترین زمان است.</li><li>از ۲ خانواده‌ی هم‌محله بخواهید با هم ثبت‌نام کنند؛ تیم زودتر شکل می‌گیرد.</li></ol></section>
     ${A.list.length ? `<section class="card"><h2>ثبت‌شده‌ها</h2><table><tr><th>تاریخ</th><th>مکان</th><th>نوع</th><th>مبلغ</th></tr>${A.list.slice(0, 60).map(x => `<tr><td>${jLabel(new Date(x.created * 1000))}</td><td>${esc(x.place || '—')}</td><td>${x.kind === 'team' ? 'تیم شد' : 'ثبت‌نام'}</td><td>${money(x.amount)}${+x.paid ? ' ✓' : ''}</td></tr>`).join('')}</table></section>` : ''}</div>`;
-  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=42" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
+  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=43" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
 }
 function reportHtml(p, T) {
   const H = (ui.hist && ui.hist.trips) || [], done = H.filter(x => x.status === 'done').sort((a, b) => a.date < b.date ? -1 : 1), b = balances(T), now = new Date();
@@ -1176,7 +1180,7 @@ async function saveBlob(blob, name, title, text) {
 }
 /** Render an element (inside #print-root) to a PNG or a paged A4 PDF that never cuts through a row or a line. */
 async function elToFile(el, kind, name, title) {
-  try { await loadJs('assets/html2canvas.min.js?v=42', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=42', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
+  try { await loadJs('assets/html2canvas.min.js?v=43', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=43', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
   try { await document.fonts.ready; } catch (e) {}
   const cv = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }); let blob;
   if (kind === 'png') blob = await new Promise(res => cv.toBlob(res, 'image/png'));
@@ -1868,6 +1872,76 @@ function infoFromWizard(w) {
   api('my_info', b).then(r => { ME.info = r.info; }).catch(() => {});
 }
 const lvDir0 = () => new Date().getHours() < 11 ? 'work' : 'home';
+/* ═════════ «حالت سریع» — one operational screen, Snap-style: the map is the canvas, one pull-up panel holds the most-expected
+   actions (the direction is guessed from the hour; role, home and workplace come from what the member already told us). Nothing is
+   asked again. Optional (menu switch) and behind the «go_on» flag; the regular app stays one tap away. ═════════ */
+const GO = { map: null, L: null, mk: [] };
+const sceneOrg = () => { const a = active(); return !!a && LV_KINDS.includes(a.kind); };
+const goProf = () => { const a = active(); if (a && LV_KINDS.includes(a.kind) && a.complete) return a; return (P || []).find(x => LV_KINDS.includes(x.kind) && x.complete && !x.shared) || null; };
+const goAllowed = () => !!S.token && !(CFG.flags && CFG.flags.go === false) && CFG.go !== false;
+async function goOpen() {
+  if (!goAllowed()) return; const p = goProf(); if (p && S.active !== p.id) { S.active = p.id; ui.leave = null; } S.go = 1; persist();
+  let root = $('#go-root'); if (!root) { root = document.createElement('div'); root.id = 'go-root'; document.body.appendChild(root); }
+  document.body.classList.add('go-on');
+  const I = ME.info || {}, d = p ? p.data || {} : {}, w = p && p.place, dir = lvDir0(), car = p ? (d.role || 'pay') !== 'pay' : !!I.car, other = dir === 'home' ? 'work' : 'home';
+  const hi = new Date().getHours(), greet = hi < 11 ? 'صبح بخیر' : hi < 16 ? 'روز بخیر' : 'عصر بخیر';
+  root.innerHTML = `<div class="go" role="main" aria-label="حالت سریع">
+    <div class="go-map"><div class="mapc-holder"></div></div>
+    <div class="go-top"><button class="go-fab" data-a="menu" aria-label="منو">${ic('menu')}</button><span class="go-pill">${ic('spark')}<b>حالت سریع</b></span><button class="go-fab go-x" data-a="go-exit">${ic('expand')}<span>معمولی</span></button></div>
+    <section class="go-sheet" id="go-sheet"><button class="go-grip" data-a="go-grip" aria-label="بیشتر"></button>
+      ${p ? `<div class="go-hi"><span><b>${greet}${I.first ? '، ' + esc(I.first) : ''}</b><small>${ic('brief')} ${esc(w ? w.name : p.label)} · ${car ? '🚗 با ماشین' : '🚶 بی‌ماشین'}</small></span><button class="go-fab sm" data-a="go-fit" aria-label="همه روی نقشه">${ic('locate')}</button></div>
+      <div class="go-main"><button class="go-big pri" data-a="intent" data-id="${p.id}" data-v="${dir}"><i>${dir === 'home' ? '🏡' : '🏢'}</i><span><b>${dir === 'home' ? 'دارم می‌روم خانه' : 'دارم می‌روم سر کار'}</b><small>${car ? 'همکاران بی‌ماشینِ نزدیک خبردار می‌شوند' : 'همکاران ماشین‌دارِ نزدیک خبردار می‌شوند'}</small></span></button>
+        <button class="go-big" data-a="intent" data-id="${p.id}" data-v="${other}"><i>${other === 'home' ? '🏡' : '🏢'}</i><b>${other === 'home' ? 'خانه' : 'سر کار'}</b></button></div>
+      <div class="go-live" id="go-live" aria-live="polite"></div>
+      <div class="go-chips">${(I.places || []).filter(x => x.lat).slice(0, 6).map(x => `<a class="go-chip" href="ads/#new&from_area=${encodeURIComponent('خانه')}&to_area=${encodeURIComponent(x.label)}">${(MI_PK[x.kind] || MI_PK.other)[0]} ${esc(x.label)}</a>`).join('')}<button class="go-chip" data-a="my-info">${ic('plus')} جای تازه</button></div>
+      <div class="go-more"><button data-a="go-tab" data-v="team">${ic('team')}<span>تیم</span></button><button data-a="go-tab" data-v="money">${ic('money')}<span>حساب</span></button><a href="ads/">${ic('flag')}<span>آگهی‌ها</span></a><button data-a="my-info">${ic('user')}<span>اطلاعات من</span></button></div>`
+      : `<div class="go-empty"><b>محل کارتان را یک بار بگذارید</b><span>بعد هر روز با یک تپ: «دارم می‌روم» و همکارانِ هم‌مسیر خبردار می‌شوند.</span><button class="btn ac block" data-a="go-new">${ic('brief')} محل کار یا دانشگاه من</button></div>`}
+    </section></div>`;
+  goMap(p, I); if (p) goLive(p); if (!(S.tours || {}).go) setTimeout(goTour, 900);
+}
+function goExit() { S.go = 0; persist(); const r = $('#go-root'); if (r) r.innerHTML = ''; document.body.classList.remove('go-on'); renderMain(); }
+async function goMap(p, I) {
+  const box = $('#go-root .mapc-holder'); if (!box) return; const pts = [], d = p ? p.data || {} : {};
+  if (I.lat || d.lat) pts.push({ ll: [I.lat || d.lat, I.lng || d.lng], e: '🏡', t: 'خانه', home: 1 });
+  if (p && p.place && p.place.lat) pts.push({ ll: [p.place.lat, p.place.lng], e: '🏢', t: p.place.name });
+  (I.places || []).filter(x => x.lat).forEach(x => pts.push({ ll: [x.lat, x.lng], e: (MI_PK[x.kind] || MI_PK.other)[0], t: x.label }));
+  const c = pts[0] ? pts[0].ll : [35.7, 51.39];
+  try { const node = document.createElement('div'); node.className = 'mapc'; box.appendChild(node); const r = await makeMap(node, c, 13); GO.map = r.map; GO.L = r.L; GO.pts = pts;
+    pts.forEach(q => { const el = document.createElement('div'); el.className = 'go-mk' + (q.home ? ' home' : ''); el.innerHTML = `<i>${q.e}</i><span>${esc(q.t)}</span>`; new GO.L.Marker({ element: el, anchor: 'bottom' }).setLngLat([q.ll[1], q.ll[0]]).addTo(GO.map); });
+    if (pts.length > 1 && p && p.place && (I.lat || d.lat)) { const a = [I.lng || d.lng, I.lat || d.lat], b = [p.place.lng, p.place.lat];
+      GO.map.on('load', () => { try { GO.map.addSource('go-r', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [a, [(a[0] + b[0]) / 2 + (b[1] - a[1]) * .12, (a[1] + b[1]) / 2 - (b[0] - a[0]) * .12], b] } } });
+        GO.map.addLayer({ id: 'go-r', type: 'line', source: 'go-r', paint: { 'line-color': '#1DBF73', 'line-width': 4, 'line-dasharray': [1.5, 1.2], 'line-opacity': .9 } }); } catch (e) {} }); }
+    goFit();
+  } catch (e) { box.innerHTML = `<div class="go-nomap">${ic('map')}<span>نقشه در دسترس نیست؛ دکمه‌ها کار می‌کنند.</span></div>`; }
+}
+function goFit() { if (!GO.map || !GO.pts || !GO.pts.length) return; const sh = $('#go-sheet'), pad = { top: 90, left: 40, right: 40, bottom: (sh ? sh.offsetHeight : 300) + 30 };
+  if (GO.pts.length === 1) return GO.map.jumpTo({ center: [GO.pts[0].ll[1], GO.pts[0].ll[0]], zoom: 14 });
+  const xs = GO.pts.map(q => q.ll[1]), ys = GO.pts.map(q => q.ll[0]); try { GO.map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: pad, maxZoom: 15, duration: 600 }); } catch (e) {} }
+async function goLive(p) {
+  const box = $('#go-live'); if (!box) return;
+  try { const L = await api('leave_state', { profile_id: p.id }); if (!L.on) { box.hidden = true; return; } ui.leave = L;
+    const near = L.near || [], mine = L.mine || [];
+    box.innerHTML = mine.length ? `<button class="go-row on" data-a="lv-start">${ic('team')}<span><b>در گروهِ رفتن هستید</b><small>گفتگو و هم‌مسیرها</small></span>${ic('back')}</button>`
+      : near.length ? near.slice(0, 2).map(g => `<button class="go-row" data-a="lv-start" data-id="${g.id}"><i>${g.members.some(m => m.role === 'car') ? '🚗' : '🙋'}</i><span><b>${esc(g.members[0] ? g.members[0].name : 'همکار')} ${g.dir === 'home' ? 'به خانه' : 'سر کار'} · ${fa(hhmm(g.at))}</b><small>${g.gap_t ? 'خانه‌اش ' + esc(g.gap_t) + ' از شما' : 'هم‌مسیر شما'}${g.from_t ? ' · ' + esc(g.from_t) : ''}</small></span><em>من هم</em></button>`).join('')
+      : `<p class="go-quiet">${ic('clock2')} فعلاً کسی اعلام رفتن نکرده؛ اولین نفر باشید.</p>`;
+    const Q = L.quota; if (Q && !Q.unlimited) box.insertAdjacentHTML('beforeend', `<p class="go-q">${ic('ticket')} ${Q.left ? fa(Q.left) + ' سفرِ مهمان مانده' : fa(Q.credits) + ' بلیت'}</p>`);
+  } catch (e) { box.hidden = true; }
+}
+const hhmm = t => { const d = new Date(t * 1000); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+/* a short first-run tour: spotlight + bubble, four steps, never again once seen or skipped */
+function tour(key, steps) {
+  let i = 0; const o = document.createElement('div'); o.className = 'tour'; document.body.appendChild(o);
+  const end = () => { o.remove(); S.tours = Object.assign({}, S.tours, { [key]: 1 }); persist(); };
+  const show = () => { const st = steps[i], el = st && $(st.el); if (!st) return end(); if (!el) { i++; return show(); } const r = el.getBoundingClientRect(), pad = 8, below = r.top < innerHeight / 2;
+    o.innerHTML = `<div class="tour-hole" style="top:${r.top - pad}px;left:${r.left - pad}px;width:${r.width + pad * 2}px;height:${r.height + pad * 2}px"></div>
+      <div class="tour-tip ${below ? 'b' : 't'}" style="${below ? 'top:' + (r.bottom + 16) : 'bottom:' + (innerHeight - r.top + 16)}px"><b>${st.t}</b><span>${st.d}</span><div><small>${fa(i + 1)} از ${fa(steps.length)}</small><button data-t="skip">رد شدن</button><button data-t="next" class="pri">${i === steps.length - 1 ? 'فهمیدم' : 'بعدی'}</button></div></div>`; };
+  o.addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (!b) return; if (b.dataset.t === 'skip') return end(); i++; show(); }); show();
+}
+const goTour = () => $('#go-root .go') && tour('go', [
+  { el: '.go-big.pri', t: 'یک تپ، همین', d: 'سمتِ رفتن را از ساعت حدس زده‌ایم. بزنید تا همکارانِ مکملِ نزدیک خبردار شوند.' },
+  { el: '#go-live', t: 'همین حالا چه کسی می‌رود؟', d: 'گروه‌های همکارانِ هم‌مسیر با فاصله‌ی خانه‌شان؛ «من هم» یعنی پیوستن.' },
+  { el: '.go-chips', t: 'جاهای شما', d: 'جاهایی که در «اطلاعات من» گذاشته‌اید؛ برای آگهیِ هم‌مسیری با یک تپ.' },
+  { el: '[data-a="go-exit"]', t: 'حالت معمولی', d: 'هر وقت خواستید، از این‌جا یا منو برگردید. منو را با کشیدن انگشت از راست به چپ هم باز کنید.' }]);
 function intentRow(ps) {
   if (CFG.flags.leave === false || !S.token) return ''; const W = ps.filter(x => x.complete && LV_KINDS.includes(x.kind) && x.place); if (!W.length) return '';
   const d0 = lvDir0(), ch = (x, d) => `<button class="chip" data-a="intent" data-id="${x.id}" data-v="${d}">${d === 'home' ? '🏠 به خانه' : '🏢 به ' + esc(x.place.name)}${W.length > 1 && d === 'home' ? ' از ' + esc(x.place.name) : ''}</button>`;
@@ -2106,7 +2180,7 @@ function admHealth(A) {
 }
 function admHome(A) {
   const o = A.ov, cnt = o.counts, F = o.flags, SV = o.services, ST = o.settings || {};
-  const flagLbl = { ads_on: 'آگهی‌های هم‌مسیری: صفحه‌ی residim.ir/ads و پیوند منو', ads_review: 'آگهی‌ها اول بررسی شوند، بعد نمایش (پیش‌فرض: خاموش؛ فیلتر خودکار و گزارش‌ها فعال‌اند)', leave_on: '«دارم می‌روم» در مسیرک محل کار و دانشگاه', ordu_on: 'اردوی مدرسه در پنل مدرسه و کارت خانواده‌ها', stories: 'قصه‌های هم‌مسیری: پیوند صفحه‌ی residim.ir/stories در منو', bismillah: 'ابر «بسم الله الرحمن الرحیم» در آسمان اسپلش', price_poll: 'نظرسنجی قیمت منصفانه (بعد از دو سفر واقعی، یک بار)', trip_window: 'اجرای واقعی: سفر فقط در بازه‌ی زمانی خودش ثبت شود (خاموش = حالت آزمایش، همه‌چیز ثبت می‌شود)', trusted_driver: 'راننده‌ی معتمد (فقط برای مکان‌هایی که در زبانه‌ی مکان‌ها روشن شود)', family_link: 'همراه خانواده (همسر، پدربزرگ و مادربزرگ رخدادها را ببینند)', cand_swipe: 'پیشنهادهای هم‌مسیر به شکل کارت‌های ورق‌خوردنی (گوشی)', trip_scene: 'صحنه‌ی کارتونی سفر (ماشین، ایستگاه خانه‌ها، ابرهای پیام)', pay_gateway: 'پرداخت دنگ خیر از درگاه پی‌پینگ', signup_open: 'ثبت‌نام باز است', sms_invite: 'پیامک دعوت هم‌مسیری', sms_direct: 'پیامک مستقیم بدون الگو (روشن = sms/send؛ خاموش = اعتبارسنجی و الگو)', sms_arrive: 'پیامک «فرزندتان رسید» (فقط تیم‌های ویژه)', auto_arrive: 'تشخیص رسیدن با GPS', station_on: 'مسیرک سفر (ایستگاه، فرودگاه، ترمینال)', league_on: 'لیگ راه مدرسه (معما)', paid_mode: 'حالت پولی؛ اشتراک لازم است (خاموش = همه‌چیز رایگان)', test_tools: 'گزینه‌های آزمایشی در منو', otp_dev: 'کد ورود آزمایشی بدون پیامک (فقط تست!)' };
+  const flagLbl = { ads_on: 'آگهی‌های هم‌مسیری: صفحه‌ی residim.ir/ads و پیوند منو', ads_review: 'آگهی‌ها اول بررسی شوند، بعد نمایش (پیش‌فرض: خاموش؛ فیلتر خودکار و گزارش‌ها فعال‌اند)', leave_on: '«دارم می‌روم» در مسیرک محل کار و دانشگاه', go_on: '«حالت سریع»: نقشه‌ی تمام‌صفحه با دکمه‌ی «دارم می‌روم» (گزینه‌ی کاربر)', org_fleet: 'نقشه‌ی ناوگان سازمان (خاموش تا بررسی حقوقی؛ فقط با رضایت کارکنان)', ordu_on: 'اردوی مدرسه در پنل مدرسه و کارت خانواده‌ها', stories: 'قصه‌های هم‌مسیری: پیوند صفحه‌ی residim.ir/stories در منو', bismillah: 'ابر «بسم الله الرحمن الرحیم» در آسمان اسپلش', price_poll: 'نظرسنجی قیمت منصفانه (بعد از دو سفر واقعی، یک بار)', trip_window: 'اجرای واقعی: سفر فقط در بازه‌ی زمانی خودش ثبت شود (خاموش = حالت آزمایش، همه‌چیز ثبت می‌شود)', trusted_driver: 'راننده‌ی معتمد (فقط برای مکان‌هایی که در زبانه‌ی مکان‌ها روشن شود)', family_link: 'همراه خانواده (همسر، پدربزرگ و مادربزرگ رخدادها را ببینند)', cand_swipe: 'پیشنهادهای هم‌مسیر به شکل کارت‌های ورق‌خوردنی (گوشی)', trip_scene: 'صحنه‌ی کارتونی سفر (ماشین، ایستگاه خانه‌ها، ابرهای پیام)', pay_gateway: 'پرداخت دنگ خیر از درگاه پی‌پینگ', signup_open: 'ثبت‌نام باز است', sms_invite: 'پیامک دعوت هم‌مسیری', sms_direct: 'پیامک مستقیم بدون الگو (روشن = sms/send؛ خاموش = اعتبارسنجی و الگو)', sms_arrive: 'پیامک «فرزندتان رسید» (فقط تیم‌های ویژه)', auto_arrive: 'تشخیص رسیدن با GPS', station_on: 'مسیرک سفر (ایستگاه، فرودگاه، ترمینال)', league_on: 'لیگ راه مدرسه (معما)', paid_mode: 'حالت پولی؛ اشتراک لازم است (خاموش = همه‌چیز رایگان)', test_tools: 'گزینه‌های آزمایشی در منو', otp_dev: 'کد ورود آزمایشی بدون پیامک (فقط تست!)' };
   return `<div class="grid">${[['users', 'کاربر واقعی'], ['complete', 'مسیرکِ کامل'], ['places', 'مکان'], ['teams', 'تیم'], ['invites', 'دعوت منتظر'], ['tickets', 'پیام باز'], ['sms_day', 'پیامک ۲۴ ساعت'], ['app_users', 'نصب اپ اندروید'], ['fb', 'نظر و پیشنهاد'], ['fake', 'کاربر آزمایشی']].map(([k, v]) => `<div class="stat"><b>${fa(cnt[k] || 0)}</b><span>${v}</span></div>`).join('')}</div>
     <details class="card adm-more" data-dk="adm-app" ${(ui.dOpen || {})['adm-app'] ? 'open' : ''}><summary><b>${ic('install')}اپ اندروید</b></summary>
       <p class="muted small">نسخه و لینک اپ را ساخت خودکار (GitHub Actions) در residim.ir/app/android.json می‌نویسد؛ این دو فیلد فقط برای جایگزینی دستی‌اند.</p>
@@ -2290,7 +2364,7 @@ function jrView(J) {
   <section class="card jr-dx"><h3>🩺 تشخیص</h3><ul>${D.map(f => `<li class="is-${f.lv}"><span class="jr-dxi">${f.ic}</span><span><b>${esc(f.t)}</b>${f.fix ? `<small>${esc(f.fix)}</small>` : ''}</span></li>`).join('')}</ul></section>
   ${J.profiles.length > 1 ? `<div class="jr-ptabs no-print">${J.profiles.map((p, i) => `<button data-a="jr-prof" data-v="${i}" aria-pressed="${p === P}">${kindIc(p.kind)}<span>${esc(p.place ? p.place.name : p.label)}</span>${p.team ? '<i>تیم</i>' : ''}</button>`).join('')}</div>` : ''}
   <section class="card jr-swc"><h3>🗺️ مسیر در فرایند رسیدیم ${P && P.place ? `<small>${esc(P.place.name)}${P.place.city ? '، ' + esc(P.place.city) : ''}</small>` : ''}</h3>
-    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=42" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
+    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=43" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
       <div class="jr-grid" style="--n:${S.length}">${[0, 1, 2].map(l => `<i class="jr-lane l${l}" style="grid-column:${l + 2}"></i>`).join('')}<svg class="jr-wires" aria-hidden="true"></svg>
         ${S.map((s, i) => `<span class="jr-no is-${s.st}" style="grid-row:${i + 1}">${fa(i + 1)}</span><div class="jr-node is-${s.st} l${s.lane}" style="grid-row:${i + 1};grid-column:${s.lane + 2};--d:${i}" data-i="${i}">${i === cur ? `<span class="jr-here">${shapeAv(P ? P.id : u.id, 30)}<em>اینجاست</em></span>` : ''}<b><i>${s.ic}</i>${s.t}</b><small>${esc(s.sub || '')}</small>${s.at ? `<time>${jrAgo(s.at)}</time>` : ''}</div>`).join('')}
       </div></div>
@@ -2660,6 +2734,12 @@ async function act(a, el) {
     case 'chat-close': ui.tg = null; return chatClose();
     case 'host-ok': { S.hostSeen = { day: new Date().toDateString(), msg: ME.host && ME.host.msg ? ME.host.msg.at : 0 }; persist(); const c = el.closest('.host-c'); if (c) c.remove(); return; }
     case 'my-info': return myInfoSheet();
+    case 'go-open': closeLayer(); return goOpen();
+    case 'go-exit': closeLayer(); return goExit();
+    case 'go-fit': return goFit();
+    case 'go-grip': { const sh = $('#go-sheet'); sh && sh.classList.toggle('open'); return setTimeout(goFit, 320); }
+    case 'go-tab': { goExit(); ui.tab = el.dataset.v; return renderMain(true); }
+    case 'go-new': { goExit(); return act('new-profile', { dataset: { kind: 'work' } }); }
     case 'lv-hear': { const on = el.checked; try { await api('leave_pref', { profile_id: ui.lv.pid, on: on ? 1 : 0 }); ui.lv.hear = on; toast(on ? 'خبرِ هم‌مسیرهای نزدیک روشن شد.' : 'دیگر خبرِ رفتنِ دیگران برایتان نمی‌آید.'); } catch (e) { el.checked = !on; fail(e); } return; }
     case 'lv-buy': { if (!$('#lvp-ok').checked) return toast('اول شرایط خرید را بپذیرید.'); el.disabled = true;
       try { const r = await api('pay_start', { plan: 'lv', qty: +el.dataset.v, agree: 1, mobile: S.phone || '' }); if (!/^https:\/\/([a-z0-9.-]+\.(zarinpal\.com|shaparak\.ir|payping\.ir)|residim\.ir\/app\/api\/pay\.php)/i.test(r.url)) throw new Error('نشانی درگاه نامعتبر است.'); location.href = r.url; } catch (e) { el.disabled = false; fail(e); } return; }

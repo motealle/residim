@@ -113,7 +113,7 @@ const api = (a, b, t) => fetch(B + '/app/api/r6.php?a=' + a, { method: 'POST', h
   // no page may spill past the screen or silently cut text, on a 320px phone up to a large phone
   { const chk = require('./overflow.cjs'), { devices } = require('playwright');
     for (const d of ['Galaxy S9+', 'Pixel 7']) { const c = await b.newContext({ ...devices[d] }), q = await c.newPage();
-      for (const u of ['/', '/stories/', '/ads/', '/schools/', '/pricing/']) { await q.goto(B + u, { waitUntil: 'domcontentloaded', timeout: 60000 }); await q.waitForTimeout(1200); const r = await q.evaluate(chk); assert(!r.length, `overflow on ${u} (${d}): ${r.join(' | ')}`); }
+      for (const u of ['/', '/stories/', '/ads/', '/schools/', '/orgs/', '/pricing/']) { await q.goto(B + u, { waitUntil: 'domcontentloaded', timeout: 60000 }); await q.waitForTimeout(1200); const r = await q.evaluate(chk); assert(!r.length, `overflow on ${u} (${d}): ${r.join(' | ')}`); }
       await c.close(); } ok('no overflow on public pages (320–412px)'); }
   await b.close(); console.log('ERRORS', JSON.stringify(errs)); if (errs.length) process.exit(2);
 })().catch(e => { console.error('FAIL', e.message.split('\n').slice(0, 3).join(' | ')); process.exit(1); });
