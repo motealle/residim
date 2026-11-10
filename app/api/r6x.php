@@ -85,6 +85,7 @@ function lv_match(array $pl, array $d, array $od, bool $same): ?int { $gap = hom
 function info_from_wizard(string $uid, array $d): void { x_schema(); $I = json_decode((string)(row('SELECT info FROM users WHERE id=?', [$uid])['info'] ?? ''), true) ?: [];
     foreach (['family' => 40, 'hood' => 60] as $k => $n) if (!empty($d[$k])) $I[$k] = s1((string)$d[$k], $n);
     if (in_array($d['job'] ?? '', ['teacher', 'cleric', 'academic', 'student', 'medic'], true)) $I['job'] = $d['job'];
+    if (($d['job'] ?? '') === 'cleric' && !empty($d['tcode'])) $I['tcode'] = substr(dg((string)$d['tcode']), 0, 12); // wizard → «اطلاعات من»
     if (in_array($d['rel'] ?? '', ['mother', 'father', 'grandma', 'grandpa', 'sister', 'brother'], true)) $I['rel'] = $d['rel'];
     if (isset($d['lat'], $d['lng']) && is_numeric($d['lat']) && is_numeric($d['lng']) && (float)$d['lat'] != 0) { $I['lat'] = round((float)$d['lat'], 6); $I['lng'] = round((float)$d['lng'], 6); }
     if (($d['role'] ?? 'pay') !== 'pay' && (int)($d['seats'] ?? 0) > 0) $I['seats'] = min(8, (int)$d['seats']);
@@ -486,6 +487,8 @@ function x_route(string $a, array $in): void {
         $g = user_g($u['user_id']); YES(['list' => array_values(array_map(fn($a) => ad_out($a), array_filter($L, fn($a) => !$g || $a['g'] === $g)))]); }
     /* v53 test simulator (flag test_tools): fake colleagues so one person can walk every «همین حالا» path alone */
     case 'test_sim': { if (!flag('test_tools')) NO('ابزار آزمایشی خاموش است.', 403); $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $pl = row('SELECT * FROM places WHERE id=?', [$me['place_id']]); if (!$pl) NO('اول مسیرک محل کار بسازید.');
+        // never mix fake colleagues into a place where real colleagues already are — they would see them too
+        if (in_array((string)($in['k'] ?? ''), ['near', 'hist', 'car', 'car2', 'ride'], true) && (int)(row('SELECT COUNT(*) c FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.place_id=? AND p.user_id<>? AND p.complete=1 AND COALESCE(p.fake,0)=0 AND COALESCE(u.fake,0)=0', [$me['place_id'], $u['user_id']])['c'] ?? 0) > 0) NO('این محل همکار واقعی دارد؛ آزمایش را در یک مسیرکِ آزمایشی جدا انجام دهید تا کسی گیج نشود.');
         $d = pdata($me); $k = (string)($in['k'] ?? ''); $NAMES = ['نسیم', 'سرو', 'نارون', 'آسمان', 'باران', 'افرا', 'نیلوفر', 'کاج'];
         $fake = function (bool $car) use ($me, $pl, $d, $NAMES) { $fid = make_fake($me, $pl, $car); $fp = row('SELECT * FROM profiles WHERE id=?', [$fid]); $fd = pdata($fp);
             $fd['pg'] = $d['pg'] ?? 'f'; $fd['role'] = $car ? 'drive' : 'pay'; $fd['seats'] = $car ? 3 : 0; $fd['family'] = $NAMES[array_rand($NAMES)] . ' (آزمایشی)'; $fd['days'] = [0, 1, 2, 3, 4];

@@ -109,7 +109,7 @@ const SND = { ctx: null };
 const SND_FILE = { tune: 'tune', arrive: 'arrived', done: 'done', door: 'door', urgent: 'urgent', boarded: 'boarded', start: 'start', invite: 'invite', team: 'team', remind: 'remind', msg: 'msg' };
 const SND_ALT = { tune: 'done', door: 'honk', urgent: 'honk', boarded: 'step', start: 'whoosh', invite: 'ok', team: 'done', remind: 'ok', msg: 'tap' };
 function sndLoad(name) { const c = SND.ctx; if (!c) return; SND.buf = SND.buf || {}; if (SND.buf[name] !== undefined) return; SND.buf[name] = null;
-  fetch('assets/snd/' + name + '.mp3?v=53').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
+  fetch('assets/snd/' + name + '.mp3?v=54').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
 function snd(kind) {
   if (S.sound !== false && SND_FILE[kind]) { try { if (!SND.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) SND.ctx = new AC(); }
     const c = SND.ctx; if (c) { if (c.state === 'suspended') c.resume(); const nm = SND_FILE[kind]; sndLoad(nm); Object.values(SND_FILE).forEach(sndLoad); const b = SND.buf[nm];
@@ -271,7 +271,7 @@ async function mapLib() {
     }
     await loadCss('assets/maplibre-gl.css');
     await loadJs('assets/maplibre-gl.js', () => !!window.maplibregl, 12000);
-    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=53', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
+    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=54', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
     return (MapKit.lib = { name: 'libre', G: window.maplibregl });
   })();
   try { return await MapKit.loading; } catch (e) { MapKit.failed = true; MapKit.loading = null; throw e; }
@@ -280,7 +280,7 @@ async function makeMap(el, center, zoom) {
   const L = await mapLib();
   let map;
   if (L.name === 'neshan') map = new L.G.Map({ mapType: (isDark() && L.G.Map.mapTypes.neshanVectorNight) || L.G.Map.mapTypes.neshanVector, container: el, zoom, pitch: 0, center: [center[1], center[0]], minZoom: 4, maxZoom: 19, trackResize: true, mapKey: CFG.web_key, poi: false, traffic: false, mapTypeControllerOptions: { show: false } });
-  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=53' : 'assets/map-style.json?v=53', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=54' : 'assets/map-style.json?v=54', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('map-timeout')), 10000);
     map.on('load', () => { clearTimeout(t); res(); });
@@ -970,9 +970,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=53" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=54" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow tt" style="min-width:0"><span class="tt-r"><b class="mqw"><span>${esc(p.label)}</span></b><span class="pchip">${ic('down', '')}</span></span><small class="mqw"><span>${p.team ? esc(teamName(p.team)) + ' – ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</span></small></span>`; }
-  else t = `<img src="assets/icon.svg?v=53" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=54" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; requestAnimationFrame(() => mqFit($('#title'))); $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -1022,6 +1022,10 @@ function sheet(title, body, sub) {
   $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1"><div class="sheet-h"><div><h2 id="sh-t">${title}</h2>${sub ? `<p class="muted small">${sub}</p>` : ''}</div><button class="icon-btn" data-a="close" aria-label="بستن">${ic('close')}</button></div><div class="sheet-b">${body}</div></div>`;
   $('.sheet').focus(); navTrap();
 }
+(() => { let y0 = null, dy = 0, sh = null, sc = null;
+  document.addEventListener('touchstart', e => { sh = e.target.closest('#layer .sheet'); if (!sh || e.touches.length > 1 || e.target.closest('.maplibregl-map, .mapc, .mi-map, canvas, input, textarea, select, .tp, .mi-wheel, [data-nopull]')) { sh = null; return; } sc = e.target.closest('.sheet-b, .sheet') ; const top = (sc ? sc.scrollTop : 0) <= 0 && sh.scrollTop <= 0; y0 = top ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
+  document.addEventListener('touchmove', e => { if (y0 == null || !sh) return; dy = e.touches[0].clientY - y0; if (dy <= 0) { sh.style.transform = ''; return; } if ((sc && sc.scrollTop > 0) || sh.scrollTop > 0) { y0 = null; sh.style.transform = ''; return; } sh.style.transition = 'none'; sh.style.transform = `translateY(${Math.round(dy * .55)}px)`; }, { passive: true });
+  document.addEventListener('touchend', () => { if (!sh) return; const s0 = sh; s0.style.transition = 'transform .22s ease'; if (y0 != null && dy > 120) { s0.style.transform = 'translateY(100%)'; setTimeout(() => { if (s0.isConnected) closeLayer(); }, 180); } else s0.style.transform = ''; y0 = null; sh = null; dy = 0; }, { passive: true }); })();
 function closeLayer() { $('#layer').innerHTML = ''; if (ui.backToChat) { ui.backToChat = false; return chatSheet(); } if (lastFocus && document.contains(lastFocus)) lastFocus.focus(); }
 const kindIc = (k, big, anim) => { const K = KINDS[k] || KINDS.other, c = col(K.c); return `<span class="kind-ic ${big ? 'lg' : ''} ${anim === false ? '' : 'anim'}" style="--kc:${c.c};--ki:${c.i}">${ic(K.ic, '')}</span>`; };
 
@@ -1057,7 +1061,7 @@ function drawer(keep) {
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const grp = (k, i, t, body) => `<div class="grp"><button class="sec-h" data-a="toggle" data-v="${k}" aria-expanded="${!!ui.open[k]}"><span>${ic(i, 'i')} ${t}</span>${ic('down', 'i chev' + (ui.open[k] ? ' open' : ''))}</button><div class="plist ${ui.open[k] ? '' : 'closed'}" style="max-height:${ui.open[k] ? 700 : 0}px">${body}</div></div>`;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=53" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=54" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     <div class="sec-h"><span>مسیرک‌های من <button class="q-mark" data-a="glossary" aria-label="مسیرک یعنی چه؟">؟</button></span><button class="link small" data-a="new-profile">${ic('plus')}تازه</button></div>
     <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${!x.complete && !x.shared ? `<button class="pdel" data-a="prof-del" data-id="${x.id}" aria-label="پاک کردن «${esc(x.label)}»">${ic('close')}</button>` : ''}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیرک را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
     ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیرک دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
@@ -1083,7 +1087,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۵۳</small></span>` : `<span>نسخه‌ی وب ۵۳${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
+    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۵۴</small></span>` : `<span>نسخه‌ی وب ۵۴${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -1152,7 +1156,7 @@ async function ambView() {
       <div class="row"><input id="amb-pl" dir="ltr" placeholder="WPXJUG5A" maxlength="8" style="flex:1"><button class="btn ac" data-a="amb-make">ساختن</button></div><div id="amb-out"></div></section>
     <section class="card stack"><h2>ایده‌های سریع</h2><ol class="steps3"><li>پوستر A5 را روی تابلوی اعلانات مدرسه (با اجازه‌ی مدرسه) بچسبانید.</li><li>متن آماده و لینک را در گروه کلاس و کانال مدرسه بگذارید؛ صبح‌های شنبه بهترین زمان است.</li><li>از ۲ خانواده‌ی هم‌محله بخواهید با هم ثبت‌نام کنند؛ تیم زودتر شکل می‌گیرد.</li></ol></section>
     ${A.list.length ? `<section class="card"><h2>ثبت‌شده‌ها</h2><table><tr><th>تاریخ</th><th>مکان</th><th>نوع</th><th>مبلغ</th></tr>${A.list.slice(0, 60).map(x => `<tr><td>${jLabel(new Date(x.created * 1000))}</td><td>${esc(x.place || '—')}</td><td>${x.kind === 'team' ? 'تیم شد' : 'ثبت‌نام'}</td><td>${money(x.amount)}${+x.paid ? ' ✓' : ''}</td></tr>`).join('')}</table></section>` : ''}</div>`;
-  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=53" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
+  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=54" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
 }
 function reportHtml(p, T) {
   const H = (ui.hist && ui.hist.trips) || [], done = H.filter(x => x.status === 'done').sort((a, b) => a.date < b.date ? -1 : 1), b = balances(T), now = new Date();
@@ -1186,7 +1190,7 @@ async function saveBlob(blob, name, title, text) {
 }
 /** Render an element (inside #print-root) to a PNG or a paged A4 PDF that never cuts through a row or a line. */
 async function elToFile(el, kind, name, title) {
-  try { await loadJs('assets/html2canvas.min.js?v=53', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=53', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
+  try { await loadJs('assets/html2canvas.min.js?v=54', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=54', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
   try { await document.fonts.ready; } catch (e) {}
   const cv = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }); let blob;
   if (kind === 'png') blob = await new Promise(res => cv.toBlob(res, 'image/png'));
@@ -1350,6 +1354,7 @@ function wizSteps(w) {
         <span class="lbl">${wChild(w) ? 'نسبت شما با بچه‌ها؟' : 'خانم هستید یا آقا؟'}</span><div class="choices two"><button class="choice col" data-a="w-rel" data-v="${wChild(w) ? 'mother' : 'f'}" aria-pressed="${wChild(w) ? w.d.rel === 'mother' : (w.d.pg === 'f')}">${ic('woman', 'emo')}${wChild(w) ? 'مادر' : 'خانم'}</button><button class="choice col" data-a="w-rel" data-v="${wChild(w) ? 'father' : 'm'}" aria-pressed="${wChild(w) ? w.d.rel === 'father' : (w.d.pg === 'm')}">${ic('man', 'emo')}${wChild(w) ? 'پدر' : 'آقا'}</button></div>
         ${wChild(w) ? `<div class="chips">${['grandpa', 'grandma'].map(k => `<button class="chip" data-a="w-rel" data-v="${k}" aria-pressed="${w.d.rel === k}">${REL[k][0]}</button>`).join('')}</div>${w.moreRel || ['forDad', 'forMom', 'brother', 'sister'].includes(w.d.rel) ? `<div class="chips">${['forDad', 'forMom', 'brother', 'sister'].map(k => `<button class="chip" data-a="w-rel" data-v="${k}" aria-pressed="${w.d.rel === k}">${REL[k][0]}</button>`).join('')}</div><p class="note">${ic('check')}برای هماهنگی و قاعده‌ی راننده‌ی هم‌جنس، کسی حساب می‌شود که بچه‌ها را می‌برد.</p>` : `<button class="link" data-a="w-morerel">کس دیگری فرم را پر می‌کند؟</button>`}` : ''}
         <span class="lbl">کمی بیشتر از خودتان (اختیاری)</span><div class="chips tagchips">${JOBS.map(([k, v]) => `<button class="chip tag-b" data-a="w-job" data-v="${k}" aria-pressed="${w.d.job === k}">${v}</button>`).join('')}<button class="chip tag-b" data-a="w-relig" aria-pressed="${!!w.d.relig}">${w.kind === 'station' || !wChild(w) ? 'مذهبی هستم' : 'مذهبی هستیم'}</button></div>
+        ${w.d.job === 'cleric' ? `<label class="field"><span class="lbl">کد طلبگی (اختیاری)</span><input id="w-tcode" data-wd="tcode" value="${esc(w.d.tcode || ((ME.info || {}).tcode) || '')}" inputmode="numeric" dir="ltr" maxlength="12" placeholder="۸۸۰۰۱۲۳۴"><small class="muted">فقط برای نشان «طلبه»؛ به کسی نشان داده نمی‌شود.</small></label>` : ''}
         <p class="muted small">برای جور شدن با کسانی که همین را ترجیح می‌دهند؛ هر وقت خواستید بردارید.</p>
         ${w.kind === 'station' ? `<p class="note">${ic('shield')}در مسیرک سفر فقط خانم‌ها با خانم‌ها و آقایان با آقایان هم‌سفر می‌شوند.</p>` : ''}`,
       ok: w => (w.d.family || '').trim().length < 2 ? 'نام خانوادگی را بنویسید.' : !w.d.pg ? 'یکی را انتخاب کنید.' : (wChild(w) && !w.d.rel) ? 'یکی را انتخاب کنید.' : true },
@@ -1814,7 +1819,7 @@ async function myInfoSheet() {
     return `<details class="mi-sec ${tone}${k.d ? ' done' : ''}" data-k="${t}" ${op ? 'open' : ''}><summary><span class="mi-bub">${icn}</span><span class="grow"><b>${t}</b><small>${k.d && k.s ? esc(k.s) : sub || ''}</small></span><em class="mi-st ${k.d ? 'ok' : k.o ? 'op' : 'todo'}">${k.d ? '✓' : k.o ? 'اختیاری' : 'لازم'}</em><i class="mi-chev" aria-hidden="true">${ic('down')}</i></summary><div class="mi-body">${body}</div></details>`; };
   sheet('اطلاعات من', `<div class="mi-sheet">
     <div class="mi-hero"><div class="mi-ring" style="--p:${pct}"><span>${esc((I.first || I.family || '؟').trim().charAt(0) || '؟')}</span></div>
-      <div class="grow"><b>${esc(nm.trim() || 'خودتان را معرفی کنید')}</b><small>${pct >= 100 ? 'کامل است؛ هر فرم تازه خودکار پر می‌شود ✨' : !first ? `بخش‌های لازم کامل است ✓ · ${fa(pct)}٪ با اختیاری‌ها` : `${fa(pct)}٪ کامل · هرچه کامل‌تر، فرم‌ها کوتاه‌تر`}</small><span class="mi-lock">${ic('shield')} فقط برای خودتان؛ به کسی نشان داده نمی‌شود</span></div></div>
+      <div class="grow mi-tog" data-a="mi-all" role="button" tabindex="0" aria-label="باز یا بسته کردن همه‌ی بخش‌ها"><b>${esc(nm.trim() || 'خودتان را معرفی کنید')} <i class="mi-allc" aria-hidden="true">${ic('down')}</i></b><small>${pct >= 100 ? 'کامل است؛ هر فرم تازه خودکار پر می‌شود ✨' : !first ? `بخش‌های لازم کامل است ✓ · ${fa(pct)}٪ با اختیاری‌ها` : `${fa(pct)}٪ کامل · هرچه کامل‌تر، فرم‌ها کوتاه‌تر`}</small><span class="mi-lock">${ic('shield')} فقط برای خودتان؛ به کسی نشان داده نمی‌شود</span></div></div>
     ${sec('🙂', 'خودم', '', `<div class="mi-two">${inp('first', 'نام', 'مثلاً باران')}${inp('family', 'نام خانوادگی', 'مثلاً آسمان')}</div>
       <div class="mi-lbl">جنسیت${ui.mi.locked ? ' <small>· قفل؛ تغییر با پشتیبانی</small>' : ''}</div><div class="mi-seg" id="mi-gs">${[['f', '👩', 'خانم'], ['m', '👨', 'آقا']].map(([v, e, t]) => `<button data-a="mi-g" data-v="${v}" aria-pressed="${ui.mi.g === v}" ${ui.mi.locked ? 'disabled' : ''}><i>${e}</i>${t}</button>`).join('')}</div>
       <div class="mi-lbl">اگر برای فرزند می‌آیید، شما…</div><div class="mi-pills" id="mi-rels">${MI_REL.map(v => `<button class="mi-pill" data-a="mi-rel" data-v="${v}" aria-pressed="${ui.mi.rel === v}">${MI_RELT[v]}</button>`).join('')}</div><label class="mi-f" id="mi-rt" ${ui.mi.rel === 'other' ? '' : 'hidden'}><span>نسبت شما</span><input id="mi-rel_t" maxlength="30" placeholder="مثلاً خاله، عمو، دایی، عمه، پرستار" value="${esc(I.rel_t || '')}"></label>
@@ -2055,7 +2060,7 @@ function gpSheet(gp) { const left = Math.max(0, Math.ceil((gp.expires - Date.now
   sheet('📍 ' + esc(gp.name), `<div class="gp-h"><span>👥 ${fa(gp.members)} نفر</span><span>⏳ ${fa(left)} روز مانده</span><button class="mi-pill" data-a="gp-share" data-v="${gp.code}" data-n="${esc(gp.name)}">${ic('share')} فرستادن لینک</button></div>
     <div class="gp-ps">${gp.posts.length ? gp.posts.map(x => `<div class="gp-p"><i>${x.role === 'car' ? '🚗' : '🙋'}</i><span class="grow"><b>${esc(x.who)} → ${esc(x.dest)}</b><small>ساعت ${fa(x.at_t)}${x.role === 'car' ? ` · ${fa(x.seats)} جا` : ''}${x.n ? ` · ${fa(x.n)} نفر می‌آیند` : ''}</small></span>${x.mine ? '<em>شما</em>' : x.in ? '<em>✓ می‌آیید</em>' : `<button class="mi-pill on" data-a="gp-join" data-c="${gp.code}" data-v="${x.id}">من هم</button>`}</div>`).join('') : '<p class="go-quiet">هنوز کسی اعلام نکرده؛ اولین نفر باشید.</p>'}</div>
     <div class="gp-f"><input class="go-in" id="gp-d" maxlength="60" placeholder="کجا می‌روید؟ مثلاً حرم، فرودگاه، دانشگاه"><select class="go-in" id="gp-t">${[0, 15, 30, 60, 120].map(m => `<option value="${m}">${m ? fa(m) + ' دقیقه‌ی دیگر' : 'همین حالا'}</option>`).join('')}</select><button class="go-cta" data-a="gp-post" data-v="${gp.code}">من می‌روم؛ خبر بده</button></div>
-    <p class="small muted">فقط هم‌جنس‌ها اعلام‌ها را می‌بینند. نقطه بعد از مهلت خودش پاک می‌شود.</p>`); }
+    <p class="small muted">فقط هم‌جنس‌ها اعلام‌ها را می‌بینند. نقطه بعد از مهلت خودش پاک می‌شود. <button class="linkish" data-a="gp-leave" data-v="${gp.code}">خروج از این نقطه</button></p>`); }
 function goPrefBody() { const L = (ME.info || {}).pref || [];
   return `<div class="go-pref"><p class="small muted">آشناهایی که دوست دارید با آن‌ها هم‌سفر شوید. وقتی اعلام رفتن می‌کنید، با یک تپ برایشان پیام می‌رود؛ اگر در رسیدیم باشند، اول به آن‌ها خبر داده می‌شود.</p>
     ${L.map((c, i) => `<div class="go-pc"><i>${esc((c.name || '؟').charAt(0))}</i><span class="grow"><b>${esc(c.name || 'بی‌نام')}</b><small dir="ltr">${fa(c.phone)}</small></span><button class="mi-mini" data-a="go-pdel" data-v="${i}" aria-label="حذف">${ic('close')}</button></div>`).join('') || '<p class="go-quiet">هنوز کسی را اضافه نکرده‌اید.</p>'}
@@ -2634,7 +2639,7 @@ function jrView(J) {
   <section class="card jr-dx"><h3>🩺 تشخیص</h3><ul>${D.map(f => `<li class="is-${f.lv}"><span class="jr-dxi">${f.ic}</span><span><b>${esc(f.t)}</b>${f.fix ? `<small>${esc(f.fix)}</small>` : ''}</span></li>`).join('')}</ul></section>
   ${J.profiles.length > 1 ? `<div class="jr-ptabs no-print">${J.profiles.map((p, i) => `<button data-a="jr-prof" data-v="${i}" aria-pressed="${p === P}">${kindIc(p.kind)}<span>${esc(p.place ? p.place.name : p.label)}</span>${p.team ? '<i>تیم</i>' : ''}</button>`).join('')}</div>` : ''}
   <section class="card jr-swc"><h3>🗺️ مسیر در فرایند رسیدیم ${P && P.place ? `<small>${esc(P.place.name)}${P.place.city ? '، ' + esc(P.place.city) : ''}</small>` : ''}</h3>
-    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=53" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
+    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=54" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
       <div class="jr-grid" style="--n:${S.length}">${[0, 1, 2].map(l => `<i class="jr-lane l${l}" style="grid-column:${l + 2}"></i>`).join('')}<svg class="jr-wires" aria-hidden="true"></svg>
         ${S.map((s, i) => `<span class="jr-no is-${s.st}" style="grid-row:${i + 1}">${fa(i + 1)}</span><div class="jr-node is-${s.st} l${s.lane}" style="grid-row:${i + 1};grid-column:${s.lane + 2};--d:${i}" data-i="${i}">${i === cur ? `<span class="jr-here">${shapeAv(P ? P.id : u.id, 30)}<em>اینجاست</em></span>` : ''}<b><i>${s.ic}</i>${s.t}</b><small>${esc(s.sub || '')}</small>${s.at ? `<time>${jrAgo(s.at)}</time>` : ''}</div>`).join('')}
       </div></div>
@@ -3020,6 +3025,7 @@ async function act(a, el) {
     case 'gp-open': { try { const r = await api('gp_get', { code: el.dataset.v }); return gpSheet(r.gp); } catch (e) { return toast(e.message); } }
     case 'gp-share': { const u = location.origin + '/?gp=' + el.dataset.v, t = `بیایید هم‌مسیر شویم؛ نقطه‌ی جمع «${el.dataset.n}» در رسیدیم: ${u}`; try { if (navigator.share) await navigator.share({ text: t }); else { await navigator.clipboard.writeText(t); toast('لینک کپی شد ✓'); } } catch (e) {} return; }
     case 'gp-post': { const code = el.dataset.v, d = (($('#gp-d') || {}).value || '').trim(); try { const r = await api('gp_post', { code, dest: d, in_min: +(($('#gp-t') || {}).value || 0), role: GO.role === 'car' ? 'car' : 'ride', seats: GO.seats || 3 }); toast('اعلام شد؛ هم‌اقامت‌ها خبر شدند 📣'); return gpSheet(r.gp); } catch (e) { return toast(e.message); } }
+    case 'gp-leave': { try { await api('gp_leave', { code: el.dataset.v }); ui.gps = (ui.gps || []).filter(x => x.code !== el.dataset.v); closeLayer(); toast('بیرون آمدید؛ دیگر خبری از این نقطه نمی‌گیرید.'); } catch (e) { toast(e.message); } return; }
     case 'gp-join': { try { const r = await api('gp_join', { code: el.dataset.c, post: el.dataset.v }); snd('done'); toast('به او خبر دادیم که شما هم می‌آیید 🎉'); return gpSheet(r.gp); } catch (e) { return toast(e.message); } }
     case 'go-undo': if (GO.Hi > 0) goApply(GO.H[--GO.Hi]); return;
     case 'go-redo': if (GO.Hi < GO.H.length - 1) goApply(GO.H[++GO.Hi]); return;
@@ -3091,6 +3097,7 @@ async function act(a, el) {
       try { const r = await api('pay_start', { plan: 'lv', qty: +el.dataset.v, agree: 1, mobile: S.phone || '' }); if (!/^https:\/\/([a-z0-9.-]+\.(zarinpal\.com|shaparak\.ir|payping\.ir)|residim\.ir\/app\/api\/pay\.php)/i.test(r.url)) throw new Error('نشانی درگاه نامعتبر است.'); toast(['می‌رویم درگاه بانک؛ رمز دوم را آرام بزنید، کسی عجله ندارد 🙂', 'دارید به درگاه بانک می‌روید؛ قول می‌دهیم برگردانیمتان ↩️', 'تا درگاه بانک یک قدم؛ کارت آماده؟ 💳'][Date.now() % 3]); setTimeout(() => { location.href = r.url; }, 700); } catch (e) { el.disabled = false; fail(e); } return; }
     case 'mi-g': { if (ui.mi.locked) return; ui.mi.g = el.dataset.v; $$('[data-a="mi-g"]').forEach(b => b.setAttribute('aria-pressed', b === el)); return; }
     case 'mi-rel': { ui.mi.rel = ui.mi.rel === el.dataset.v ? '' : el.dataset.v; $$('[data-a="mi-rel"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.mi.rel)); { const rt = $('#mi-rt'); if (rt) { rt.hidden = ui.mi.rel !== 'other'; if (!rt.hidden) $('#mi-rel_t').focus(); } } if (ui.mi.rel && REL[ui.mi.rel] && !ui.mi.locked && !ui.mi.g) { ui.mi.g = REL[ui.mi.rel][1]; $$('[data-a="mi-g"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.mi.g)); } return; }
+    case 'mi-all': { const D = $$('details.mi-sec'), open = !D.every(d => d.open); D.forEach(d => { d.open = open; ui.miOpen[d.dataset.k] = open; }); el.classList.toggle('open', open); return; }
     case 'mi-job': { ui.mi.job = ui.mi.job === el.dataset.v ? '' : el.dataset.v; $$('[data-a="mi-job"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.mi.job)); $('#mi-tl').hidden = ui.mi.job !== 'cleric'; $('#mi-jt').hidden = ui.mi.job !== 'other'; if (ui.mi.job === 'other') $('#mi-job_t').focus(); return; }
     case 'mi-seat': { const n = +el.dataset.v; ui.mi.seats = ui.mi.seats === n ? 0 : n; $$('[data-a="mi-seat"]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === ui.mi.seats)); return; }
     case 'mi-map': { miGrab(); const id = el.dataset.id, x = id === 'home' ? null : ui.mi.places.find(q => q.id === id), cur = id === 'home' ? ui.mi.pos : x && x.lat ? x : ui.mi.pos;

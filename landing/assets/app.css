@@ -2078,3 +2078,10 @@ details.mi-sec:not([open]){padding-block:10px}
 /* v53 — the route must stay visible: the bottom sheet never takes more than ~55% of the screen; its main button stays pinned */
 #go-card .go-sheet2{max-height:56dvh;overflow-y:auto;overscroll-behavior:contain}
 #go-card .go-sheet2>.go-cta:last-child,#go-card .go-sheet2>.go-row3:last-child{position:sticky;bottom:0;z-index:2;box-shadow:0 -10px 16px -6px var(--snb,#fff)}
+
+/* v54 — anything marked hidden is hidden (fields like «کد طلبگی» relied on it, but display:grid won) */
+[hidden]{display:none!important}
+#go-bk[hidden]{display:grid!important;visibility:hidden}
+.mi-tog{cursor:pointer}.mi-allc{display:inline-grid;vertical-align:middle;width:20px;height:20px;place-items:center;border-radius:50%;background:var(--surface-2);transition:transform .25s}.mi-allc svg{width:13px;height:13px}.mi-tog.open .mi-allc{transform:rotate(180deg)}
+#layer .sheet{will-change:transform}
+.linkish{border:0;background:none;padding:0;color:inherit;text-decoration:underline;font:inherit;cursor:pointer}

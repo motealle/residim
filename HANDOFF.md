@@ -1,6 +1,6 @@
 # رسیدیم — تحویل (Handoff)
 
-> آخرین به‌روزرسانی: ۲۰۲۶/۱۱/۱۰ · نسخه‌ی جاری: **۵۳** (ریشه‌ی سایت و `/t/53`) · آگهی‌ها: `/ads/` و `/sitemap.xml` (server-rendered: `app/api/ads.php`، منطق: `app/api/r6x.php`) · قصه‌ها: `/stories/` (پرچم `stories`؛ فیلم و صدا: `scripts/video/`) · پیچ دک پنهان: `/pd/` · مدل درآمد: اشتراک تیم (docs/BUSINESS-MODEL.md، بخش ۲۰۲۶/۱۱/۰۲) · تعرفه و خرید: `/pricing/` · درگاه: زرین‌پال، پی‌پینگ یا سپ (docs/design/TEST-30-UX.md) · ویدیوی مدارس: docs/video/ · مدارس: docs/SCHOOLS.md · سازمان‌ها (پنهان): docs/B2B.md · اپ: `residim.ir/app/residim.apk` · ریسک‌ها: docs/RISKS.md · اپ اندروید: `residim.ir/app/residim.apk`
+> آخرین به‌روزرسانی: ۲۰۲۶/۱۱/۱۰ · نسخه‌ی جاری: **۵۴** (ریشه‌ی سایت و `/t/54`) · آگهی‌ها: `/ads/` و `/sitemap.xml` (server-rendered: `app/api/ads.php`، منطق: `app/api/r6x.php`) · قصه‌ها: `/stories/` (پرچم `stories`؛ فیلم و صدا: `scripts/video/`) · پیچ دک پنهان: `/pd/` · مدل درآمد: اشتراک تیم (docs/BUSINESS-MODEL.md، بخش ۲۰۲۶/۱۱/۰۲) · تعرفه و خرید: `/pricing/` · درگاه: زرین‌پال، پی‌پینگ یا سپ (docs/design/TEST-30-UX.md) · ویدیوی مدارس: docs/video/ · مدارس: docs/SCHOOLS.md · سازمان‌ها (پنهان): docs/B2B.md · اپ: `residim.ir/app/residim.apk` · ریسک‌ها: docs/RISKS.md · اپ اندروید: `residim.ir/app/residim.apk`
 
 ## رسیدیم چیست
 PWA فارسی و RTL برای سرویس مشارکتی رفت‌وآمد: خانواده‌های هم‌محله‌ی یک مدرسه (و مهد، آموزشگاه، باشگاه، محل کار، دانشگاه، و «مسیرک سفر» از ایستگاه/فرودگاه/ترمینال) هم‌دیگر را روی نقشه پیدا می‌کنند، تیم می‌شوند، نوبتی می‌برند و می‌آورند و حساب شفاف دارند. ارزش اصلی حول **مدرسه** است.
