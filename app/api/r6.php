@@ -672,12 +672,12 @@ function team_leave(array $p): string {
     return 'left';
 }
 function note(string $pid, string $text, string $kind = 'info', ?string $ref = null): void { q('INSERT INTO notes(id,profile_id,text,kind,ref,rd,created) VALUES(?,?,?,?,?,0,?)', [uid(), $pid, mb_substr($text, 0, 250), $kind, $ref, time()]);
-    if (in_array($kind, ['trip', 'invite', 'team', 'near', 'urgent'], true)) push_queue(fam_users($pid), $kind === 'urgent' ? 'رسیدیم – فوری ⚡' : 'رسیدیم', $text, $kind); }
+    if (in_array($kind, ['trip', 'invite', 'team', 'near', 'urgent', 'match'], true)) push_queue(fam_users($pid), $kind === 'urgent' ? 'رسیدیم – فوری ⚡' : ($kind === 'match' ? '🎉 هم‌مسیر پیدا شد!' : 'رسیدیم'), $text, $kind); }
 /* ───────── push. 1) Web Push from our own PHP (VAPID + RFC 8291 aes128gcm): no Firebase project, no Google key.
    The browser's own push service carries it (Chrome → Google's, Firefox → Mozilla's, Safari → Apple's).
    2) FCM v1 stays optional for the Android app, only if an admin ever pastes a service-account JSON. ───────── */
 function push_queue(array $uids, string $title, string $body, string $kind = 'info'): void { static $reg = false; if (!$uids) return; $GLOBALS['PUSHQ'][] = [$uids, $title, $body, $kind];
-    if (!$reg) { $reg = true; register_shutdown_function(function () { if (function_exists('fastcgi_finish_request')) @fastcgi_finish_request(); foreach ($GLOBALS['PUSHQ'] ?? [] as [$u, $t, $b, $k]) { try { wp_send($u, $t, $b, $k); } catch (Throwable $e) {} if (C('fcm_service_json')) push_send($u, $t, $b); } }); } }
+    if (!$reg) { $reg = true; register_shutdown_function(function () { if (function_exists('fastcgi_finish_request')) @fastcgi_finish_request(); foreach ($GLOBALS['PUSHQ'] ?? [] as [$u, $t, $b, $k]) { try { wp_send($u, $t, $b, $k); } catch (Throwable $e) {} if (C('fcm_service_json')) push_send($u, $t, $b, $k); } }); } }
 function b64u(string $x): string { return rtrim(strtr(base64_encode($x), '+/', '-_'), '='); }
 function b64ud(string $x): string { return (string)base64_decode(strtr($x, '-_', '+/') . str_repeat('=', (4 - strlen($x) % 4) % 4)); }
 /** VAPID key pair, made once on our host and kept in the settings table (never in git). */
@@ -725,10 +725,11 @@ function fcm_token(array $sa): ?string {
     $r = json_decode((string)@file_get_contents('https://oauth2.googleapis.com/token', false, $ctx), true); if (empty($r['access_token'])) return null;
     setv('fcm_tok', json_encode(['t' => $r['access_token'], 'exp' => $now + (int)($r['expires_in'] ?? 3000)])); return $r['access_token'];
 }
-function push_send(array $uids, string $title, string $body): int { $sa = json_decode((string)C('fcm_service_json'), true); if (!$sa || empty($sa['project_id'])) return 0; $tok = fcm_token($sa); if (!$tok) return 0; $n = 0;
+/* v49: Android channel per kind — door/urgent keep their own sounds, everything else plays the «tune» (res/raw/tune.mp3) */
+function push_send(array $uids, string $title, string $body, string $kind = 'info'): int { $ch = in_array($kind, ['door', 'urgent'], true) ? 'residim-' . $kind : 'residim-tune'; $sa = json_decode((string)C('fcm_service_json'), true); if (!$sa || empty($sa['project_id'])) return 0; $tok = fcm_token($sa); if (!$tok) return 0; $n = 0;
     $in = implode(',', array_fill(0, count($uids), '?'));
     foreach (rows("SELECT token FROM push_tokens WHERE user_id IN ($in)", $uids) as $t) {
-        [$code, $res] = http_json('POST', 'https://fcm.googleapis.com/v1/projects/' . $sa['project_id'] . '/messages:send', ['message' => ['token' => $t['token'], 'notification' => ['title' => $title, 'body' => $body], 'android' => ['priority' => 'high', 'notification' => ['channel_id' => 'residim', 'sound' => 'default', 'default_vibrate_timings' => true, 'visibility' => 'PUBLIC']]]], ['Authorization: Bearer ' . $tok], 8);
+        [$code, $res] = http_json('POST', 'https://fcm.googleapis.com/v1/projects/' . $sa['project_id'] . '/messages:send', ['message' => ['token' => $t['token'], 'notification' => ['title' => $title, 'body' => $body], 'android' => ['priority' => 'high', 'notification' => ['channel_id' => $ch, 'sound' => $ch === 'residim-tune' ? 'tune' : 'default', 'default_vibrate_timings' => true, 'visibility' => 'PUBLIC']]]], ['Authorization: Bearer ' . $tok], 8);
         if ($code === 200) $n++; elseif ($code === 404 || $code === 400 && str_contains($res, 'registration')) q('DELETE FROM push_tokens WHERE token=?', [$t['token']]); }
     return $n; }
 
@@ -947,6 +948,7 @@ case 'profile_save': {
         foreach (rows('SELECT * FROM profiles WHERE place_id=? AND complete=1 AND id<>? AND fake=0', [$place, $id]) as $o) { $od = pdata($o); if (isset($od['lat'], $data['lat']) && hav((float)$od['lat'], (float)$od['lng'], (float)$data['lat'], (float)$data['lng']) <= 2000) note($o['id'], 'خانواده‌ی ' . ($data['family'] ?? '') . ' نزدیک شما به «' . (row('SELECT name FROM places WHERE id=?', [$place])['name'] ?? '') . '» پیوستند. سری به هم‌مسیرها بزنید!', 'neighbor', $id); }
     }
     if ($complete && !(int)($p['shared'] ?? 0)) { try { require_once __DIR__ . '/r6x.php'; info_from_wizard($u['user_id'], $data); } catch (Throwable $e) {} }
+    if (isset($data['lat'], $data['lng']) && is_numeric($data['lat']) && (float)$data['lat'] != 0) { try { require_once __DIR__ . '/r6x.php'; x_schema(); q('UPDATE profiles SET hcell=? WHERE id=?', [hcell((float)$data['lat'], (float)$data['lng']), $id]); } catch (Throwable $e) {} } // v49: home cell for corridor matching
     if ($complete && $place) { try { require_once __DIR__ . '/r6x.php'; place_consensus((string)$place); } catch (Throwable $e) {} } // v46: shared name = what most members call it // a finished mesirak updates «اطلاعات من»
     if (!empty($in['ref']) && (int)$p['complete']) ref_credit((string)$in['ref'], $u['user_id'], $p, 'profile');
     YES(['profile' => profile_out($p)]);

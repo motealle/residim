@@ -91,7 +91,7 @@ if (!empty($private)) $body = '<article class="ad-d" id="ad-private" data-no="' 
 if ($status === 404) $body = '<div class="wrap empty"><b>این آگهی پیدا نشد.</b><p>شاید برداشته شده باشد. آگهی‌های فعال را ببینید.</p><a class="btn pri" href="/ads/">همه‌ی آگهی‌ها</a></div>';
 http_response_code($status);
 header('Content-Type: text/html; charset=utf-8'); header('Cache-Control: public, max-age=120');
-$V = '48';
+$V = '49';
 ?><!doctype html>
 <html lang="fa-IR" dir="rtl">
 <head>
@@ -111,7 +111,7 @@ $V = '48';
 <?php foreach ($ld as $j) echo '<script type="application/ld+json">' . json_encode($j, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . "</script>\n"; ?>
 </head>
 <body>
-<header class="bar"><div class="wrap"><a class="brand" href="/"><img src="/assets/icon.svg?v=<?= $V ?>" alt="" width="36" height="36"><span>رسیدیم<small>آگهی‌های هم‌مسیری</small></span></a>
+<header class="bar"><div class="wrap"><a class="brand" href="/"><img src="/assets/icon.svg?v=<?= $V ?>" alt="" width="36" height="36"><span>رسیدیم<small>آگهی‌های هم‌مسیری</small></span></a><a class="home-btn" href="/" aria-label="بازگشت به اپ رسیدیم">بازگشت به اپ ←</a>
 <nav aria-label="پیوندها"><a href="/ads/">آگهی‌ها</a><a href="/stories/">قصه‌ها</a><a href="/schools/">مدارس</a></nav><button class="btn pri sm" data-do="new">+ آگهی</button></div></header>
 <main><?= $no && $status !== 404 && empty($private) ? '<div class="wrap">' . $body . '</div>' : $body ?></main>
 <footer><div class="wrap"><span>رسیدیم فقط هم‌مسیرها را به هم معرفی می‌کند و اپ حمل‌ونقل نیست؛ رفت‌وآمد با تصمیم و مسئولیت خود کاربران است. آگهی فقط برای بزرگسالان و هم‌مسیری فقط میان هم‌جنس‌هاست.</span><span><a href="/ads/">آگهی‌ها</a> · <a href="/pricing/">تعرفه‌ها</a> · <a href="/">ورود به اپ</a></span></div></footer>

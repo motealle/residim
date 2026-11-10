@@ -106,10 +106,10 @@ let ME = { premium_until: 0, premium_bank: 0 };
 const $$ = q => Array.from(document.querySelectorAll(q));
 /* ═════════ sound: tiny Web Audio tones, made on the fly (no files, only after a tap) ═════════ */
 const SND = { ctx: null };
-const SND_FILE = { arrive: 'arrived', done: 'done', door: 'door', urgent: 'urgent', boarded: 'boarded', start: 'start', invite: 'invite', team: 'team', remind: 'remind', msg: 'msg' };
-const SND_ALT = { door: 'honk', urgent: 'honk', boarded: 'step', start: 'whoosh', invite: 'ok', team: 'done', remind: 'ok', msg: 'tap' };
+const SND_FILE = { tune: 'tune', arrive: 'arrived', done: 'done', door: 'door', urgent: 'urgent', boarded: 'boarded', start: 'start', invite: 'invite', team: 'team', remind: 'remind', msg: 'msg' };
+const SND_ALT = { tune: 'done', door: 'honk', urgent: 'honk', boarded: 'step', start: 'whoosh', invite: 'ok', team: 'done', remind: 'ok', msg: 'tap' };
 function sndLoad(name) { const c = SND.ctx; if (!c) return; SND.buf = SND.buf || {}; if (SND.buf[name] !== undefined) return; SND.buf[name] = null;
-  fetch('assets/snd/' + name + '.mp3?v=48').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
+  fetch('assets/snd/' + name + '.mp3?v=49').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
 function snd(kind) {
   if (S.sound !== false && SND_FILE[kind]) { try { if (!SND.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) SND.ctx = new AC(); }
     const c = SND.ctx; if (c) { if (c.state === 'suspended') c.resume(); const nm = SND_FILE[kind]; sndLoad(nm); Object.values(SND_FILE).forEach(sndLoad); const b = SND.buf[nm];
@@ -267,7 +267,7 @@ async function mapLib() {
     }
     await loadCss('assets/maplibre-gl.css');
     await loadJs('assets/maplibre-gl.js', () => !!window.maplibregl, 12000);
-    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=48', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
+    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=49', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
     return (MapKit.lib = { name: 'libre', G: window.maplibregl });
   })();
   try { return await MapKit.loading; } catch (e) { MapKit.failed = true; MapKit.loading = null; throw e; }
@@ -276,7 +276,7 @@ async function makeMap(el, center, zoom) {
   const L = await mapLib();
   let map;
   if (L.name === 'neshan') map = new L.G.Map({ mapType: (isDark() && L.G.Map.mapTypes.neshanVectorNight) || L.G.Map.mapTypes.neshanVector, container: el, zoom, pitch: 0, center: [center[1], center[0]], minZoom: 4, maxZoom: 19, trackResize: true, mapKey: CFG.web_key, poi: false, traffic: false, mapTypeControllerOptions: { show: false } });
-  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=48' : 'assets/map-style.json?v=48', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=49' : 'assets/map-style.json?v=49', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('map-timeout')), 10000);
     map.on('load', () => { clearTimeout(t); res(); });
@@ -545,7 +545,7 @@ async function loadInbox(mark) {
     const np = ui.inbox.profile; const idx = P.findIndex(x => x.id === np.id); if (idx >= 0) P[idx] = np;
     if ((np.team && np.team.id) !== prevTeam) { applyAccent(); if (np.team) { snd('done'); snack(`${teamName(np.team)} شکل گرفت! 🎉`, 'دیدن تیم', () => { ui.tab = 'team'; render(true); }); notify('رسیدیم', `${teamName(np.team)} شکل گرفت!`); loadTeam(); } loadPeers(); }
     if (ui.inbox.invites.length > prevInv && prevInv >= 0 && ui.inbox.invites.length) notify('رسیدیم', 'یک دعوت هم‌مسیری تازه دارید.');
-    { const nn = (ui.inbox.notes || []).filter(n => (n.kind === 'near' || n.kind === 'urgent') && n.created > (S.nearSeen || 0)); if (nn.length) { S.nearSeen = Math.max(...nn.map(n => n.created)); persist(); if (Date.now() / 1000 - nn[0].created < 600) doorAlert(nn[0].text); } }
+    { const nn = (ui.inbox.notes || []).filter(n => (n.kind === 'near' || n.kind === 'urgent' || n.kind === 'match') && n.created > (S.nearSeen || 0)); if (nn.length) { S.nearSeen = Math.max(...nn.map(n => n.created)); persist(); const mt = nn.find(n => n.kind === 'match'); if (mt) { snd('tune'); haptic('heavy'); if (GO.st === 'live') goTick(); else snack(mt.text, 'دیدن', () => goOpen()); notify('🎉 هم‌مسیر پیدا شد!', mt.text, 0, 'residim-tune'); nn.splice(0, nn.length, ...nn.filter(n => n.kind !== 'match')); } if (nn.length && Date.now() / 1000 - nn[0].created < 600) doorAlert(nn[0].text); } }
     paintBell(); if (!ui.wiz) renderTop(); dupCheck();
   } catch (e) {}
 }
@@ -966,9 +966,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=48" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=49" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow tt" style="min-width:0"><span class="tt-r"><b class="mqw"><span>${esc(p.label)}</span></b><span class="pchip">${ic('down', '')}</span></span><small class="mqw"><span>${p.team ? esc(teamName(p.team)) + ' – ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</span></small></span>`; }
-  else t = `<img src="assets/icon.svg?v=48" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=49" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
   $('#title').innerHTML = t; requestAnimationFrame(() => mqFit($('#title'))); $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -1052,7 +1052,7 @@ function drawer(keep) {
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const grp = (k, i, t, body) => `<div class="grp"><button class="sec-h" data-a="toggle" data-v="${k}" aria-expanded="${!!ui.open[k]}"><span>${ic(i, 'i')} ${t}</span>${ic('down', 'i chev' + (ui.open[k] ? ' open' : ''))}</button><div class="plist ${ui.open[k] ? '' : 'closed'}" style="max-height:${ui.open[k] ? 700 : 0}px">${body}</div></div>`;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=48" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=49" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     <div class="sec-h"><span>مسیرک‌های من <button class="q-mark" data-a="glossary" aria-label="مسیرک یعنی چه؟">؟</button></span><button class="link small" data-a="new-profile">${ic('plus')}تازه</button></div>
     <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${!x.complete && !x.shared ? `<button class="pdel" data-a="prof-del" data-id="${x.id}" aria-label="پاک کردن «${esc(x.label)}»">${ic('close')}</button>` : ''}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیرک را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
     ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیرک دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
@@ -1078,7 +1078,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۴۸</small></span>` : `<span>نسخه‌ی وب ۴۸${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
+    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۴۹</small></span>` : `<span>نسخه‌ی وب ۴۹${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -1147,7 +1147,7 @@ async function ambView() {
       <div class="row"><input id="amb-pl" dir="ltr" placeholder="WPXJUG5A" maxlength="8" style="flex:1"><button class="btn ac" data-a="amb-make">ساختن</button></div><div id="amb-out"></div></section>
     <section class="card stack"><h2>ایده‌های سریع</h2><ol class="steps3"><li>پوستر A5 را روی تابلوی اعلانات مدرسه (با اجازه‌ی مدرسه) بچسبانید.</li><li>متن آماده و لینک را در گروه کلاس و کانال مدرسه بگذارید؛ صبح‌های شنبه بهترین زمان است.</li><li>از ۲ خانواده‌ی هم‌محله بخواهید با هم ثبت‌نام کنند؛ تیم زودتر شکل می‌گیرد.</li></ol></section>
     ${A.list.length ? `<section class="card"><h2>ثبت‌شده‌ها</h2><table><tr><th>تاریخ</th><th>مکان</th><th>نوع</th><th>مبلغ</th></tr>${A.list.slice(0, 60).map(x => `<tr><td>${jLabel(new Date(x.created * 1000))}</td><td>${esc(x.place || '—')}</td><td>${x.kind === 'team' ? 'تیم شد' : 'ثبت‌نام'}</td><td>${money(x.amount)}${+x.paid ? ' ✓' : ''}</td></tr>`).join('')}</table></section>` : ''}</div>`;
-  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=48" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
+  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=49" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
 }
 function reportHtml(p, T) {
   const H = (ui.hist && ui.hist.trips) || [], done = H.filter(x => x.status === 'done').sort((a, b) => a.date < b.date ? -1 : 1), b = balances(T), now = new Date();
@@ -1181,7 +1181,7 @@ async function saveBlob(blob, name, title, text) {
 }
 /** Render an element (inside #print-root) to a PNG or a paged A4 PDF that never cuts through a row or a line. */
 async function elToFile(el, kind, name, title) {
-  try { await loadJs('assets/html2canvas.min.js?v=48', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=48', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
+  try { await loadJs('assets/html2canvas.min.js?v=49', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=49', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
   try { await document.fonts.ready; } catch (e) {}
   const cv = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }); let blob;
   if (kind === 'png') blob = await new Promise(res => cv.toBlob(res, 'image/png'));
@@ -1905,7 +1905,7 @@ const goDests = () => { const p = goProf(), I = ME.info || {}, d = p ? p.data ||
 async function goOpen() {
   if (!goAllowed()) return; const p = goProf(); if (p && S.active !== p.id) { S.active = p.id; ui.leave = null; } S.go = 1; persist();
   let root = $('#go-root'); if (!root) { root = document.createElement('div'); root.id = 'go-root'; document.body.appendChild(root); }
-  document.body.classList.add('go-on'); mswSync(); GO.map = null; GO.me = null; GO.mk = []; GO.H = []; GO.Hi = -1; const d = p ? p.data || {} : {}, I = ME.info || {};
+  { const t = $('.tour'); if (t && t.__end) t.__end(); } document.body.classList.add('go-on'); mswSync(); GO.map = null; GO.me = null; GO.mk = []; GO.H = []; GO.Hi = -1; const d = p ? p.data || {} : {}, I = ME.info || {};
   if (GO.role == null) GO.role = p ? ((d.role || 'pay') !== 'pay' ? 'car' : 'ride') : (I.car ? 'car' : 'ride'); GO.seats = I.seats || d.seats || 3; GO.st = 'pick'; GO.dest = null;
   root.innerHTML = `<div class="go snap" role="main" aria-label="حالت سریع">
     <div class="go-map"><div class="mapc-holder"></div></div>
@@ -1926,7 +1926,7 @@ async function goGuess() { const p = goProf(); if (!p || !goAllowed() || S.go) r
     if (me && p.place && p.place.lat && hav(me.lat, me.lng, p.place.lat, p.place.lng) < 700) dir = 'home'; else if (me && d.lat && hav(me.lat, me.lng, d.lat, d.lng) < 500 && h < 12) dir = 'work'; } } catch (e) {}
   return dir; }
 async function goSuggest() { if (ui.suggBusy) return; ui.suggBusy = 1; const dir = await goGuess().finally(() => { ui.suggBusy = 0; }); const was = ui.goHot; ui.goHot = dir || null; if (was !== ui.goHot && $('#leave-slot')) { const p = active(); if (p) { const n = $('#leave-slot'); n.outerHTML = leaveCard(p); } } }
-function goExit() { S.go = 0; persist(); GO.from = null; const r = $('#go-root'); if (r) r.innerHTML = ''; document.body.classList.remove('go-on'); GO.map = null; GO.me = null; GO.mk = []; GO.st = 'pick'; renderMain(); }
+function goExit() { S.go = 0; persist(); GO.from = null; { const t = $('.tour'); if (t && t.__end) t.__end(); } const r = $('#go-root'); if (r) r.innerHTML = ''; document.body.classList.remove('go-on'); GO.map = null; GO.me = null; GO.mk = []; GO.st = 'pick'; renderMain(); }
 function goPaint() { goPaint0(); goHd(); goSnap(); goGch(); const c = $('#go-card'); if (c && window.ResizeObserver && !c.__ro) { c.__ro = new ResizeObserver(goGch); c.__ro.observe(c); } }
 const goIsF = () => ((ME.info || {}).g || ((goProf() || {}).data || {}).pg) === 'f';
 /* the empty top slot in «همین حالا» becomes a one-line trip breadcrumb — the same job the title does in «سرویس ثابت» */
@@ -1990,9 +1990,18 @@ function goPaint0() {
       <button class="go-cta" data-a="${T === 'lv' && lv ? 'go-send' : T === 'ad' ? 'go-ad' : 'go-pshare'}">${T === 'lv' && lv ? (x.dir === 'home' ? 'اعلام رفتن به خانه' : 'اعلام رفتن سر کار') : T === 'ad' ? 'ثبت آگهی هم‌مسیری' : 'دعوت هم‌سفرها'}</button></div>`;
     if (T === 'lv' && lv) goLive(p);
   } else if (GO.st === 'live') {
-    const g = GO.group || {}; box.innerHTML = `<div class="go-sheet2"><span class="go-grab"></span><div class="go-done"><i>✅</i><span><b>اعلام شد؛ ${GO.dest && GO.dest.dir === 'home' ? 'به خانه' : 'سر کار'}</b><small>${fa((g.members || []).length || 1)} نفر در گروه · هم‌مسیرهای نزدیک خبردار شدند</small></span></div>
-      <div class="go-row2"><button data-a="lv-open" data-id="${g.id || ''}">${ic('chat')}<span>گفتگوی گروه</span></button><button data-a="go-pshare">${ic('share')}<span>خبر به هم‌سفرهای من</span></button></div>
-      <div class="go-row3"><button class="go-cta ghost" data-a="go-cancel">پشیمان شدم؛ لغو</button><button class="go-cta" data-a="go-reset">باشه</button></div></div>`;
+    const g = GO.group || {}, me0 = (g.members || []).find(m => m.me) || {}, iCar = (me0.role || GO.role) === 'car', mate = (g.members || []).find(m => !m.me && (m.role === 'car') !== iCar) || null, any = (g.members || []).some(m => !m.me), toWork = GO.dest && GO.dest.dir !== 'home';
+    const stp = [['اعلام شد', 2], [GO.sent ? `${fa(GO.sent)} نفر خبر شدند` : 'هم‌مسیرها خبر شدند', 2], [mate ? 'هم‌مسیر پیدا شد' : any ? 'یک هم‌مسیر آمد' : 'منتظر جواب…', mate || any ? 2 : 1], [GO.boarded ? 'سوار شدید' : 'سوار شدن', GO.boarded ? 2 : mate ? 1 : 0]];
+    const steps = `<ol class="go-steps" aria-label="مراحل">${stp.map(([t, k]) => `<li class="${k === 2 ? 'ok' : k === 1 ? 'on' : ''}"><i>${k === 2 ? '✓' : ''}</i><span>${t}</span></li>`).join('')}</ol>`;
+    const pick = iCar ? (toWork ? (mate && mate.hood ? 'سمت ' + mate.hood : 'نزدیک خانه‌اش') : 'جلوی در ' + (goProf() && goProf().place ? goProf().place.name : 'محل کار')) : (toWork ? ((ME.info || {}).hood ? 'سمت ' + ME.info.hood : 'نزدیک خانه‌تان') : 'جلوی در ' + (goProf() && goProf().place ? goProf().place.name : 'محل کار'));
+    const fun = iCar ? ['یک صندلی گرم، یک لبخند گرم‌تر 🙂', 'امروز راننده‌ی محبوب یک نفر هستید 🌟', 'آهنگ خوب بگذارید؛ مسافر دارید 🎶'] : ['کمربند آماده؟ امروز نصف ترافیک مال شما نیست 😎', 'چای‌تان را بردارید؛ ماشین در راه است ☕', 'کفش‌ها را بپوشید؛ قرار جدی شد 👟'];
+    const card = mate ? `<div class="go-match"><div class="gm-av" aria-hidden="true">${esc((mate.name || '؟').trim().slice(0, 1))}</div><div class="gm-t"><b>${esc(mate.name)}</b><small>${mate.role === 'car' ? '🚗 با ماشین' + (mate.plate ? ' · <span class="pl">پلاک ' + esc(mate.plate) + '</span>' : '') : '🙋 هم‌مسیر بی‌ماشین'}</small></div><div class="gm-tm"><b>${fa(g.at_t || '')}</b><small>${esc(pick)}</small></div></div>
+      <p class="gm-fun"><b>${iCar ? `ساعت ${fa(g.at_t || '')} ${esc(pick)} سوارش کنید.` : `${esc(mate.name)} ساعت ${fa(g.at_t || '')} ${esc(pick)} سوارتان می‌کند.`}</b> ${fun[(g.at || 0) % fun.length]}</p>`
+      : `<div class="go-done"><i class="go-wait" aria-hidden="true"></i><span><b>اعلام شد؛ ${toWork ? 'سر کار' : 'به خانه'}</b><small>${any ? 'یک نفر به گروه آمد؛ در گفتگو هماهنگ شوید.' : 'تا کسی بگوید «من هم»، همین‌جا خبرتان می‌کنیم؛ صدا دارد 🎵'}</small></span></div>`;
+    box.innerHTML = `<div class="go-sheet2"><span class="go-grab"></span>${steps}${card}
+      <div class="go-row2"><button data-a="lv-open" data-id="${g.id || ''}">${ic('chat')}<span>گفتگوی گروه</span></button>${mate && !GO.boarded ? `<button data-a="go-board">${ic('check')}<span>سوار شدم</span></button>` : `<button data-a="go-pshare">${ic('share')}<span>خبر به هم‌سفرهای من</span></button>`}</div>
+      <div class="go-row3"><button class="go-cta ghost" data-a="go-cancel">${mate ? 'نمی‌توانم بیایم' : 'پشیمان شدم؛ لغو'}</button><button class="go-cta" data-a="go-reset">باشه</button></div></div>`;
+    goPoll(); return goGch();
   }
   goGch(); requestAnimationFrame(goFit);
 }
@@ -2063,13 +2072,18 @@ async function goLive(p) {
     const Q = L.quota; if (Q && !Q.unlimited) box.insertAdjacentHTML('beforeend', `<p class="go-q">${ic('ticket')} ${Q.left ? fa(Q.left) + ' سفرِ مهمان مانده' : fa(Q.credits) + ' بلیت'}</p>`);
   } catch (e) { box.hidden = true; }
 }
+/* while live: re-read my group every 12 s; the first «yes» plays the tune and turns the card into the match panel */
+async function goTick() { if (GO.st !== 'live' || !$('#go-root .go') || !GO.group) { clearInterval(GO.pollT); GO.pollT = null; return; }
+  const p = goProf(); if (!p) return; try { const L = await api('leave_state', { profile_id: p.id }), g = (L.mine || []).find(x => x.id === GO.group.id); if (!g) return; const had = (GO.group.members || []).length; GO.group = g;
+    if (g.members.length > had) { snd('tune'); try { navigator.vibrate && navigator.vibrate([30, 60, 30, 60, 90]); } catch (e) {} } if (g.members.length !== had) goPaint(); } catch (e) {} }
+function goPoll() { if (!GO.pollT) GO.pollT = setInterval(goTick, 12000); }
 async function goQuick(v, now) { $('.go-sugg') && $('.go-sugg').remove(); await goOpen(); const x = goDests().find(q => q.dir === v); if (!x) return; GO.dest = x; GO.st = 'opt'; GO.tab = 'lv'; goPaint(); goMarks(); if (now) return goSend(); }
 async function goSend(group, confirm) {
   const p = goProf(), x = GO.dest; if (!p || !x || !x.dir) return; const b = $('#go-card .go-cta'); if (b) { b.disabled = true; b.classList.add('busy'); }
   const nat = goDests().find(q => q.dir && q.dir !== x.dir), F = GO.from && (!nat || GO.from.id !== nat.id) ? GO.from : null;
   const pos = F && F.ll ? { lat: F.ll[0], lng: F.ll[1] } : confirm ? null : await here(); if (F) confirm = true;
   try { const r = await api(group ? 'leave_join' : 'leave_start', Object.assign({ profile_id: p.id, dir: x.dir, in_min: GO.in, role: GO.role, seats: GO.seats, group: group || null, confirm: confirm ? 1 : 0 }, pos || {}));
-    GO.group = r.group; GO.st = 'live'; ui.leave = null; S.goLog = (S.goLog || []).filter(q => Date.now() - q.t < 21 * 864e5).concat({ t: Date.now(), dir: x.dir, h: new Date().getHours() }).slice(-40); persist(); goPaint(); try { navigator.vibrate && navigator.vibrate([12, 40, 12]); } catch (e) {} }
+    GO.group = r.group; GO.sent = r.sent || 0; GO.boarded = 0; GO.st = 'live'; ui.leave = null; S.goLog = (S.goLog || []).filter(q => Date.now() - q.t < 21 * 864e5).concat({ t: Date.now(), dir: x.dir, h: new Date().getHours() }).slice(-40); persist(); goPaint(); try { navigator.vibrate && navigator.vibrate([12, 40, 12]); } catch (e) {} }
   catch (e) { if (b) { b.disabled = false; b.classList.remove('busy'); }
     if (e.code === 'offsite') return goConfirm(group, x.dir); if (e.code === 'paid' || e.code === 'lvpay') return lvPaySheet(); toast(e.message); }
 }
@@ -2085,11 +2099,14 @@ function goDelAsk(id) { const I = ME.info || {}, x = (I.places || []).find(q => 
   sheet('حذف این جا؟', `<div class="stack"><p>«${esc(x.label)}» از جاهای شما و مسیرهای پرتکرارِ مربوط به آن حذف می‌شود.</p><div class="row"><button class="btn line grow" data-a="close">نه</button><button class="btn danger grow" data-a="go-del" data-v="${esc(id)}">${ic('close')}حذف</button></div></div>`); }
 function tour(key, steps) {
   if ($('.tour') || (S.tours || {})[key] || (navigator.webdriver && !window.__tours)) return; let i = 0; const o = document.createElement('div'); o.className = 'tour'; document.body.appendChild(o);
-  const end = () => { o.remove(); S.tours = Object.assign({}, S.tours, { [key]: 1 }); persist(); };
-  const show = () => { const st = steps[i], el = st && $(st.el); if (!st) return end(); if (!el) { i++; return show(); } const r = el.getBoundingClientRect(), pad = 8, below = r.top < innerHeight / 2;
+  const end = () => { o.remove(); removeEventListener('resize', show); S.tours = Object.assign({}, S.tours, { [key]: 1 }); persist(); }; o.__end = end;
+  /* a stop whose target is hidden, zero-sized or off-screen is skipped — a hole at 0,0 with an unreachable tip was a trap */
+  const vis = el => { if (!el || el.closest('[hidden]')) return false; const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 4 && r.height > 4 && r.bottom > 0 && r.top < innerHeight && cs.visibility !== 'hidden' && cs.display !== 'none'; };
+  const show = () => { if (!o.isConnected) return; const st = steps[i], el = st && $(st.el); if (!st) return end(); if (!vis(el)) { i++; return show(); } const r = el.getBoundingClientRect(), pad = 8, below = r.top < innerHeight / 2;
     o.innerHTML = `<div class="tour-hole" style="top:${r.top - pad}px;left:${r.left - pad}px;width:${r.width + pad * 2}px;height:${r.height + pad * 2}px"></div>
       <div class="tour-tip ${below ? 'b' : 't'}" style="${below ? 'top:' + (r.bottom + 16) : 'bottom:' + (innerHeight - r.top + 16)}px"><b>${st.t}</b><span>${st.d}</span><div><small>${fa(i + 1)} از ${fa(steps.length)}</small><button data-t="skip">رد شدن</button><button data-t="next" class="pri">${i === steps.length - 1 ? 'فهمیدم' : 'بعدی'}</button></div></div>`; };
-  o.addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (!b) return; if (b.dataset.t === 'skip') return end(); i++; show(); }); show();
+  /* a tap anywhere outside the tip also moves on — the overlay must never trap the screen */
+  o.addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (!b && e.target.closest('.tour-tip')) return; if (b && b.dataset.t === 'skip') return end(); i++; show(); }); addEventListener('resize', show); show();
 }
 /* first-run tour of the home screen: four stops, never again once seen or skipped */
 const homeTour = () => { if ((S.tours || {}).home || $('#layer').innerHTML.trim() || $('#go-root .go') || ui.wiz || $('.tour')) return; tour('home', [
@@ -2539,7 +2556,7 @@ function jrView(J) {
   <section class="card jr-dx"><h3>🩺 تشخیص</h3><ul>${D.map(f => `<li class="is-${f.lv}"><span class="jr-dxi">${f.ic}</span><span><b>${esc(f.t)}</b>${f.fix ? `<small>${esc(f.fix)}</small>` : ''}</span></li>`).join('')}</ul></section>
   ${J.profiles.length > 1 ? `<div class="jr-ptabs no-print">${J.profiles.map((p, i) => `<button data-a="jr-prof" data-v="${i}" aria-pressed="${p === P}">${kindIc(p.kind)}<span>${esc(p.place ? p.place.name : p.label)}</span>${p.team ? '<i>تیم</i>' : ''}</button>`).join('')}</div>` : ''}
   <section class="card jr-swc"><h3>🗺️ مسیر در فرایند رسیدیم ${P && P.place ? `<small>${esc(P.place.name)}${P.place.city ? '، ' + esc(P.place.city) : ''}</small>` : ''}</h3>
-    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=48" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
+    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=49" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
       <div class="jr-grid" style="--n:${S.length}">${[0, 1, 2].map(l => `<i class="jr-lane l${l}" style="grid-column:${l + 2}"></i>`).join('')}<svg class="jr-wires" aria-hidden="true"></svg>
         ${S.map((s, i) => `<span class="jr-no is-${s.st}" style="grid-row:${i + 1}">${fa(i + 1)}</span><div class="jr-node is-${s.st} l${s.lane}" style="grid-row:${i + 1};grid-column:${s.lane + 2};--d:${i}" data-i="${i}">${i === cur ? `<span class="jr-here">${shapeAv(P ? P.id : u.id, 30)}<em>اینجاست</em></span>` : ''}<b><i>${s.ic}</i>${s.t}</b><small>${esc(s.sub || '')}</small>${s.at ? `<time>${jrAgo(s.at)}</time>` : ''}</div>`).join('')}
       </div></div>
@@ -2916,6 +2933,7 @@ async function act(a, el) {
     case 'hint-x': { const p = active(); if (!p) return; S.hintOff = Object.assign({}, S.hintOff, { [p.id]: Date.now() + 3 * 864e5 }); persist(); const h = el.closest('.hint'); h && h.remove(); return; }
     case 'go-open': closeLayer(); return goOpen();
     case 'go-quick': return goQuick(el.dataset.v, el.dataset.now === '1');
+    case 'go-board': { GO.boarded = 1; snd('boarded'); goPaint(); return toast(['سفر بخیر! رسیدید، «رسیدیم» را بزنید 😉', 'خوش بگذرد؛ ماشین شلوغ‌تر، شهر خلوت‌تر 🌿', 'سوار شدید؛ تبریک، امروز یک ماشین کمتر در خیابان 🚗➖'][Date.now() % 3]); }
     case 'go-undo': if (GO.Hi > 0) goApply(GO.H[--GO.Hi]); return;
     case 'go-redo': if (GO.Hi < GO.H.length - 1) goApply(GO.H[++GO.Hi]); return;
     case 'go-fix': { S.fixAskT = Date.now(); persist(); if (el.dataset.v !== '1') { toast('باشد؛ تا یک ماه دیگر چیزی نمی‌گوییم 🤐'); return goPaint(); } goExit(); setTimeout(() => { const t = $('#dock [data-tab="peers"]'); t && t.click(); toast('این‌ها هم‌مسیرهای ثابت شما هستند؛ یکی را بزنید و تیم بسازید.'); }, 250); return; }
@@ -3330,6 +3348,7 @@ document.addEventListener('input', e => {
 /* browser «back» = back inside the app (chat → sheet → wizard step → admin tab → previous tab); leaving the site needs a second press */
 const NAV = { stack: [], adm: [], armed: 0 };
 function appBack() {
+  { const t = $('.tour'); if (t) { t.__end ? t.__end() : t.remove(); return true; } }
   if ($('#go-root .go') && !$('#layer').innerHTML.trim() && GO.st !== 'pick') { act('go-back', { dataset: {} }); return true; }
   { const tp = document.querySelector('.tp-pop'); if (tp) { tp.remove(); return true; } }
   if ($('#pick-root') && $('#pick-root').innerHTML.trim()) { closePicker(); return true; }
@@ -3362,7 +3381,7 @@ function otpAuto(sel) { if (!('OTPCredential' in window)) return; try { ui.otpAb
   navigator.credentials.get({ otp: { transport: ['sms'] }, signal: ac.signal }).then(o => { const i = $(sel); if (o && o.code && i) { i.value = fa(o.code); i.dispatchEvent(new Event('input', { bubbles: true })); snd('ok'); const b = sel === '#lg-otp' ? $('[data-a="lg-verify"]') : $('[data-a="w-next"]'); if (b) b.click(); } }).catch(() => {}); } catch (e) {} }
 async function nativeInit() { if (!NATIVE) return; document.body.classList.add('native');
   try { const PN = NP.PushNotifications; if (PN && / push/.test(navigator.userAgent) && S.token) { const st = await PN.checkPermissions(); if (st.receive !== 'granted') await PN.requestPermissions(); PN.addListener('registration', t => { api('push_reg', { token: t.value }).catch(() => {}); }); PN.addListener('pushNotificationActionPerformed', () => { ui.tab = 'team'; render(true); }); await PN.register(); } } catch (e) {}
-  try { const LN = NP.LocalNotifications; if (LN) { await LN.createChannel({ id: 'residim', name: 'رسیدیم', description: 'سوار شدن، رسیدن، پیام تیم', importance: 5, visibility: 1, vibration: true, lights: true, lightColor: '#16A34A' }); await LN.createChannel({ id: 'residim-door', name: 'سرویس دم در', description: 'سرویس رسید یا چند دقیقه‌ی دیگر می‌رسد', importance: 5, visibility: 1, vibration: true, sound: 'door.mp3' }).catch(() => {}); await LN.createChannel({ id: 'residim-urgent', name: 'پیام فوری', description: 'پیام فوری هم‌تیمی‌ها', importance: 5, visibility: 1, vibration: true, sound: 'urgent.mp3' }).catch(() => {}); await LN.createChannel({ id: 'turns', name: 'نوبت فردا', description: 'یادآوری شب قبل از نوبت رانندگی', importance: 5, visibility: 1, vibration: true });
+  try { const LN = NP.LocalNotifications; if (LN) { await LN.createChannel({ id: 'residim', name: 'رسیدیم', description: 'سوار شدن، رسیدن، پیام تیم', importance: 5, visibility: 1, vibration: true, lights: true, lightColor: '#16A34A' }); await LN.createChannel({ id: 'residim-tune', name: 'خبرهای رسیدیم', description: 'هم‌مسیر پیدا شد، پیام‌ها و یادآوری‌ها', importance: 5, visibility: 1, vibration: true, sound: 'tune.mp3' }).catch(() => {}); await LN.createChannel({ id: 'residim-door', name: 'سرویس دم در', description: 'سرویس رسید یا چند دقیقه‌ی دیگر می‌رسد', importance: 5, visibility: 1, vibration: true, sound: 'door.mp3' }).catch(() => {}); await LN.createChannel({ id: 'residim-urgent', name: 'پیام فوری', description: 'پیام فوری هم‌تیمی‌ها', importance: 5, visibility: 1, vibration: true, sound: 'urgent.mp3' }).catch(() => {}); await LN.createChannel({ id: 'turns', name: 'نوبت فردا', description: 'یادآوری شب قبل از نوبت رانندگی', importance: 5, visibility: 1, vibration: true });
       const st = await LN.checkPermissions(); if (st.display !== 'granted') await LN.requestPermissions();
       LN.addListener('localNotificationActionPerformed', () => { ui.tab = 'team'; render(true); }); } } catch (e) {}
   try { NP.App && NP.App.addListener('backButton', () => { if (appBack()) return; if (ui.tab !== 'peers' && active()) { ui.tab = 'peers'; render(true); } else NP.App.minimizeApp(); }); } catch (e) {} }
@@ -3421,7 +3440,7 @@ window.__rs = { PM, dockFun, liveTick, get S() { return S; }, get P() { return P
   let x0 = 0, y0 = 0, t0 = 0, armed = false;
   const NO = 'input,textarea,select,[contenteditable],.maplibregl-map,.leaflet-container,canvas,[data-noswipe],.poster,.sc,.qtiles,.hroll';
   const scrollsX = el => { for (let n = el; n && n !== document.body; n = n.parentElement) { if (n.scrollWidth > n.clientWidth + 4) { const o = getComputedStyle(n).overflowX; if (o === 'auto' || o === 'scroll') return true; } } return false; };
-  const busy = () => ($('#layer') && $('#layer').innerHTML.trim()) || ($('#pick-root') && $('#pick-root').innerHTML.trim()) || ui.wiz || document.body.classList.contains('wiz-on');
+  const busy = () => $('.tour') || ($('#layer') && $('#layer').innerHTML.trim()) || ($('#pick-root') && $('#pick-root').innerHTML.trim()) || ui.wiz || document.body.classList.contains('wiz-on');
   addEventListener('touchstart', e => { armed = false; if (e.touches.length !== 1 || busy()) return; const t = e.touches[0], el = e.target;
     if (!el || !el.closest || el.closest(NO) || scrollsX(el)) return; x0 = t.clientX; y0 = t.clientY; t0 = Date.now(); armed = true; }, { passive: true });
   addEventListener('touchmove', e => { if (!armed) return; const t = e.touches[0], dx = t.clientX - x0, dy = t.clientY - y0;

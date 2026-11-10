@@ -11,9 +11,11 @@
   const D = $('#dlg');
   const open1 = (title, html, wide) => { D.innerHTML = `<div class="scrim" data-x></div><div class="box ${wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="dl-t"><div class="bh"><h2 id="dl-t">${title}</h2><button class="x" data-x aria-label="بستن">✕</button></div><div class="bb" id="bb">${html}</div></div>`; D.hidden = false; document.body.classList.add('lock'); setTimeout(() => { const f = D.querySelector('input,textarea,select,button:not([data-x])'); f && f.focus(); }, 50); };
   const open = (...a) => { const r = open1(...a); try { if (!(history.state && history.state.dlg)) history.pushState({ dlg: 1 }, ''); } catch (e) {} return r; };
-  const close = () => { const was = !D.hidden; D.hidden = true; D.innerHTML = ''; document.body.classList.remove('lock'); if (was && history.state && history.state.dlg) history.back(); };
+  // a deep link (#new…, #me) is spent once its dialog closes — otherwise refresh/back keeps reopening it and the page feels like a trap
+  const unhash = () => { if (/^#(new|me)/.test(location.hash)) try { history.replaceState(history.state, '', location.pathname + location.search); } catch (e) {} };
+  const close = () => { const was = !D.hidden; D.hidden = true; D.innerHTML = ''; document.body.classList.remove('lock'); unhash(); if (was && history.state && history.state.dlg) history.back(); };
   // phone «back» closes the open dialog instead of leaving the page (and losing what was typed)
-  addEventListener('popstate', () => { if (!D.hidden) { D.hidden = true; D.innerHTML = ''; document.body.classList.remove('lock'); } });
+  addEventListener('popstate', () => { if (!D.hidden) { D.hidden = true; D.innerHTML = ''; document.body.classList.remove('lock'); unhash(); } });
   D.addEventListener('click', e => { if (e.target.closest('[data-x]')) close(); });
   addEventListener('keydown', e => { if (e.key === 'Escape' && !D.hidden) close(); });
   const signed = () => !!(st().token && st().phone);
