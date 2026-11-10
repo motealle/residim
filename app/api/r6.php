@@ -772,6 +772,11 @@ function quiz_today(int $level): ?array { $qs = array_values(array_filter(quiz_p
 if (R6_MAIN) {
 $a = $_GET['a'] ?? '';
 $in = json_decode((string)file_get_contents('php://input'), true) ?: [];
+/* v55 security: every text a user sends is stored without raw angle brackets — even if some screen forgot to escape, no markup can run.
+   Passwords, codes and tokens are left exactly as typed. */
+$in = (function ($a) { $skip = ['p' => 1, 'pass' => 1, 'password' => 1, 'old' => 1, 'new' => 1, 'token' => 1, 'code' => 1, 'otp' => 1, 'sig' => 1, 'hash' => 1, 'key' => 1, 'json' => 1, 'data_url' => 1, 'img' => 1, 'logo' => 1];
+    $f = function ($v, $k = '') use (&$f, $skip) { if (is_array($v)) { $o = []; foreach ($v as $kk => $vv) $o[$kk] = isset($skip[(string)$kk]) ? $vv : $f($vv, (string)$kk); return $o; } return is_string($v) ? str_replace(['<', '>'], ['‹', '›'], $v) : $v; };
+    return $f($a); })($in);
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' && $a !== 'cfg') NO('روش درخواست مجاز نیست.', 405);
 
 try {

@@ -35,6 +35,10 @@ AddType application/manifest+json .webmanifest
 Header always set X-Content-Type-Options "nosniff"
 Header always set Referrer-Policy "strict-origin-when-cross-origin"
 Header always set X-Frame-Options "SAMEORIGIN"
+# v55: HTTPS only from now on (6 months), no plugins, no <base> hijack, no framing by other sites
+Header always set Strict-Transport-Security "max-age=15552000"
+Header always set Content-Security-Policy "object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+Header always set Cross-Origin-Opener-Policy "same-origin-allow-popups"
 Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(self)"
 </IfModule>
 # END Residim

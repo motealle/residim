@@ -7,7 +7,7 @@
   const clean = x => x.replace(/\[[^\]]+\]/g, '').replace(/[ً-ْ]/g, '').replace(/\s+/g, ' ').trim();
   const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); };
   const ST = window.STORIES || [], AUD = window.STORY_AUD || {}, FILMS = window.STORY_FILMS || {};
-  const V = '54', FONT = 'Vazirmatn,Tahoma,sans-serif';
+  const V = '55', FONT = 'Vazirmatn,Tahoma,sans-serif';
   /* one palette per story: a→b = art gradient, d = deep tone for text panels, l = light tint */
   const PALS = {
     dawn: { a: '#FF7A59', b: '#FFC46B', d: '#A9361A', l: '#FFF1E8' }, sun: { a: '#F59E0B', b: '#FFD966', d: '#8A4F00', l: '#FFF7DC' },
