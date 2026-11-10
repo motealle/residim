@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 VER="$(cat version.txt)"; CODE="${CODE:-1}"
 M=android/app/src/main/AndroidManifest.xml
-perms='POST_NOTIFICATIONS VIBRATE ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION FOREGROUND_SERVICE FOREGROUND_SERVICE_LOCATION WAKE_LOCK SCHEDULE_EXACT_ALARM RECEIVE_BOOT_COMPLETED'
+perms='POST_NOTIFICATIONS VIBRATE ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION FOREGROUND_SERVICE FOREGROUND_SERVICE_LOCATION WAKE_LOCK SCHEDULE_EXACT_ALARM RECEIVE_BOOT_COMPLETED READ_CONTACTS'
 for p in $perms; do grep -q "android.permission.$p\"" "$M" || sed -i "s#</manifest>#    <uses-permission android:name=\"android.permission.$p\" />\n</manifest>#" "$M"; done
 # a location foreground service needs the location feature declared as optional
 grep -q 'android.hardware.location.gps' "$M" || sed -i 's#</manifest>#    <uses-feature android:name="android.hardware.location.gps" android:required="false" />\n</manifest>#' "$M"
