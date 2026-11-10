@@ -347,6 +347,7 @@ function x_route(string $a, array $in): void {
     /* ── «دارم می‌روم» ── */
     case 'leave_state': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); if (!in_array($me['kind'], LEAVE_KINDS, true) || !$me['place_id']) YES(['on' => false]);
         $pl = row('SELECT * FROM places WHERE id=?', [$me['place_id']]); $d = pdata($me); $g = (string)($d['pg'] ?? 'f'); $mine = []; $near = [];
+        $hist = ['work' => 0, 'home' => 0]; $H = (int)date('G'); foreach (rows("SELECT g.dir, g.at FROM tg_members m JOIN tgroups g ON g.id=m.group_id WHERE m.profile_id=? AND g.kind='leave' AND g.at>? LIMIT 80", [$me['id'], time() - 14 * 86400]) as $r) { $h = (int)date('G', (int)$r['at']); if (abs($h - $H) <= 1 && isset($hist[$r['dir']])) $hist[$r['dir']]++; }
         $NP = lv_places($pl); $ph = implode(',', array_fill(0, count($NP), '?'));
         foreach (rows("SELECT * FROM tgroups WHERE kind='leave' AND place_id IN ($ph) AND status='open' AND until>? ORDER BY at", [...array_keys($NP), time()]) as $gr) {
             if (tg_member($gr['id'], $me['id'])) { $mine[] = tg_out($gr, $me['id']); continue; }
@@ -359,7 +360,7 @@ function x_route(string $a, array $in): void {
                 $ow = row('SELECT * FROM profiles WHERE id=?', [$gr['owner']]); $opl = row('SELECT * FROM places WHERE id=?', [$gr['place_id']]); if (!$ow || !$opl || in_array($ow['id'], (array)($d['blocked'] ?? []), true) || in_array($me['id'], (array)(pdata($ow)['blocked'] ?? []), true)) continue;
                 $gap = lv_corr($pl, $d, $opl, pdata($ow)); if ($gap === null) continue; $o = tg_out($gr, $me['id']); $o['gap'] = $gap; $o['gap_t'] = km_t($gap); $o['from_t'] = (string)$opl['name']; $near[] = $o; } }
         usort($near, fn($a, $b) => $a['gap'] <=> $b['gap']);
-        YES(['on' => flag('leave_on'), 'allowed' => leave_allowed($u, $me), 'quota' => lv_quota($u, $me), 'dir' => (int)date('G') < 11 ? 'work' : 'home', 'place' => ['lat' => (float)$pl['lat'], 'lng' => (float)$pl['lng'], 'name' => $pl['name']], 'mine' => $mine, 'near' => array_slice($near, 0, 6), 'hear' => empty($d['leave_off'])]); }
+        YES(['hist' => $hist, 'on' => flag('leave_on'), 'allowed' => leave_allowed($u, $me), 'quota' => lv_quota($u, $me), 'dir' => (int)date('G') < 11 ? 'work' : 'home', 'place' => ['lat' => (float)$pl['lat'], 'lng' => (float)$pl['lng'], 'name' => $pl['name']], 'mine' => $mine, 'near' => array_slice($near, 0, 6), 'hear' => empty($d['leave_off'])]); }
     case 'leave_here': { $u = auth(); $me = row('SELECT * FROM profiles WHERE id=? AND user_id=?', [(string)($in['profile_id'] ?? ''), $u['user_id']]); if (!$me) NO('مسیرک پیدا نشد.', 404);
         $gid = (string)($in['group'] ?? ''); $m0 = row('SELECT * FROM tg_members WHERE group_id=? AND profile_id=?', [$gid, $me['id']]); if (!$m0) NO('عضو این گروه نیستید.', 403);
         if (hit('lvhere_' . $gid . '_' . $me['id'], 120) > 1) NO('همین الان خبر دادید 🙂', 429); $UI = json_decode((string)(row('SELECT info FROM users WHERE id=?', [$u['user_id']])['info'] ?? ''), true) ?: [];
@@ -432,8 +433,17 @@ function x_route(string $a, array $in): void {
         lv_take($u, $me, $dir); YES(['group' => tg_out(row('SELECT * FROM tgroups WHERE id=?', [$gr['id']]), $me['id']), 'quota' => lv_quota($u, $me), 'sent' => (int)($sent ?? 0)]); }
     case 'leave_pref': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $d = pdata($me); $d['leave_off'] = empty($in['on']) ? 1 : 0;
         q('UPDATE profiles SET data=?, updated=? WHERE id=?', [json_encode($d, JSON_UNESCAPED_UNICODE), time(), $me['id']]); YES(['on' => !$d['leave_off']]); }
+    case 'leave_board': case 'leave_pick': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $gr = row('SELECT * FROM tgroups WHERE id=?', [(string)($in['group'] ?? '')]); if (!$gr || !tg_member($gr['id'], $me['id'])) NO('گروه پیدا نشد.', 404);
+        if ($a === 'leave_board') { q("UPDATE tgroups SET status='full' WHERE id=? AND status='open'", [$gr['id']]); YES(['closed' => true]); } // boarded: nobody new can join a trip that already left
+        $pick = (string)($in['pick'] ?? ''); $M = tg_members($gr['id']); $mine = array_values(array_filter($M, fn($m) => $m['profile_id'] === $me['id']))[0] ?? null; if (!$mine || $mine['role'] === 'car') NO('انتخاب راننده با مسافر است.', 403);
+        if (!array_filter($M, fn($m) => $m['profile_id'] === $pick && $m['role'] === 'car')) NO('این راننده در گروه نیست.', 404);
+        foreach ($M as $m) if ($m['role'] === 'car' && $m['profile_id'] !== $pick) { q('DELETE FROM tg_members WHERE group_id=? AND profile_id=?', [$gr['id'], $m['profile_id']]); note($m['profile_id'], 'ممنون از لطفتان 🙏 این بار با راننده‌ی دیگری هماهنگ شد؛ دفعه‌ی بعد با هم!', 'near', $gr['id']); }
+        note($pick, '✅ انتخابتان کردند! ساعت ' . hhmm((int)$gr['at']) . ' منتظرتان هستند؛ در گفتگو هماهنگ کنید.', 'match', $gr['id']); YES(['group' => tg_out(row('SELECT * FROM tgroups WHERE id=?', [$gr['id']]), $me['id'])]); }
     case 'leave_quit': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $gr = row('SELECT * FROM tgroups WHERE id=?', [(string)($in['group'] ?? '')]); if (!$gr || !tg_member($gr['id'], $me['id'])) NO('گروه پیدا نشد.', 404);
         q('DELETE FROM tg_members WHERE group_id=? AND profile_id=?', [$gr['id'], $me['id']]); $left = tg_members($gr['id']);
+        $WHY = ['late' => 'دیرم شد', 'plan' => 'برنامه‌ام عوض شد', 'other' => 'با کس دیگری می‌روم', 'sick' => 'حالم خوب نیست']; $why = $WHY[(string)($in['why'] ?? '')] ?? '';
+        if ($why) ev_log('leave_cancel', $why, ['g' => $gr['id']]);
+        if ($left && empty($in['done'])) { $who = (string)(pdata($me)['family'] ?? 'هم‌مسیر'); foreach ($left as $m) note($m['profile_id'], "😕 $who نمی‌تواند بیاید" . ($why ? " ($why)" : '') . '. اعلامتان هنوز باز است؛ شاید کس دیگری بیاید.', 'near', $gr['id']); }
         if (!$left || !empty($in['done'])) q("UPDATE tgroups SET status='closed' WHERE id=?", [$gr['id']]); elseif ($gr['owner'] === $me['id']) q('UPDATE tgroups SET owner=? WHERE id=?', [$left[0]['profile_id'], $gr['id']]);
         if ($left && empty($in['done'])) q('INSERT INTO msgs(id,team_id,profile_id,text,created) VALUES(?,?,?,?,?)', [uid(), $gr['id'], 'system', 'یک نفر از گروه رفت.', time()]); YES(); }
     case 'tg_chat': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $gr = row('SELECT * FROM tgroups WHERE id=?', [(string)($in['group'] ?? '')]); if (!$gr || !tg_member($gr['id'], $me['id'])) NO('گروه پیدا نشد.', 404);

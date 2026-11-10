@@ -91,7 +91,7 @@ if (!empty($private)) $body = '<article class="ad-d" id="ad-private" data-no="' 
 if ($status === 404) $body = '<div class="wrap empty"><b>این آگهی پیدا نشد.</b><p>شاید برداشته شده باشد. آگهی‌های فعال را ببینید.</p><a class="btn pri" href="/ads/">همه‌ی آگهی‌ها</a></div>';
 http_response_code($status);
 header('Content-Type: text/html; charset=utf-8'); header('Cache-Control: public, max-age=120');
-$V = '50';
+$V = '51';
 ?><!doctype html>
 <html lang="fa-IR" dir="rtl">
 <head>
