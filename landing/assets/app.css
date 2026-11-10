@@ -2085,3 +2085,8 @@ details.mi-sec:not([open]){padding-block:10px}
 .mi-tog{cursor:pointer}.mi-allc{display:inline-grid;vertical-align:middle;width:20px;height:20px;place-items:center;border-radius:50%;background:var(--surface-2);transition:transform .25s}.mi-allc svg{width:13px;height:13px}.mi-tog.open .mi-allc{transform:rotate(180deg)}
 #layer .sheet{will-change:transform}
 .linkish{border:0;background:none;padding:0;color:inherit;text-decoration:underline;font:inherit;cursor:pointer}
+/* v56 — a long place name in the «recent» line made the bottom sheet wider than the phone (content cut on the left at 320 px) */
+#go-card{min-width:0;max-width:100%}
+#go-card .go-sheet2{min-width:0;width:100%;box-sizing:border-box;overflow-x:hidden}
+#go-card .go-sheet2>*{min-width:0;max-width:100%}
+.go-recent{min-width:0;max-width:100%;overflow:hidden}

@@ -1,0 +1,94 @@
+name: Sync user bug reports to issues
+
+# Pulls app/storage/bug-outbox.json from the host over FTPS (the same deploy credentials, read-only use),
+# opens one GitHub issue per new report (already redacted on the server; deduplicated by report id),
+# then uploads bug-ack.json so the server drops acknowledged reports from its outbox.
+# Idempotent: re-running never duplicates issues; a failed run simply retries next time.
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: bug-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FTP_SERVER: ${{ secrets.FTP_SERVER_RESIDIM }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME_RESIDIM }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD_RESIDIM_IR }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Fetch outbox
+        shell: bash
+        run: |
+          set -euo pipefail
+          server="${FTP_SERVER#ftp://}"; server="${server#ftps://}"; server="${server%/}"
+          c=(--fail --silent --connect-timeout 10 --max-time 40 --ftp-pasv --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD")
+          found=""
+          for prefix in "" "public_html/" "public_html/residim.ir/" "public_html/residim/" "www/" "htdocs/" "httpdocs/" "residim.ir/" "domains/residim.ir/public_html/"; do
+            for m in singlecwd nocwd default; do
+              args=(); [[ $m != default ]] && args=(--ftp-method "$m")
+              if curl "${c[@]}" "${args[@]}" -o /tmp/outbox.json "ftp://$server/${prefix}app/storage/bug-outbox.json" 2>/dev/null; then
+                found="$prefix|$m"; break 2
+              fi
+            done
+          done
+          if [[ -z "$found" ]]; then echo "No outbox yet (no reports, or path not found)."; echo '[]' > /tmp/outbox.json; fi
+          echo "FOUND=$found" >> "$GITHUB_ENV"
+
+      - name: Open issues
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess
+          L = json.load(open('/tmp/outbox.json')) if os.path.getsize('/tmp/outbox.json') else []
+          repo = os.environ['GITHUB_REPOSITORY']
+          def gh(*a): return subprocess.run(['gh', *a], capture_output=True, text=True)
+          gh('label', 'create', 'user-report', '--repo', repo, '--color', 'F5B400', '--description', 'Reported from inside the app', '--force')
+          gh('label', 'create', 'auto-error', '--repo', repo, '--color', 'D93F0B', '--description', 'Captured browser error', '--force')
+          done = []
+          for r in L[:60]:
+              rid = str(r.get('id', ''))[:12]
+              if not rid.startswith('BR'): continue
+              s = gh('issue', 'list', '--repo', repo, '--state', 'all', '--search', f'"[{rid}]" in:title', '--json', 'number', '--limit', '1')
+              if s.returncode == 0 and json.loads(s.stdout or '[]'):
+                  done.append(rid); continue
+              auto = r.get('kind') == 'auto'
+              title = f"[{rid}] " + ((r.get('err') or '')[:70] if auto else (r.get('text') or '')[:70]).replace('\n', ' ')
+              body = "\n".join([
+                  f"**{'خطای خودکار مرورگر' if auto else 'گزارش کاربر'}** · {r.get('at','')}", "",
+                  ("> " + (r.get('text') or '').replace('\n', '\n> ')) if r.get('text') else "",
+                  ("```\n" + (r.get('err') or '')[:1800] + "\n```") if r.get('err') else "",
+                  f"- صفحه: `{r.get('page','')}`", f"- نسخه: `{r.get('ver','')}`", f"- دستگاه: `{r.get('ua','')}`", f"- کاربر (هش): `{r.get('who','')}`", "",
+                  "_متن روی سرور پاک‌سازی شده (شماره، ایمیل و اعداد بلند حذف شده‌اند)._"])
+              c = gh('issue', 'create', '--repo', repo, '--title', title, '--body', body, '--label', 'auto-error' if auto else 'user-report')
+              if c.returncode == 0: done.append(rid)
+              else: print('issue failed', rid, c.stderr[:200])
+          json.dump(done, open('/tmp/ack.json', 'w'))
+          print(f"reports: {len(L)} · acknowledged: {len(done)}")
+          PY
+
+      - name: Acknowledge
+        if: env.FOUND != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(cat /tmp/ack.json)" == "[]" ]] && exit 0
+          server="${FTP_SERVER#ftp://}"; server="${server#ftps://}"; server="${server%/}"
+          prefix="${FOUND%%|*}"; m="${FOUND##*|}"; args=(); [[ $m != default ]] && args=(--ftp-method "$m")
+          # merge with any earlier ack so nothing is re-opened if the server has not processed it yet
+          curl --fail --silent --connect-timeout 10 --max-time 40 --ftp-pasv --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD" "${args[@]}" -o /tmp/old-ack.json "ftp://$server/${prefix}app/storage/bug-ack.json" 2>/dev/null || echo '[]' > /tmp/old-ack.json
+          python3 -c "import json; a=json.load(open('/tmp/old-ack.json')) if open('/tmp/old-ack.json').read().strip() else []; b=json.load(open('/tmp/ack.json')); json.dump(sorted(set(a+b))[-1000:], open('/tmp/ack.json','w'))"
+          curl --fail --silent --show-error --connect-timeout 10 --max-time 40 --ftp-pasv --ssl-reqd --insecure --user "$FTP_USERNAME:$FTP_PASSWORD" "${args[@]}" --upload-file /tmp/ack.json "ftp://$server/${prefix}app/storage/bug-ack.json"
+          echo "ack uploaded"

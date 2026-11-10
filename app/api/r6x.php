@@ -96,7 +96,10 @@ function info_from_wizard(string $uid, array $d): void { x_schema(); $I = json_d
     q('UPDATE users SET info=? WHERE id=?', [json_encode($I, JSON_UNESCAPED_UNICODE), $uid]); }
 /* route reminders, piggy-backed on traffic (no cron on the host): at most every 5 min, members whose repeated route («اطلاعات من»)
    starts in 10–25 minutes today get one push — once per route per day. Tehran time, Iranian week (Sat=0). */
-function route_tick(): void { if ((int)getv('rt_tick', '0') > time() - 300) return; setv('rt_tick', (string)time()); x_schema();
+function bug_outbox(?array $add = null): void { $dir = dirname(__DIR__) . '/storage'; $f = "$dir/bug-outbox.json"; $ack = "$dir/bug-ack.json"; $fp = @fopen($f, 'c+'); if (!$fp) return;
+    try { flock($fp, LOCK_EX); $L = json_decode((string)stream_get_contents($fp), true) ?: []; if (is_file($ack)) { $A = array_flip((array)(json_decode((string)@file_get_contents($ack), true) ?: [])); $L = array_values(array_filter($L, fn($r) => !isset($A[$r['id'] ?? '']))); }
+        if ($add) $L[] = $add; $L = array_slice($L, -300); ftruncate($fp, 0); rewind($fp); fwrite($fp, json_encode($L, JSON_UNESCAPED_UNICODE)); } finally { flock($fp, LOCK_UN); fclose($fp); } }
+function route_tick(): void { if ((int)getv('rt_tick', '0') > time() - 300) return; if (is_file(dirname(__DIR__) . '/storage/bug-ack.json')) try { bug_outbox(); } catch (Throwable $e) {} setv('rt_tick', (string)time()); x_schema();
     $tz = new DateTimeZone('Asia/Tehran'); $now = new DateTime('now', $tz); $hm = (int)$now->format('G') * 60 + (int)$now->format('i'); $dw = ((int)$now->format('w') + 1) % 7; $day = $now->format('Ymd'); $n = 0;
     foreach (rows("SELECT id, info FROM users WHERE info LIKE '%\"routes\"%' LIMIT 3000") as $u) { $I = json_decode((string)$u['info'], true) ?: []; if (!empty($I['remind_off'])) continue;
         $names = ['home' => 'خانه']; foreach ((array)($I['places'] ?? []) as $pl) $names[$pl['id']] = $pl['label'];
@@ -510,6 +513,17 @@ function x_route(string $a, array $in): void {
                 foreach ([[$me, 'ride'], [$mate, 'car']] as [$pp, $rl]) q('INSERT INTO tg_members(group_id,profile_id,user_id,role,seats,created) VALUES(?,?,?,?,?,?)', [$gid, $pp['id'], $pp['user_id'], $rl, 1, $at]); }
             YES(['msg' => '۳ سفر قبلیِ هم‌ساعت با یک هم‌سفر آزمایشی ثبت شد؛ پیشنهاد «سرویس ثابت» باید بیاید.']); }
         NO('ناشناخته.'); }
+    /* v56 — bug reports: stored in the DB and mirrored to app/storage/bug-outbox.json (not web-readable). A GitHub Action pulls the
+       outbox over FTPS, opens one issue per report (redacted), and uploads bug-ack.json; acknowledged reports leave the outbox here. */
+    case 'bug_report': { $u = auth(false); $who = $u ? $u['user_id'] : ''; $ipk = substr(hash('sha256', ($_SERVER['REMOTE_ADDR'] ?? '') . 'r'), 0, 16);
+        if (hit('bug_' . ($who ?: $ipk), 3600) > 8) NO('ممنون! همین الان چند گزارش رسید؛ کمی بعد دوباره 🙏', 429);
+        $kind = ($in['kind'] ?? '') === 'auto' ? 'auto' : 'user'; $txt = s1((string)($in['text'] ?? ''), 1500); if ($kind === 'user' && mb_strlen($txt) < 4) NO('چه اتفاقی افتاد؟ یک جمله کافی است.');
+        // redact what could identify someone before it ever leaves the server: phone numbers, long digit runs, e-mails
+        $red = fn(string $x) => preg_replace(['/(\+?98|0)?9\d{9}/u', '/[۰-۹0-9]{7,}/u', '/[\w.+-]+@[\w-]+\.[\w.]+/u'], ['[شماره]', '[عدد]', '[ایمیل]'], $x);
+        $R = ['id' => 'BR' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 7)), 'at' => gmdate('c'), 'kind' => $kind, 'text' => $red($txt), 'page' => s1((string)($in['page'] ?? ''), 80), 'ver' => s1((string)($in['ver'] ?? ''), 20),
+              'ua' => s1((string)($in['ua'] ?? ''), 160), 'err' => $red(s1((string)($in['err'] ?? ''), 1800)), 'who' => $who ? substr(hash('sha256', $who . 'bug'), 0, 10) : 'guest'];
+        try { q('CREATE TABLE IF NOT EXISTS bug_reports (id VARCHAR(12) PRIMARY KEY, at VARCHAR(30), body TEXT, sent INT DEFAULT 0)'); q('INSERT INTO bug_reports(id,at,body) VALUES(?,?,?)', [$R['id'], $R['at'], json_encode($R, JSON_UNESCAPED_UNICODE)]); } catch (Throwable $e) {}
+        bug_outbox($R); YES(['id' => $R['id']]); }
     case 'leave_board': case 'leave_pick': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $gr = row('SELECT * FROM tgroups WHERE id=?', [(string)($in['group'] ?? '')]); if (!$gr || !tg_member($gr['id'], $me['id'])) NO('گروه پیدا نشد.', 404);
         if ($a === 'leave_board') { q("UPDATE tgroups SET status='full' WHERE id=? AND status='open'", [$gr['id']]); YES(['closed' => true]); } // boarded: nobody new can join a trip that already left
         $pick = (string)($in['pick'] ?? ''); $M = tg_members($gr['id']); $mine = array_values(array_filter($M, fn($m) => $m['profile_id'] === $me['id']))[0] ?? null; if (!$mine || $mine['role'] === 'car') NO('انتخاب راننده با مسافر است.', 403);

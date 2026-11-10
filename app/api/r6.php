@@ -1172,7 +1172,10 @@ case 'pay_start': { // donation (and later subscription) through the PayPing gat
     YES(['url' => PP_API . 'pay/start/' . rawurlencode((string)$j['paymentCode']), 'ref' => $ref, 'test' => $env !== 'live']); }
 case 'pay_status': { $p = row('SELECT ref,amount,status,refid,purpose,env,days,applied FROM payments WHERE ref=?', [preg_replace('/[^A-Z0-9]/', '', strtoupper((string)($in['ref'] ?? '')))]); if (!$p) NO('پرداخت پیدا نشد.', 404); YES(['pay' => $p]); }
 case 'client_error': { // browser errors -> admin (rate-limited, deduplicated)
-    if (hit('cerr_' . ip_tag(), 3600) > 30) YES(); log_error('client', mb_substr((string)($in['msg'] ?? ''), 0, 400), (string)($in['url'] ?? '')); YES(); }
+    if (hit('cerr_' . ip_tag(), 3600) > 30) YES(); log_error('client', mb_substr((string)($in['msg'] ?? ''), 0, 400), (string)($in['url'] ?? ''));
+    $m0 = preg_replace('/[0-9]+/', '#', mb_substr((string)($in['msg'] ?? ''), 0, 160)); if ($m0 !== '' && hit('cerrb_' . md5($m0), 86400) === 1) { try { require_once __DIR__ . '/r6x.php'; // first time today this error is seen → one auto report for GitHub
+        bug_outbox(['id' => 'BR' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 7)), 'at' => gmdate('c'), 'kind' => 'auto', 'text' => '', 'page' => mb_substr((string)($in['url'] ?? ''), 0, 80), 'ver' => '', 'ua' => mb_substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 160), 'err' => preg_replace(['/(\+?98|0)?9\d{9}/u', '/[۰-۹0-9]{7,}/u'], ['[شماره]', '[عدد]'], mb_substr((string)($in['msg'] ?? ''), 0, 400)), 'who' => 'auto']); } catch (Throwable $e) {} }
+    YES(); }
 case 'health': { $ok = true; try { db6()->query('SELECT 1'); } catch (Throwable $e) { $ok = false; }
     $who = auth(false); if (!$who || !(int)$who['admin']) YES(['db' => $ok, 'time' => date('c')]);
     $st = dirname(__DIR__) . '/storage'; YES(['db' => $ok, 'engine' => db_engine(), 'storage_writable' => is_writable($st), 'disk_free_mb' => (int)(@disk_free_space($st) / 1048576), 'sms' => sms_ready(), 'pay' => flag('pay_gateway') && pay_ready(), 'time' => date('c')]); }
