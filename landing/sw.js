@@ -1,5 +1,5 @@
-const CACHE='residim-52-v1';
-const SHELL=['./','index.html','manifest.webmanifest','radio.json','assets/app.css?v=52','assets/app.js?v=52','assets/map-style.json?v=52','assets/map-style-dark.json?v=52','assets/qrcode.js?v=52','assets/maplibre-gl.css','assets/icon.svg?v=52','assets/mapbg.svg?v=52','assets/snd/door.mp3?v=52','assets/snd/arrived.mp3?v=52','assets/snd/urgent.mp3?v=52','assets/icon-192.png','assets/icon-512.png','assets/vazirmatn.woff2'];
+const CACHE='residim-53-v1';
+const SHELL=['./','index.html','manifest.webmanifest','radio.json','assets/app.css?v=53','assets/app.js?v=53','assets/map-style.json?v=53','assets/map-style-dark.json?v=53','assets/qrcode.js?v=53','assets/maplibre-gl.css','assets/icon.svg?v=53','assets/mapbg.svg?v=53','assets/snd/door.mp3?v=53','assets/snd/arrived.mp3?v=53','assets/snd/urgent.mp3?v=53','assets/icon-192.png','assets/icon-512.png','assets/vazirmatn.woff2'];
 const SCOPE=new URL('./',self.registration.scope).pathname;
 const TILES='residim-tiles-v1',MAX=900,AGE=14*864e5;
 const MAPS=/(^|\.)(openfreemap\.org|neshan\.org)$/;

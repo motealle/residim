@@ -2068,3 +2068,13 @@ details.mi-sec:not([open]){padding-block:10px}
 .go-pci input{width:20px;height:20px;accent-color:#00C46A;flex:none}.go-pci i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#00C46A;color:#04140B;font-style:normal;font-weight:900;flex:none}
 .go-pci span{flex:1;min-width:0;display:flex;flex-direction:column}.go-pci small{color:var(--muted);font-size:.75rem}.go-pci em{font-style:normal;font-size:.7rem;font-weight:800;padding:2px 8px;border-radius:99px;background:#DCEBFF;color:#12306E}
 .go-pickd{display:grid;gap:8px}.go-pickd>small{color:var(--snm,#5B6660)}.gm-av.sm{width:36px;height:36px;font-size:1rem;box-shadow:none;font-style:normal}
+/* v53 — test strip + gathering point sheet */
+.go-test{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0;padding:8px;border-radius:12px;border:1.5px dashed #F5B400;background:#FFF8E1;color:#5A3A00;font-size:.75rem}
+.go-test button{border:0;border-radius:99px;padding:5px 10px;background:#fff;color:#5A3A00;font:inherit;font-weight:800;cursor:pointer;box-shadow:0 1px 0 #F5B400}
+.gp-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:10px;font-size:.85rem}.gp-h .mi-pill{margin-inline-start:auto}
+.gp-ps{display:grid;gap:6px;max-height:40vh;overflow:auto;margin-bottom:10px}.gp-p{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--surface-2)}
+.gp-p>i{font-style:normal;font-size:1.2rem}.gp-p small{display:block;color:var(--muted);font-size:.75rem}.gp-p em{font-style:normal;font-size:.75rem;font-weight:800;color:#00A859}
+.gp-f{display:grid;gap:8px}
+/* v53 — the route must stay visible: the bottom sheet never takes more than ~55% of the screen; its main button stays pinned */
+#go-card .go-sheet2{max-height:56dvh;overflow-y:auto;overscroll-behavior:contain}
+#go-card .go-sheet2>.go-cta:last-child,#go-card .go-sheet2>.go-row3:last-child{position:sticky;bottom:0;z-index:2;box-shadow:0 -10px 16px -6px var(--snb,#fff)}
