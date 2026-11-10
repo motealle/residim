@@ -31,7 +31,7 @@
   const need = fn => signed() ? fn() : login(fn);
 
   /* ── new / edit ad ── */
-  const KINDS = { intercity: 'بین‌شهری', daily: 'رفت‌وآمد روزانه', school: 'مدرسه', uni: 'دانشگاه', work: 'محل کار', event: 'مراسم و سفر کوتاه' };
+  const KINDS0 = { intercity: 'بین‌شهری', daily: 'رفت‌وآمد روزانه', school: 'مدرسه', uni: 'دانشگاه', work: 'محل کار', event: 'مراسم و سفر کوتاه' }, KINDS = KINDS0;
   const DAYS = { sa: 'ش', su: 'ی', mo: 'د', tu: 'س', we: 'چ', th: 'پ', fr: 'ج' };
   async function newAd(edit, pre) {
     let me = { g: '', limit: 3, premium: false, list: [] }; try { me = await api('ad_mine', {}); } catch (e) {}
@@ -141,8 +141,8 @@
   const P = $('#ad-private');
   if (P && signed()) api('ad_get', { no: +P.dataset.no }).then(r => { const a = r.ad; P.innerHTML = `<div class="ad-tags"><span class="t">${esc(a.kind_t)}</span><span class="t g">${esc(a.g_t)}</span><span class="t">👥 فقط آشنایان</span></div><h1>${esc(a.title)}</h1><p class="when">🕒 ${esc(a.when)}</p>${a.body ? `<p class="body">${esc(a.body)}</p>` : ''}<div class="ad-act"><button class="btn pri" data-do="msg">پیام</button></div><div id="ad-thread"></div>`; P.classList.add('ad-d'); P.dataset.g = a.g; }).catch(e => { P.querySelector('.lead').textContent = e.message; });
   // «#new&from_area=…&to_area=…&tm=…&days=0134» — a repeated route from «اطلاعات من» becomes a daily ad in one tap
-  if (location.hash.startsWith('#new&')) { const Q = new URLSearchParams(location.hash.slice(5)), DK = Object.keys(DAYS), pre = { kind: 'daily' };
-    ['from_area', 'to_area', 'tm'].forEach(k => { const v = (Q.get(k) || '').slice(0, 40); if (v) pre[k] = v; }); const d = (Q.get('days') || '').replace(/[^0-6]/g, ''); if (d) pre.days = [...new Set(d)].map(i => DK[+i]).join(',');
+  if (location.hash.startsWith('#new&')) { const Q = new URLSearchParams(location.hash.slice(5)), DK = Object.keys(DAYS), pre = { kind: Q.get('kind') === 'intercity' ? 'intercity' : 'daily' };
+    ['from_area', 'to_area', 'tm', 'from_city', 'to_city', 'role'].forEach(k => { const v = (Q.get(k) || '').slice(0, 40); if (v) pre[k] = v; }); if (+Q.get('seats')) pre.seats = Math.min(4, +Q.get('seats')); const d = (Q.get('days') || '').replace(/[^0-6]/g, ''); if (d) pre.days = [...new Set(d)].map(i => DK[+i]).join(',');
     need(() => newAd(null, pre)); }
   else if (location.hash === '#new') need(() => newAd()); else if (location.hash === '#me') need(() => mine());
 })();

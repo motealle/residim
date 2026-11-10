@@ -65,6 +65,7 @@ const api = (a, b, t) => fetch(B + '/app/api/r6.php?a=' + a, { method: 'POST', h
     const ph = '0912' + String(Date.now()).slice(-7), oo = await api('otp_send', { phone: ph }), TA = (await api('otp_verify', { phone: ph, code: oo.dev_code })).token;
     const bad = await api('ad_save', { kind: 'daily', role: 'driver', g: 'f', from_city: 'تهران', to_city: 'کرج', tm: '07:30', days: ['sa'], seats: 2, share: 'dong', body: 'تماس ۰۹۱۲۱۲۳۴۵۶۷', adult: 1, rules: 1 }, TA); assert(!bad.ok, 'phone in ad must be refused');
     const ad = await api('ad_save', { kind: 'daily', role: 'driver', g: 'f', from_city: 'تهران', to_city: 'کرج', tm: '07:30', days: ['sa', 'mo'], seats: 2, share: 'dong', body: 'صبح‌ها از ونک', adult: 1, rules: 1 }, TA); assert(ad.ok && ad.no, 'ad save');
+    { const same = await api('ad_save', { kind: 'intercity', role: 'driver', g: 'f', from_city: 'تهران', to_city: 'تهران', tm: '07:30', seats: 2, share: 'dong', body: 'داخل شهر', adult: 1, rules: 1 }, TA); assert(!same.ok, 'ads: in-city ad refused while scope=intercity'); }
     const pg = await (await fetch(B + '/ads/' + ad.no)).text(); assert(pg.includes('"Trip"') && !pg.includes(ph), 'ad detail is public and has no phone'); ok('ad post + detail');
     const lv = await api('leave_state', { profile_id: pr.id }, T); assert(lv.ok, 'leave_state'); ok('leave state');
     // v38: trip card, mutual rating, trust line, «اطلاعات من»

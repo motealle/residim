@@ -2002,3 +2002,17 @@ body.go-on .drawer .pcard{border-color:transparent;background:var(--dr-tile)}
 :root[data-theme="dark"] .go-match{background:linear-gradient(120deg,#0F3A26,#0B2E1E);color:#E9FFF3}
 .go-ur[hidden]{display:none}.gm-t small .pl{white-space:nowrap;unicode-bidi:isolate}
 body.go-on .drawer .mi,body.go-on .drawer .schools-mi,body.go-on .drawer .pcard,body.go-on .drawer .pc-panel{background:var(--dr-tile)!important;border-color:transparent!important}body.go-on .drawer .pwrap.on .pcard{box-shadow:inset 0 0 0 2px #00C46A}
+/* v50 — the «همین حالا» card never glues to the next card; map credits never sit on the map buttons */
+#leave-slot.go-card-h{margin-bottom:12px}
+#main .mapbox .maplibregl-ctrl-bottom-right,#main .mapbox .maplibregl-ctrl-bottom-left{top:8px;bottom:auto}
+#main .mapbox .maplibregl-ctrl-attrib{max-width:calc(100% - 70px)}
+/* origin panel: the automatic row stands out; long-press affordance */
+.go-row.on{box-shadow:inset 0 0 0 2px #00C46A}
+.go-row[data-lpk].lp{transform:scale(.97);transition:transform .5s}
+/* intercity ad trip card (Snap-style «driver found» card, but for an ad) */
+.go-adc{display:grid;gap:10px;padding:14px;border-radius:18px;border:1.5px solid var(--snl,#E3E8E5);background:var(--snb,#fff)}
+.adc-h{display:flex;justify-content:space-between;align-items:center;font-size:.76rem;color:var(--snm,#5B6660)}.adc-k{padding:3px 10px;border-radius:99px;background:#00C46A;color:#04140B;font-weight:900}
+.adc-r{position:relative;display:grid;gap:8px;padding-inline-start:4px}.adc-r>div{display:flex;align-items:center;gap:8px;font-size:.95rem}.adc-r em{position:absolute;inset-inline-end:0;top:50%;transform:translateY(-50%);font-style:normal;font-size:.76rem;color:var(--snm,#5B6660)}
+.adc-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.adc-g>span{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;padding:8px 4px;border-radius:12px;background:var(--snl,#F2F5F3)}
+.adc-g i{font-style:normal;font-size:1.1rem}.adc-g b{font-size:.78rem}.adc-g small{font-size:.68rem;color:var(--snm,#5B6660)}
+.adc-n{font-size:.72rem;color:var(--snm,#5B6660);line-height:1.7}

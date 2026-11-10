@@ -73,7 +73,7 @@ if (!$no) {
     $top = rows("SELECT from_city, to_city, COUNT(*) n FROM ads WHERE status='live' AND audience='public' AND expires>? GROUP BY from_city, to_city ORDER BY n DESC LIMIT 12", [time()]);
     $routes = array_slice(array_values(array_unique(array_merge(array_map(fn($r) => $r['from_city'] . '|' . $r['to_city'], $top), array_map(fn($r) => $r[0] . '|' . $r[1], ROUTES)))), 0, 16);
     $kinds = '<a href="/ads/' . h(qs(['from' => $f['from'], 'to' => $f['to']])) . '" ' . (!$f['k'] ? 'aria-current="page"' : '') . '>همه</a>' . implode('', array_map(fn($k, $t) => '<a href="/ads/' . h(qs(['k' => $k, 'from' => $f['from'], 'to' => $f['to']])) . '" ' . ($f['k'] === $k ? 'aria-current="page"' : '') . '><i aria-hidden="true">' . (['intercity' => '🛣', 'daily' => '🔁', 'school' => '🎒', 'uni' => '🎓', 'work' => '💼', 'event' => '🎉'][$k] ?? '•') . '</i>' . h($t) . '</a>', array_keys(AD_KINDS), AD_KINDS));
-    $body = '<section class="ads-hero"><div class="wrap"><span class="kick">آگهی‌های هم‌مسیری</span><h1>' . h($h1) . '</h1><p class="lead">' . ($where ? 'هم‌مسیرهای ' . h($where) . '، دنگی و فقط میان هم‌جنس‌ها. هر آگهی با جزئیاتِ امن: شهر، محله، ساعت و جای خالی.' : 'سفر بین‌شهری، رفت‌وآمد روزانه، مدرسه، دانشگاه و همسفرِ آشنا. جای خالیِ ماشین‌تان را بگذارید یا هم‌مسیرتان را پیدا کنید. دنگی، رایگان یا احسانی؛ فقط میان هم‌جنس‌ها.') . '</p>'
+    $body = '<section class="ads-hero"><div class="wrap"><span class="kick">آگهی‌های هم‌مسیری</span><h1>' . h($h1) . '</h1><p class="lead">' . ($where ? 'هم‌مسیرهای ' . h($where) . '، دنگی و فقط میان هم‌جنس‌ها. هر آگهی با جزئیاتِ امن: شهر، محله، ساعت و جای خالی.' : (getv('ads_scope', 'intercity') === 'intercity' ? 'سفر بین دو شهر با هم‌جنسِ هم‌مسیر: جای خالیِ ماشین‌تان را بگذارید یا هم‌سفر پیدا کنید. فقط دنگ سوخت و عوارض، بی‌سود. برای رفت‌وآمد هر روز «سرویس ثابت» و «همین حالا» در اپ هست.' : 'سفر بین‌شهری، رفت‌وآمد روزانه، مدرسه، دانشگاه و همسفرِ آشنا. جای خالیِ ماشین‌تان را بگذارید یا هم‌مسیرتان را پیدا کنید. دنگی، رایگان یا احسانی؛ فقط میان هم‌جنس‌ها.')) . '</p>'
         . '<form class="find" action="/ads/" method="get" role="search"><input type="hidden" name="k" value="' . h($f['k']) . '"><label class="fr"><span>از</span><input name="from" value="' . h($f['from']) . '" placeholder="شهر مبدأ" list="cities" autocomplete="off"></label><button type="button" class="swap" data-do="swap" aria-label="جابه‌جاییِ مبدأ و مقصد">⇅</button><label class="to"><span>به</span><input name="to" value="' . h($f['to']) . '" placeholder="شهر مقصد" list="cities" autocomplete="off"></label>'
         . '<label class="sel"><span>برای</span><select name="g"><option value="">همه</option><option value="f"' . ($f['g'] === 'f' ? ' selected' : '') . '>بانوان</option><option value="m"' . ($f['g'] === 'm' ? ' selected' : '') . '>آقایان</option></select></label><button class="btn pri go">جست‌وجو</button></form>'
         . '<div class="acts"><button class="btn gold" data-do="new">+ ثبت آگهی رایگان</button><button class="btn ghost" data-do="me">آگهی‌ها و پیام‌های من</button></div>'
@@ -91,7 +91,7 @@ if (!empty($private)) $body = '<article class="ad-d" id="ad-private" data-no="' 
 if ($status === 404) $body = '<div class="wrap empty"><b>این آگهی پیدا نشد.</b><p>شاید برداشته شده باشد. آگهی‌های فعال را ببینید.</p><a class="btn pri" href="/ads/">همه‌ی آگهی‌ها</a></div>';
 http_response_code($status);
 header('Content-Type: text/html; charset=utf-8'); header('Cache-Control: public, max-age=120');
-$V = '49';
+$V = '50';
 ?><!doctype html>
 <html lang="fa-IR" dir="rtl">
 <head>
@@ -110,7 +110,7 @@ $V = '49';
 <link rel="stylesheet" href="/assets/ads.css?v=<?= $V ?>">
 <?php foreach ($ld as $j) echo '<script type="application/ld+json">' . json_encode($j, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . "</script>\n"; ?>
 </head>
-<body>
+<body><script>window.ADS_SCOPE=<?= json_encode(getv('ads_scope', 'intercity')) ?>;</script>
 <header class="bar"><div class="wrap"><a class="brand" href="/"><img src="/assets/icon.svg?v=<?= $V ?>" alt="" width="36" height="36"><span>رسیدیم<small>آگهی‌های هم‌مسیری</small></span></a><a class="home-btn" href="/" aria-label="بازگشت به اپ رسیدیم">بازگشت به اپ ←</a>
 <nav aria-label="پیوندها"><a href="/ads/">آگهی‌ها</a><a href="/stories/">قصه‌ها</a><a href="/schools/">مدارس</a></nav><button class="btn pri sm" data-do="new">+ آگهی</button></div></header>
 <main><?= $no && $status !== 404 && empty($private) ? '<div class="wrap">' . $body . '</div>' : $body ?></main>

@@ -146,7 +146,7 @@ function ad_out(array $a, bool $full = false): array {
     return $o; }
 /** Live public ads, pinned first then freshest. Filters are exact on kind/gender and "contains" on cities. */
 function ads_query(array $f, int $limit = 30, int $offset = 0): array {
-    $w = ["status='live'", "audience='public'", 'expires>?']; $a = [time()];
+    $w = ["status='live'", "audience='public'", 'expires>?']; $a = [time()]; if (getv('ads_scope', 'intercity') === 'intercity') $w[] = 'from_city<>to_city';
     if (!empty($f['k']) && isset(AD_KINDS[$f['k']])) { $w[] = 'kind=?'; $a[] = $f['k']; }
     if (!empty($f['g']) && in_array($f['g'], ['f', 'm'], true)) { $w[] = 'g=?'; $a[] = $f['g']; }
     if (!empty($f['r']) && in_array($f['r'], ['driver', 'rider'], true)) { $w[] = 'role=?'; $a[] = $f['r']; }
@@ -247,7 +247,8 @@ function x_route(string $a, array $in): void {
         if (empty($in['rules'])) NO('قوانین آگهی را بخوانید و بپذیرید.');
         $g = set_g($me, $f('g', 1)); if (!$g) NO('بگویید آقا هستید یا خانم؛ هم‌مسیری فقط میان هم‌جنس‌هاست.');
         if ($f('g', 1) && $f('g', 1) !== $g) NO('جنسیت این حساب قبلاً ثبت شده و تغییر نمی‌کند؛ اگر اشتباه است به پشتیبانی بگویید.');
-        $fc = $f('from_city', 40); $tc = $f('to_city', 40); $fa = $f('from_area', 60); $ta = $f('to_area', 60); $body = s1((string)($in['body'] ?? ''), 600);
+        $fc = $f('from_city', 40); $tc = $f('to_city', 40);
+        if (getv('ads_scope', 'intercity') === 'intercity' && pn_norm($fc) === pn_norm($tc)) NO('مبدأ و مقصد یک شهر است. آگهی فعلاً فقط برای سفر بین دو شهر است (مثل تهران ← کرج)؛ برای داخل شهر «سرویس ثابت» و «همین حالا» در اپ هست، جایی که فقط همکاران و هم‌محله‌ها شما را می‌بینند.'); $fa = $f('from_area', 60); $ta = $f('to_area', 60); $body = s1((string)($in['body'] ?? ''), 600);
         foreach ([$fc, $tc] as $c) if (mb_strlen($c) < 2 || preg_match('/[0-9۰-۹<>]/u', $c)) NO('نام شهرِ مبدأ و مقصد را درست بنویسید.');
         foreach ([$fa, $ta] as $c) if (preg_match('/(پلاک|واحد|طبقه|کوچه\s*[0-9۰-۹])|[0-9۰-۹]{3,}|[<>]/u', $c)) NO('نشانی دقیق ننویسید؛ فقط محله یا نقطه‌ی شناخته‌شده (مثل «میدان ونک»).');
         foreach ([$fa, $ta, $body] as $c) if ($e = x_bad($c)) NO($e);
@@ -359,6 +360,12 @@ function x_route(string $a, array $in): void {
                 $gap = lv_corr($pl, $d, $opl, pdata($ow)); if ($gap === null) continue; $o = tg_out($gr, $me['id']); $o['gap'] = $gap; $o['gap_t'] = km_t($gap); $o['from_t'] = (string)$opl['name']; $near[] = $o; } }
         usort($near, fn($a, $b) => $a['gap'] <=> $b['gap']);
         YES(['on' => flag('leave_on'), 'allowed' => leave_allowed($u, $me), 'quota' => lv_quota($u, $me), 'dir' => (int)date('G') < 11 ? 'work' : 'home', 'place' => ['lat' => (float)$pl['lat'], 'lng' => (float)$pl['lng'], 'name' => $pl['name']], 'mine' => $mine, 'near' => array_slice($near, 0, 6), 'hear' => empty($d['leave_off'])]); }
+    case 'leave_here': { $u = auth(); $me = row('SELECT * FROM profiles WHERE id=? AND user_id=?', [(string)($in['profile_id'] ?? ''), $u['user_id']]); if (!$me) NO('مسیرک پیدا نشد.', 404);
+        $gid = (string)($in['group'] ?? ''); $m0 = row('SELECT * FROM tg_members WHERE group_id=? AND profile_id=?', [$gid, $me['id']]); if (!$m0) NO('عضو این گروه نیستید.', 403);
+        if (hit('lvhere_' . $gid . '_' . $me['id'], 120) > 1) NO('همین الان خبر دادید 🙂', 429); $UI = json_decode((string)(row('SELECT info FROM users WHERE id=?', [$u['user_id']])['info'] ?? ''), true) ?: [];
+        $who = (string)(pdata($me)['family'] ?? 'هم‌مسیر'); $pl3 = !empty($UI['p3']) ? ' (پلاک ' . fa_d((string)$UI['p3']) . (!empty($UI['pir']) ? ' ایران ' . fa_d((string)$UI['pir']) : '') . ')' : '';
+        foreach (tg_members($gid) as $m) if ($m['profile_id'] !== $me['id']) note($m['profile_id'], "🚗 $who کنار در است$pl3. بدوید، ولی با احتیاط 😄", 'match', $gid);
+        YES(); }
     case 'leave_start': case 'leave_join': { if (!flag('leave_on')) NO('«دارم می‌روم» فعلاً خاموش است.', 403); $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? ''));
         if (!$me['complete'] || !in_array($me['kind'], LEAVE_KINDS, true) || !$me['place_id']) NO('«دارم می‌روم» برای مسیرک محل کار یا دانشگاه است.');
         lv_can($u, $me, ($in['dir'] ?? '') === 'work' ? 'work' : 'home');
@@ -366,6 +373,8 @@ function x_route(string $a, array $in): void {
         $dir = ($in['dir'] ?? '') === 'work' ? 'work' : 'home';
         $role = ($in['role'] ?? '') === 'car' ? 'car' : 'ride'; $seats = $role === 'car' ? max(1, min(4, (int)($in['seats'] ?? 3))) : max(1, min(3, (int)($in['seats'] ?? 1)));
         $from = $dir === 'home' ? [(float)$pl['lat'], (float)$pl['lng']] : [(float)($d['lat'] ?? 0), (float)($d['lng'] ?? 0)];
+        // v50: a chosen start point (hotel, relatives, …) on the way to work replaces home for «who is near me» — otherwise we would wake the wrong neighbours
+        if ($a === 'leave_start' && $dir === 'work' && !empty($in['from_pick']) && is_numeric($in['lat'] ?? null) && is_numeric($in['lng'] ?? null) && abs((float)$in['lat']) <= 90 && abs((float)$in['lng']) <= 180) { $d['lat'] = (float)$in['lat']; $d['lng'] = (float)$in['lng']; $from = [$d['lat'], $d['lng']]; }
         $site = 0; if (isset($in['lat'], $in['lng']) && is_numeric($in['lat'])) $site = hav($from[0], $from[1], (float)$in['lat'], (float)$in['lng']) <= 600 ? 1 : 0;
         if (!$site && empty($in['confirm'])) NO($dir === 'home' ? 'به نظر در محل کار نیستید.' : 'به نظر در خانه نیستید.', 409, 'offsite');
         foreach (rows("SELECT g.id FROM tgroups g JOIN tg_members m ON m.group_id=g.id WHERE g.kind='leave' AND g.status='open' AND g.until>? AND m.profile_id=?", [time(), $me['id']]) as $x) q('DELETE FROM tg_members WHERE group_id=? AND profile_id=?', [$x['id'], $me['id']]);
@@ -489,7 +498,7 @@ function x_route(string $a, array $in): void {
             $ok_ll = fn($a, $b) => is_numeric($a) && is_numeric($b) && abs((float)$a) <= 90 && abs((float)$b) <= 180 && ((float)$a != 0 || (float)$b != 0);
             if (isset($in['places']) && is_array($in['places'])) $I['places'] = array_values(array_filter(array_map(fn($x) => ['id' => preg_match('/^[a-z0-9]{3,12}$/', (string)($x['id'] ?? '')) ? (string)$x['id'] : substr(md5(uniqid('', true)), 0, 8),
                 'label' => s1((string)($x['label'] ?? ''), 30), 'kind' => in_array($x['kind'] ?? '', ['work', 'edu', 'gym', 'family', 'shop', 'other'], true) ? $x['kind'] : 'other',
-                'lat' => $ok_ll($x['lat'] ?? null, $x['lng'] ?? null) ? round((float)$x['lat'], 6) : null, 'lng' => $ok_ll($x['lat'] ?? null, $x['lng'] ?? null) ? round((float)$x['lng'], 6) : null], array_slice($in['places'], 0, 8)), fn($x) => $x['label'] !== ''));
+                'lat' => $ok_ll($x['lat'] ?? null, $x['lng'] ?? null) ? round((float)$x['lat'], 6) : null, 'lng' => $ok_ll($x['lat'] ?? null, $x['lng'] ?? null) ? round((float)$x['lng'], 6) : null], array_slice($in['places'], 0, 8)), fn($x) => $x['label'] !== '')); $PM = (int)getv('places_max', '6'); if (isset($in['places']) && $PM > 0 && count((array)($I['places'] ?? [])) > $PM) NO('حداکثر ' . fa_d((string)$PM) . ' جای شخصی؛ یکی را بردارید تا جای تازه بنشیند. (خانه و محل کار جدا حساب می‌شوند.)');
             if (isset($in['routes']) && is_array($in['routes'])) $I['routes'] = array_values(array_filter(array_map(fn($r) => ['from' => s1((string)($r['from'] ?? ''), 40), 'to' => s1((string)($r['to'] ?? ''), 40),
                 'tm' => preg_match('/^([01]?\d|2[0-3]):[0-5]\d$/', en_d((string)($r['tm'] ?? ''))) ? en_d((string)$r['tm']) : '', 'days' => array_values(array_unique(array_filter(array_map('intval', (array)($r['days'] ?? [])), fn($d) => $d >= 0 && $d <= 6)))], array_slice($in['routes'], 0, 8)), fn($r) => $r['from'] !== '' && $r['to'] !== '' && $r['from'] !== $r['to']));
             if (array_key_exists('job_t', $in)) $I['job_t'] = s1((string)$in['job_t'], 40);
