@@ -1935,3 +1935,35 @@ body:has(.wiz) .msw,body.amb-mode .msw{display:none}
 .go-mk2 span{max-width:min(46vw,190px);overflow:hidden;text-overflow:ellipsis}
 .go-recent span{min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:start}
 body.msw-on .go .maplibregl-ctrl-bottom-right,body.msw-on .go .maplibregl-ctrl-bottom-left{top:calc(env(safe-area-inset-top,0px) + 120px)!important}
+/* v48 — pin character: smiles at rest, lifts + worried «O» + looks down while the map moves, lands with a bounce; bunny ears for her */
+.go-pin{width:50px}.go-pin .pc{width:50px;height:69px;display:block;overflow:visible;filter:drop-shadow(0 6px 8px rgba(0,0,0,.22));transition:transform .2s cubic-bezier(.3,1.4,.5,1);transform-origin:50% 100%}
+.go-pin .ears{display:none}.go-pin.f .ears{display:inline}.go-pin.f .ear{transform-box:fill-box;transform-origin:50% 100%}
+.go-pin.f .ear:first-child{animation:ear 5s ease-in-out infinite}.go-pin.f .ear:last-child{animation:ear 5s ease-in-out 1.3s infinite}
+@keyframes ear{0%,86%,100%{rotate:0deg}90%{rotate:-9deg}94%{rotate:5deg}}
+.go-pin .psh{position:absolute;left:50%;bottom:-4px;width:12px;height:5px;margin-left:-6px;border-radius:50%;background:rgba(0,0,0,.42)!important;box-shadow:none!important;transition:transform .2s,opacity .2s}
+.go-pin .oo{opacity:0;transition:opacity .12s}.go-pin .sm{transition:opacity .12s}.go-pin .eyes{transition:transform .15s}
+.go-pin .eyes{animation:blink 4.2s infinite;transform-box:fill-box;transform-origin:center}
+@keyframes blink{0%,94%,100%{scale:1 1}97%{scale:1 .12}}
+.go-pin.up .pc{transform:translateY(-16px) scale(1.04)}.go-pin.up .psh{transform:scale(1.6);opacity:.28}
+.go-pin.up .sm{opacity:0}.go-pin.up .oo{opacity:1}.go-pin.up .eyes{transform:translateY(2.5px)}
+.go-pin.land .pc{animation:land .38s cubic-bezier(.3,1.6,.5,1)}
+@keyframes land{0%{transform:translateY(-16px)}55%{transform:translateY(0) scale(1.08,.9)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.go-pin .pc,.go-pin.land .pc{animation:none;transition:none}.go-pin .eyes,.go-pin.f .ear{animation:none}}
+/* trip breadcrumb in the empty top slot */
+.go-hd{flex:1;min-width:0;max-width:calc(100% - 140px);height:40px;align-self:center;display:flex;align-items:center;justify-content:center;padding:0 14px;border-radius:99px;background:color-mix(in srgb,var(--snb,#fff) 92%,transparent);color:var(--snt,#1C1F1E);box-shadow:0 3px 12px rgba(0,0,0,.12);font-size:.84rem}
+.go-hd .mqw{display:block;overflow:hidden;white-space:nowrap;min-width:0;max-width:100%}.go-hd .mqw>span{display:inline-block}
+.go-hd .mqw.mq{-webkit-mask-image:linear-gradient(to left,transparent 0,#000 12px,#000 calc(100% - 12px),transparent);mask-image:linear-gradient(to left,transparent 0,#000 12px,#000 calc(100% - 12px),transparent)}
+.go-hd .mqw.mq>span{animation:mq var(--mqt,8s) ease-in-out 1.5s infinite alternate}
+/* undo / redo: a small floating pair above the card, opposite the locate button */
+.go-ur{position:absolute;z-index:5;right:14px;bottom:calc(var(--gch,260px) + 14px);display:flex;gap:6px;padding:4px;border-radius:99px;background:var(--snb,#fff);box-shadow:0 4px 14px rgba(0,0,0,.16)}
+.go-ur .go-fab{width:38px;height:38px;box-shadow:none;background:transparent}.go-ur .go-fab svg{width:19px;height:19px}.go-ur .go-fab:disabled{opacity:.28}
+.go-mk2[role="button"]{cursor:pointer}.go-me[role="button"]{cursor:pointer}
+/* quick → fixed nudge, cancel row, one-tap card */
+.go-fix{display:flex;gap:10px;align-items:center;padding:10px 12px;margin-bottom:10px;border-radius:14px;background:#E8FFF2;color:#0B3B24;font-size:.82rem;line-height:1.6}
+.go-fix>i{font-style:normal;font-size:1.3rem}.go-fix>span{flex:1;min-width:0;display:flex;flex-direction:column}.go-fix small{opacity:.85}
+.go-fix>div{display:flex;flex-direction:column;gap:4px}.go-fix button{border:0;border-radius:99px;padding:6px 12px;font:inherit;font-weight:800;cursor:pointer;background:#04140B;color:#fff}.go-fix button+button{background:transparent;color:#0B3B24}
+.go-row3{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.go-card-h .gch-main{display:flex;align-items:center;gap:12px;flex:1;min-width:0;background:none;border:0;padding:0;font:inherit;color:inherit;text-align:start;cursor:pointer}
+.go-card-h .gch-go.now{width:auto;height:auto;min-height:44px;padding:0 14px;border-radius:99px;display:inline-flex;align-items:center;gap:4px;border:0;cursor:pointer;font:inherit;font-weight:900;font-size:.82rem}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .go-fix{background:#0F3A26;color:#E9FFF3}:root:not([data-theme="light"]) .go-fix button+button{color:#E9FFF3}}
+:root[data-theme="dark"] .go-fix{background:#0F3A26;color:#E9FFF3}:root[data-theme="dark"] .go-fix button+button{color:#E9FFF3}

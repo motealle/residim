@@ -43,7 +43,8 @@ function x_schema5(): void { $p = db6(); try { $p->exec('ALTER TABLE users ADD C
 /* «دارم می‌روم» quota: subscribers, sponsored places and paid teams are unlimited; everyone else rides as our guest — 30 trips in the
    first (gift) month, then 20 every 30 days — and after that uses prepaid trip passes (counted in trips, never money: no wallet).
    One trip = one direction on one day, so quitting and re-joining is never charged twice. */
-function lv_quota(array $u, array $prof): array { if (leave_allowed($u, $prof)) return ['unlimited' => true];
+/* v48 — «همین حالا» stays FREE by default (liquidity is the product); the cap+passes machinery only runs if admin turns go_paid on. */
+function lv_quota(array $u, array $prof): array { if (leave_allowed($u, $prof) || getv('go_paid', '0') !== '1') return ['unlimited' => true];
     $usr = row('SELECT created, COALESCE(lv_credits,0) c FROM users WHERE id=?', [$u['user_id']]); $first = time() - (int)($usr['created'] ?? 0) < 30 * 86400;
     $free = $first ? (int)getv('leave_free_first', '30') : (int)getv('leave_free', '20');
     $since = $first ? (int)($usr['created'] ?? 0) : time() - 30 * 86400;

@@ -88,11 +88,11 @@ const api = (a, b, t) => fetch(B + '/app/api/r6.php?a=' + a, { method: 'POST', h
     const wp = (await api('place_create', { kind: 'work', name: 'شرکت آزمون نسیم', city: 'تهران', gender: 'fm', lat: 35.70, lng: 51.40, force: true }, TB)).place;
     const wpr = (await api('profile_save', { kind: 'work', label: 'کار', place_id: wp.id, complete: 1, data: { family: 'آسمان', pg: 'f', lat: 35.72, lng: 51.41, hood: 'ونک', role: 'drive', seats: 3, rules_at: 1, contact: 'app' } }, TB)).profile;
     { const I = (await api('my_info', {}, TB)).info; assert(I.lat === 35.72 && I.seats === 3 && I.family === 'آسمان', 'finished mesirak writes back to my_info ' + JSON.stringify(I)); ok('wizard → my_info'); }
-    const AD = (await api('admin_login', { u: 'mot', p: 'mot' })).token; await api('admin_flag', { k: 'paid_mode', v: 1 }, AD); await api('admin_flag', { k: 'leave_on', v: 1 }, AD);
+    const AD = (await api('admin_login', { u: 'mot', p: 'mot' })).token; await api('admin_flag', { k: 'paid_mode', v: 1 }, AD); await api('admin_flag', { k: 'go_paid', v: 1 }, AD); await api('admin_flag', { k: 'leave_on', v: 1 }, AD);
     const q0 = (await api('leave_state', { profile_id: wpr.id }, TB)).quota; assert(q0 && !q0.unlimited && q0.free === 30 && q0.left === 30, 'quota first month ' + JSON.stringify(q0));
     const s1 = await api('leave_start', { profile_id: wpr.id, dir: 'home', role: 'car', seats: 3, confirm: 1 }, TB); assert(s1.ok && s1.quota.left === 29, 'trip counted ' + JSON.stringify(s1));
     await api('leave_quit', { profile_id: wpr.id, group: s1.group.id }, TB); const s2 = await api('leave_start', { profile_id: wpr.id, dir: 'home', role: 'car', seats: 3, confirm: 1 }, TB); assert(s2.ok && s2.quota.left === 29, 'same direction same day counted once');
-    await api('leave_quit', { profile_id: wpr.id, group: s2.group.id }, TB); await api('admin_flag', { k: 'paid_mode', v: 0 }, AD); ok('partial plate + talabe + kids + leave quota');
+    await api('leave_quit', { profile_id: wpr.id, group: s2.group.id }, TB); await api('admin_flag', { k: 'paid_mode', v: 0 }, AD); await api('admin_flag', { k: 'go_paid', v: 0 }, AD); ok('partial plate + talabe + kids + leave quota');
     // complement broadcast: a driver leaves → riders (not drivers) of the same gender nearby hear it, with the distance, even from a neighbouring workplace
     const mk = async (pre) => { const ph = pre + String(Date.now()).slice(-7), o = await api('otp_send', { phone: ph }); return (await api('otp_verify', { phone: ph, code: o.dev_code })).token; };
     const TE = await mk('0931'), TC = await mk('0932'), TD = await mk('0933');
