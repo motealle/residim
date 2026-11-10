@@ -489,3 +489,36 @@ function x_route(string $a, array $in): void {
         YES(); }
     }
 }
+
+/* ── v46 · place names by quiet consensus ──────────────────────────────────────────────────────────────────────────
+   No new table, no voting UI: every member's own label for a shared place (profiles.label) IS their vote, and it stays
+   private — each person keeps seeing their own name. Only the PUBLIC name (map, «همین‌جاست؟», ads, invites) follows
+   the consensus. Generic words («محل کار»، «دانشگاه») are not votes. Spelling variants cluster (Persian-normalised,
+   edit-distance ≥ 80% or containment). Change only with a clear majority (≥3 people, ≥50%) and a 2-vote lead over the
+   current name, so it never flickers. Places an owner has claimed (verified / panel / plan) are never renamed. */
+function pn_norm(string $s): string {
+    $s = strtr($s, ['ي' => 'ی', 'ى' => 'ی', 'ك' => 'ک', 'ة' => 'ه', 'ۀ' => 'ه', 'أ' => 'ا', 'إ' => 'ا', 'آ' => 'ا', "\u{200C}" => ' ', 'ـ' => '',
+        '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9']);
+    $s = preg_replace('/[^\p{L}\p{N} ]+/u', ' ', mb_strtolower($s)); return trim(preg_replace('/\s+/u', ' ', $s));
+}
+function pn_sim(string $a, string $b): float {
+    if ($a === $b) return 1.0; $A = mb_str_split($a); $B = mb_str_split($b); $n = count($A); $m = count($B); if (!$n || !$m) return 0.0;
+    if ((mb_strpos($a, $b) !== false || mb_strpos($b, $a) !== false) && min($n, $m) / max($n, $m) >= .6) return .85;
+    $pr = range(0, $m); for ($i = 1; $i <= $n; $i++) { $cu = [$i]; for ($j = 1; $j <= $m; $j++) $cu[$j] = min($pr[$j] + 1, $cu[$j - 1] + 1, $pr[$j - 1] + ($A[$i - 1] === $B[$j - 1] ? 0 : 1)); $pr = $cu; }
+    return 1 - $pr[$m] / max($n, $m);
+}
+const PN_GENERIC = ['محل کار', 'کار', 'سر کار', 'سرکار', 'شرکت', 'اداره', 'دانشگاه', 'دانشکده', 'خانه', 'مدرسه', 'مهد', 'مسیرک', 'باشگاه', 'work', 'office', 'uni'];
+function place_consensus(string $pid): ?string {
+    $pl = row('SELECT * FROM places WHERE id=?', [$pid]); if (!$pl || (int)($pl['verified'] ?? 0) || !empty($pl['dash_token']) || !empty($pl['plan_tier'])) return null;
+    $V = []; foreach (rows('SELECT user_id, label FROM profiles WHERE place_id=? AND complete=1 AND COALESCE(fake,0)=0', [$pid]) as $r) {
+        $t = trim(preg_replace('/\s+/u', ' ', (string)$r['label'])); $n = pn_norm($t); if (mb_strlen($n) < 3 || in_array($n, PN_GENERIC, true)) continue; $V[$r['user_id']] = [$t, $n]; }
+    if (count($V) < 3) return null; $C = [];
+    foreach ($V as [$t, $n]) { $k = null; foreach ($C as $i => $c) if (pn_sim($n, $c['n']) >= .8) { $k = $i; break; }
+        if ($k === null) { $C[] = ['n' => $n, 'cnt' => 0, 'f' => []]; $k = count($C) - 1; } $C[$k]['cnt']++; $C[$k]['f'][$t] = ($C[$k]['f'][$t] ?? 0) + 1; }
+    usort($C, fn($a, $b) => $b['cnt'] <=> $a['cnt']); $W = $C[0]; arsort($W['f']); $F = (string)array_key_first($W['f']);
+    $cur = pn_norm((string)$pl['name']); if ($cur === pn_norm($F)) return null; $nc = 0; $inW = pn_sim($cur, $W['n']) >= .8;
+    foreach ($C as $c) if (pn_sim($cur, $c['n']) >= .8) { $nc = $c['cnt']; break; }
+    $ok = $inW ? ($W['f'][$F] >= 3 && $W['f'][$F] >= (int)($W['f'][trim((string)$pl['name'])] ?? 0) + 2)
+               : ($W['cnt'] >= 3 && $W['cnt'] * 2 >= count($V) && $W['cnt'] >= $nc + 2);
+    if (!$ok) return null; q('UPDATE places SET name=? WHERE id=?', [mb_substr($F, 0, 160), $pid]); return $F;
+}
