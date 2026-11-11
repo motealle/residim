@@ -2090,3 +2090,29 @@ details.mi-sec:not([open]){padding-block:10px}
 #go-card .go-sheet2{min-width:0;width:100%;box-sizing:border-box;overflow-x:hidden}
 #go-card .go-sheet2>*{min-width:0;max-width:100%}
 .go-recent{min-width:0;max-width:100%;overflow:hidden}
+/* v57 tiny avatar + «آشنا» badge */
+button.mi-ring{border:0;padding:0;cursor:pointer;position:relative;font:inherit}
+.mi-ring .av-img{width:50px;height:50px;border-radius:50%;object-fit:cover;display:block;pointer-events:none;-webkit-user-select:none;user-select:none}
+.mi-avc{position:absolute;inset-block-end:-2px;inset-inline-start:-2px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.7rem;font-style:normal;background:var(--surface);box-shadow:0 1px 4px #0003}
+img.gm-av.av-img{object-fit:cover;padding:0;pointer-events:none;-webkit-user-select:none;user-select:none}
+.go-pf{font-style:normal;font-size:.68rem;font-weight:800;padding:1px 6px;border-radius:999px;background:color-mix(in srgb,#00A859 14%,transparent);color:#007a40;white-space:nowrap;vertical-align:middle}
+.go-best{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;margin-block-end:8px;border-radius:12px;background:color-mix(in srgb,#F5B400 12%,var(--surface,#fff));font-size:.82rem;line-height:1.6;min-width:0}
+.go-best span{min-width:0}
+/* v57 Navigation Drawer tidy-up: one-line header, primary actions first, compact route panel, quieter promos */
+.dr-head{display:flex!important;align-items:center;gap:8px}
+.dr-head .dr-title{flex:1 1 auto;min-width:0}
+.dr-head .icon-btn.sq{width:40px!important;height:40px!important;flex:0 0 auto;border-radius:12px}
+.drawer .dr-duo{margin:2px 0 12px}
+.drawer .dr-duo .dr-go small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-panel .pc-grid button{min-height:54px;font-size:.72rem}
+.pc-fam{border-style:solid!important;border-width:1px!important;font-size:.82rem;flex-wrap:wrap;row-gap:0}
+.pc-fam small{display:block;width:100%;font-weight:500;font-size:.7rem;color:var(--muted)}
+.pc-fam span{min-width:0}
+.drawer .qtiles .qt,.side .qtiles .qt{min-height:52px;padding-block:8px}
+.dr-cap{margin:14px 6px 6px;font-size:.74rem;font-weight:800;letter-spacing:.02em;color:var(--muted)}
+.dr-biz{display:grid;gap:6px}
+.dr-biz .schools-mi{min-height:56px;padding-block:6px}
+.dr-biz .schools-mi small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.dr-biz .schools-mi .grow{min-width:0}
+.ver-box{grid-auto-flow:row;padding:8px 10px;gap:4px;font-size:.74rem}
+.drawer .qtiles .qt,.side .qtiles .qt{grid-auto-flow:column;justify-content:center;align-items:center;gap:8px;min-height:48px;padding:8px}

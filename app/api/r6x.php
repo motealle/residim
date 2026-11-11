@@ -99,7 +99,16 @@ function info_from_wizard(string $uid, array $d): void { x_schema(); $I = json_d
 function bug_outbox(?array $add = null): void { $dir = dirname(__DIR__) . '/storage'; $f = "$dir/bug-outbox.json"; $ack = "$dir/bug-ack.json"; $fp = @fopen($f, 'c+'); if (!$fp) return;
     try { flock($fp, LOCK_EX); $L = json_decode((string)stream_get_contents($fp), true) ?: []; if (is_file($ack)) { $A = array_flip((array)(json_decode((string)@file_get_contents($ack), true) ?: [])); $L = array_values(array_filter($L, fn($r) => !isset($A[$r['id'] ?? '']))); }
         if ($add) $L[] = $add; $L = array_slice($L, -300); ftruncate($fp, 0); rewind($fp); fwrite($fp, json_encode($L, JSON_UNESCAPED_UNICODE)); } finally { flock($fp, LOCK_UN); fclose($fp); } }
-function route_tick(): void { if ((int)getv('rt_tick', '0') > time() - 300) return; if (is_file(dirname(__DIR__) . '/storage/bug-ack.json')) try { bug_outbox(); } catch (Throwable $e) {} setv('rt_tick', (string)time()); x_schema();
+/** v57 quiet pattern watch for admins (once a day): repeated cancels after matching, people blocked by several others, ad floods.
+    Users are never told; the admin event feed gets one masked line per pattern so rules can be tuned. No AI service, no data leaves the server. */
+function x_anomaly(): void { $day = date('Ymd'); if (getv('anom_day', '') === $day) return; setv('anom_day', $day); $since = time() - 7 * 86400; $out = [];
+    $C = []; foreach (rows("SELECT meta FROM events WHERE kind='leave_cancel' AND created>? LIMIT 3000", [$since]) as $r) { $m = json_decode((string)$r['meta'], true) ?: []; if (!empty($m['u'])) $C[$m['u']] = ($C[$m['u']] ?? 0) + 1; }
+    foreach ($C as $id => $n) if ($n >= 3) $out[] = ['🔁 لغوِ مکرر پس از جور شدن', $id, $n];
+    $B = []; foreach (rows("SELECT data FROM profiles WHERE data LIKE '%\"blocked\"%' LIMIT 5000") as $r) foreach ((array)(pdata($r)['blocked'] ?? []) as $pid) $B[(string)$pid] = ($B[(string)$pid] ?? 0) + 1;
+    foreach ($B as $pid => $n) if ($n >= 2 && ($p = row('SELECT user_id FROM profiles WHERE id=?', [$pid]))) $out[] = ['🚫 چند نفر جداگانه مسدودش کرده‌اند', $p['user_id'], $n];
+    try { foreach (rows('SELECT user_id, COUNT(*) c FROM ads WHERE created>? GROUP BY user_id HAVING COUNT(*)>=5', [$since]) as $r) $out[] = ['📢 آگهیِ پرتعداد (احتمال کرایه‌کشی)', $r['user_id'], (int)$r['c']]; } catch (Throwable $e) {}
+    foreach (array_slice($out, 0, 30) as [$t, $uid, $n]) { $ph = (string)(row('SELECT phone FROM users WHERE id=?', [$uid])['phone'] ?? ''); ev_log('alert', "$t: " . pmask($ph ?: null) . ' (' . fa_d((string)$n) . ' بار در ۷ روز)', ['u' => $uid, 'n' => $n]); } }
+function route_tick(): void { if ((int)getv('rt_tick', '0') > time() - 300) return; if (is_file(dirname(__DIR__) . '/storage/bug-ack.json')) try { bug_outbox(); } catch (Throwable $e) {} setv('rt_tick', (string)time()); x_schema(); try { x_anomaly(); } catch (Throwable $e) {}
     $tz = new DateTimeZone('Asia/Tehran'); $now = new DateTime('now', $tz); $hm = (int)$now->format('G') * 60 + (int)$now->format('i'); $dw = ((int)$now->format('w') + 1) % 7; $day = $now->format('Ymd'); $n = 0;
     foreach (rows("SELECT id, info FROM users WHERE info LIKE '%\"routes\"%' LIMIT 3000") as $u) { $I = json_decode((string)$u['info'], true) ?: []; if (!empty($I['remind_off'])) continue;
         $names = ['home' => 'خانه']; foreach ((array)($I['places'] ?? []) as $pl) $names[$pl['id']] = $pl['label'];
@@ -202,12 +211,27 @@ function same_way(array $pl, array $a, array $b): bool {
     $diff = abs(fmod($br($a) - $br($b) + 3 * M_PI, 2 * M_PI) - M_PI);
     return $diff <= deg2rad(30) && $ab <= .65 * max($da, $db); }
 function tg_members(string $gid): array { return rows('SELECT m.*, p.data, p.place_id FROM tg_members m JOIN profiles p ON p.id=m.profile_id WHERE m.group_id=? ORDER BY m.created', [$gid]); }
+/** v57 warm, respectful address: حاج‌آقا/حاج‌خانم for clerics, دکتر for academics and medics, else the person's own title. Never invents a degree. */
+/** v57 tiny profile photo: icon-size only (≤96 px, ≤ ~3 KB). The browser shrinks it first; the server re-shrinks with GD if needed. */
+function av_clean(string $u): string { if ($u === '' || !preg_match('#^data:image/(webp|jpeg|png);base64,([A-Za-z0-9+/=]+)$#', $u, $m) || strlen($m[2]) > 280000) return '';
+    $b = base64_decode($m[2], true); if ($b === false) return ''; $sz = @getimagesizefromstring($b); if (!$sz || $sz[0] < 8 || $sz[1] < 8) return '';
+    if (strlen($m[2]) <= 4400 && $sz[0] <= 96 && $sz[1] <= 96 && $m[1] !== 'png') return $u;
+    if (!function_exists('imagecreatefromstring')) return ''; $im = @imagecreatefromstring($b); if (!$im) return ''; $s = min($sz[0], $sz[1]);
+    $t = imagecreatetruecolor(64, 64); imagecopyresampled($t, $im, 0, 0, (int)(($sz[0] - $s) / 2), (int)(($sz[1] - $s) / 2), 64, 64, $s, $s);
+    foreach ([70, 55, 40, 28] as $qq) { ob_start(); imagejpeg($t, null, $qq); $o = base64_encode((string)ob_get_clean()); if (strlen($o) <= 4400) return 'data:image/jpeg;base64,' . $o; } return ''; }
+function av_of(?string $uid): string { static $C = []; if (!$uid) return ''; if (!isset($C[$uid])) { $I = json_decode((string)(row('SELECT info FROM users WHERE id=?', [$uid])['info'] ?? ''), true) ?: []; $C[$uid] = (string)($I['av'] ?? ''); } return $C[$uid]; }
+/** is this user one of MY chosen co-travellers (from my phone contacts)? */
+function pref_has(string $myPid, string $uid): bool { static $P = [], $U = []; if ($uid === '') return false;
+    if (!isset($P[$myPid])) { $o = row('SELECT u.info FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.id=?', [$myPid]); $I = json_decode((string)($o['info'] ?? ''), true) ?: []; $P[$myPid] = array_flip(array_column((array)($I['pref'] ?? []), 'phone')); }
+    if (!$P[$myPid]) return false; $U[$uid] ??= (string)(row('SELECT phone FROM users WHERE id=?', [$uid])['phone'] ?? ''); return isset($P[$myPid][$U[$uid]]); }
+function hon(array $d, string $fb = 'هم‌مسیر'): string { $f = trim((string)($d['family'] ?? '')); if ($f === '') return $fb; $j = (string)($d['job'] ?? '');
+    $t = $j === 'cleric' ? (($d['pg'] ?? 'f') === 'm' ? 'حاج‌آقا' : 'حاج‌خانم') : (in_array($j, ['academic', 'medic'], true) ? 'دکتر' : (string)($d['title'] ?? '')); return trim("$t $f"); }
 function tg_out(array $g, string $me): array {
     $M = tg_members($g['id']); $car = 0; $ride = 0; $out = [];
     foreach ($M as $m) { $d = json_decode((string)$m['data'], true) ?: []; if ($m['role'] === 'car') $car += (int)$m['seats']; else $ride += max(1, (int)$m['seats']);
         $pl3 = ''; if ($m['role'] === 'car' && $g['kind'] === 'leave') { $UI = json_decode((string)(row('SELECT info FROM users WHERE id=?', [$m['user_id']])['info'] ?? ''), true) ?: []; if (!empty($UI['p3'])) $pl3 = fa_d((string)$UI['p3']) . (!empty($UI['pir']) ? ' ایران ' . fa_d((string)$UI['pir']) : ''); }
         $eta = 0; if ($m['role'] === 'car' && $g['kind'] === 'leave' && ($g['dir'] ?? '') === 'work' && $m['profile_id'] !== $me) { static $VD = []; $VD[$me] ??= pdata(row('SELECT data FROM profiles WHERE id=?', [$me]) ?: ['data' => '{}']); $gp = home_gap($VD[$me], json_decode((string)$m['data'], true) ?: []); if ($gp !== null) $eta = 2 + (int)ceil($gp / 416); }
-        $out[] = ['pid' => $m['profile_id'], 'me' => $m['profile_id'] === $me, 'plate' => $pl3, 'eta' => $eta, 'name' => $g['kind'] === 'ordu' ? 'خانواده ' . ($d['family'] ?? '') : (trim(($d['title'] ?? '') . ' ' . ($d['family'] ?? '')) ?: 'همکار'), 'role' => $m['role'], 'seats' => (int)$m['seats'], 'hood' => (string)($d['hood'] ?? ''), 'at_site' => (int)$m['at_site'], 'owner' => $m['profile_id'] === $g['owner']]; }
+        $out[] = ['pid' => $m['profile_id'], 'me' => $m['profile_id'] === $me, 'plate' => $pl3, 'eta' => $eta, 'av' => av_of($m['user_id']), 'pref' => $m['profile_id'] !== $me && pref_has($me, (string)$m['user_id']), 'name' => $g['kind'] === 'ordu' ? 'خانواده ' . ($d['family'] ?? '') : hon($d, 'همکار'), 'role' => $m['role'], 'seats' => (int)$m['seats'], 'hood' => (string)($d['hood'] ?? ''), 'at_site' => (int)$m['at_site'], 'owner' => $m['profile_id'] === $g['owner']]; }
     $last = (int)q('SELECT COALESCE(MAX(created),0) FROM msgs WHERE team_id=?', [$g['id']])->fetchColumn();
     return ['id' => $g['id'], 'kind' => $g['kind'], 'dir' => $g['dir'] ?? 'home', 'title' => $g['title'], 'at' => (int)$g['at'], 'at_t' => hhmm((int)$g['at']), 'until' => (int)$g['until'], 'status' => $g['status'], 'members' => $out, 'car_seats' => $car, 'riders' => $ride, 'free' => $car - $ride, 'last_msg' => $last, 'mine' => in_array($me, array_column($M, 'profile_id'), true)]; }
 function tg_member(string $gid, string $pid): ?array { return row('SELECT * FROM tg_members WHERE group_id=? AND profile_id=?', [$gid, $pid]); }
@@ -381,15 +405,20 @@ function x_route(string $a, array $in): void {
                 $ow = row('SELECT * FROM profiles WHERE id=?', [$gr['owner']]); $opl = row('SELECT * FROM places WHERE id=?', [$gr['place_id']]); if (!$ow || !$opl || in_array($ow['id'], (array)($d['blocked'] ?? []), true) || in_array($me['id'], (array)(pdata($ow)['blocked'] ?? []), true)) continue;
                 $gap = lv_corr($pl, $d, $opl, pdata($ow)); if ($gap === null) continue; $o = tg_out($gr, $me['id']); $o['gap'] = $gap; $o['gap_t'] = km_t($gap); $o['from_t'] = (string)$opl['name']; $near[] = $o; } }
         usort($near, fn($a, $b) => $a['gap'] <=> $b['gap']);
-        YES(['hist' => $hist, 'mates' => $mates, 'on' => flag('leave_on'), 'allowed' => leave_allowed($u, $me), 'quota' => lv_quota($u, $me), 'dir' => (int)date('G') < 11 ? 'work' : 'home', 'place' => ['lat' => (float)$pl['lat'], 'lng' => (float)$pl['lng'], 'name' => $pl['name']], 'mine' => $mine, 'near' => array_slice($near, 0, 6), 'hear' => empty($d['leave_off'])]); }
-    case 'leave_here': { $u = auth(); $me = row('SELECT * FROM profiles WHERE id=? AND user_id=?', [(string)($in['profile_id'] ?? ''), $u['user_id']]); if (!$me) NO('مسیرک پیدا نشد.', 404);
+        /* v57 «best time»: across the last 3 weeks, at my workplace, same gender and direction — which 10-minute slot most often got 2+ people together. Aggregate only (≥3 matched days), no names. */
+        $best = null; $bdir = (int)date('G') < 11 ? 'work' : 'home'; $BK = [];
+        foreach (rows("SELECT g.at, COUNT(m.profile_id) c FROM tgroups g JOIN tg_members m ON m.group_id=g.id WHERE g.kind='leave' AND g.place_id=? AND g.g=? AND g.dir=? AND g.at>? GROUP BY g.id HAVING COUNT(m.profile_id)>=2 LIMIT 400", [$me['place_id'], $g, $bdir, time() - 21 * 86400]) as $r) {
+            $mm = (int)date('G', (int)$r['at']) * 60 + (int)date('i', (int)$r['at']); $k = intdiv($mm, 10) * 10; $BK[$k] ??= [0, 0]; $BK[$k][0]++; $BK[$k][1] += (int)$r['c']; }
+        if ($BK) { uasort($BK, fn($x, $y) => $y[0] <=> $x[0]); $k = array_key_first($BK); if ($BK[$k][0] >= 3) $best = ['t' => sprintf('%02d:%02d', intdiv($k, 60), $k % 60), 'days' => $BK[$k][0], 'avg' => round($BK[$k][1] / $BK[$k][0], 1), 'dir' => $bdir]; }
+        YES(['best' => $best, 'hist' => $hist, 'mates' => $mates, 'on' => flag('leave_on'), 'allowed' => leave_allowed($u, $me), 'quota' => lv_quota($u, $me), 'dir' => (int)date('G') < 11 ? 'work' : 'home', 'place' => ['lat' => (float)$pl['lat'], 'lng' => (float)$pl['lng'], 'name' => $pl['name']], 'mine' => $mine, 'near' => array_slice($near, 0, 6), 'hear' => empty($d['leave_off'])]); }
+    case 'leave_here': { $u = auth(); $me = row('SELECT * FROM profiles WHERE id=? AND user_id=?', [(string)($in['profile_id'] ?? ''), $u['user_id']]); if (!$me) NO('مسیر پیدا نشد.', 404);
         $gid = (string)($in['group'] ?? ''); $m0 = row('SELECT * FROM tg_members WHERE group_id=? AND profile_id=?', [$gid, $me['id']]); if (!$m0) NO('عضو این گروه نیستید.', 403);
         if (hit('lvhere_' . $gid . '_' . $me['id'], 120) > 1) NO('همین الان خبر دادید 🙂', 429); $UI = json_decode((string)(row('SELECT info FROM users WHERE id=?', [$u['user_id']])['info'] ?? ''), true) ?: [];
-        $who = (string)(pdata($me)['family'] ?? 'هم‌مسیر'); $pl3 = !empty($UI['p3']) ? ' (پلاک ' . fa_d((string)$UI['p3']) . (!empty($UI['pir']) ? ' ایران ' . fa_d((string)$UI['pir']) : '') . ')' : '';
+        $who = hon(pdata($me)); $pl3 = !empty($UI['p3']) ? ' (پلاک ' . fa_d((string)$UI['p3']) . (!empty($UI['pir']) ? ' ایران ' . fa_d((string)$UI['pir']) : '') . ')' : '';
         foreach (tg_members($gid) as $m) if ($m['profile_id'] !== $me['id']) note($m['profile_id'], "🚗 $who کنار در است$pl3. بدوید، ولی با احتیاط 😄", 'match', $gid);
         YES(); }
     case 'leave_start': case 'leave_join': { if (!flag('leave_on')) NO('«دارم می‌روم» فعلاً خاموش است.', 403); $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? ''));
-        if (!$me['complete'] || !in_array($me['kind'], LEAVE_KINDS, true) || !$me['place_id']) NO('«دارم می‌روم» برای مسیرک محل کار یا دانشگاه است.');
+        if (!$me['complete'] || !in_array($me['kind'], LEAVE_KINDS, true) || !$me['place_id']) NO('«دارم می‌روم» برای مسیر محل کار یا دانشگاه است.');
         lv_can($u, $me, ($in['dir'] ?? '') === 'work' ? 'work' : 'home');
         $pl = row('SELECT * FROM places WHERE id=?', [$me['place_id']]); $d = pdata($me); $g = (string)($d['pg'] ?? 'f');
         $dir = ($in['dir'] ?? '') === 'work' ? 'work' : 'home';
@@ -409,11 +438,11 @@ function x_route(string $a, array $in): void {
                 if ($ow && same_way($pl, $d, pdata($ow))) { $dd = isset($d['lat']) ? hav((float)$d['lat'], (float)$d['lng'], (float)(pdata($ow)['lat'] ?? 0), (float)(pdata($ow)['lng'] ?? 0)) : 0; if ($dd < $bd) { $bd = $dd; $gr = $c; } } }
             if (!$gr) { $id = 'G' . uid(11); q('INSERT INTO tgroups(id,kind,ref,place_id,g,owner,title,at,until,status,created,dir) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', [$id, 'leave', $me['id'], $me['place_id'], $g, $me['id'], $dir === 'home' ? 'رفتن به خانه از ' . $pl['name'] : 'رفتن به ' . $pl['name'], $at, $at + 5400, 'open', time(), $dir]); $gr = row('SELECT * FROM tgroups WHERE id=?', [$id]); $new = true; } }
         q('INSERT INTO tg_members(group_id,profile_id,user_id,role,seats,at_site,created) VALUES(?,?,?,?,?,?,?)', [$gr['id'], $me['id'], $u['user_id'], $role, $seats, $site, time()]);
-        $who = trim(($d['title'] ?? '') . ' ' . ($d['family'] ?? '')) ?: 'یک همکار'; $hood = (string)($d['hood'] ?? ''); $rt = $role === 'car' ? 'با ماشین و ' . fa_d($seats) . ' جای خالی' : 'بی‌ماشین';
+        $who = hon($d, 'یک همکار'); $hood = (string)($d['hood'] ?? ''); $rt = $role === 'car' ? 'با ماشین و ' . fa_d($seats) . ' جای خالی' : 'بی‌ماشین';
         q('INSERT INTO msgs(id,team_id,profile_id,text,created) VALUES(?,?,?,?,?)', [uid(), $gr['id'], 'system', "$who $rt به گروه آمد" . ($hood ? " (سمت $hood)" : '') . '.', time()]);
         foreach (tg_members($gr['id']) as $m) if ($m['profile_id'] !== $me['id']) { $md = json_decode((string)$m['data'], true) ?: []; $T = hhmm((int)$gr['at']); $mh = (string)($md['hood'] ?? '');
             // v49 — the sweet moment: someone said yes. Say who, when and where, with a smile.
-            $txt = $a === 'leave_join' && $role === 'car' && $m['role'] !== 'car' ? "🎉 $who با ماشین می‌آید! ساعت $T" . ($mh ? " سمت $mh" : '') . ' سوارتان می‌کند. کفش‌ها را بپوشید 👟'
+            $txt = $a === 'leave_join' && $role === 'car' && $m['role'] !== 'car' ? "🎉 $who با ماشین می‌آید، دمشان گرم! ساعت $T" . ($mh ? " سمت $mh" : '') . ' سوارتان می‌کند. کفش‌ها را بپوشید 👟'
                  : ($a === 'leave_join' && $role !== 'car' && $m['role'] === 'car' ? "🎉 $who هم می‌آید! ساعت $T" . ($hood ? " سمت $hood" : '') . ' سوارش کنید؛ یک صندلی را گرم نگه دارید 🙂'
                  : "$who هم ساعت $T می‌رود ($rt). در گروه هماهنگ شوید.");
             note($m['profile_id'], $txt, str_starts_with($txt, '🎉') ? 'match' : 'near', $gr['id']); }
@@ -489,9 +518,9 @@ function x_route(string $a, array $in): void {
         $L = rows("SELECT * FROM ads WHERE status='live' AND audience='org' AND expires>? AND contacts IN (" . implode(',', array_fill(0, count($P), '?')) . ') ORDER BY bumped DESC LIMIT 30', [time(), ...array_map(fn($x) => 'org:' . $x, $P)]);
         $g = user_g($u['user_id']); YES(['list' => array_values(array_map(fn($a) => ad_out($a), array_filter($L, fn($a) => !$g || $a['g'] === $g)))]); }
     /* v53 test simulator (flag test_tools): fake colleagues so one person can walk every «همین حالا» path alone */
-    case 'test_sim': { if (!flag('test_tools')) NO('ابزار آزمایشی خاموش است.', 403); $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $pl = row('SELECT * FROM places WHERE id=?', [$me['place_id']]); if (!$pl) NO('اول مسیرک محل کار بسازید.');
+    case 'test_sim': { if (!flag('test_tools')) NO('ابزار آزمایشی خاموش است.', 403); $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $pl = row('SELECT * FROM places WHERE id=?', [$me['place_id']]); if (!$pl) NO('اول مسیر محل کار بسازید.');
         // never mix fake colleagues into a place where real colleagues already are — they would see them too
-        if (in_array((string)($in['k'] ?? ''), ['near', 'hist', 'car', 'car2', 'ride'], true) && (int)(row('SELECT COUNT(*) c FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.place_id=? AND p.user_id<>? AND p.complete=1 AND COALESCE(p.fake,0)=0 AND COALESCE(u.fake,0)=0', [$me['place_id'], $u['user_id']])['c'] ?? 0) > 0) NO('این محل همکار واقعی دارد؛ آزمایش را در یک مسیرکِ آزمایشی جدا انجام دهید تا کسی گیج نشود.');
+        if (in_array((string)($in['k'] ?? ''), ['near', 'hist', 'car', 'car2', 'ride'], true) && (int)(row('SELECT COUNT(*) c FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.place_id=? AND p.user_id<>? AND p.complete=1 AND COALESCE(p.fake,0)=0 AND COALESCE(u.fake,0)=0', [$me['place_id'], $u['user_id']])['c'] ?? 0) > 0) NO('این محل همکار واقعی دارد؛ آزمایش را در یک مسیرِ آزمایشی جدا انجام دهید تا کسی گیج نشود.');
         $d = pdata($me); $k = (string)($in['k'] ?? ''); $NAMES = ['نسیم', 'سرو', 'نارون', 'آسمان', 'باران', 'افرا', 'نیلوفر', 'کاج'];
         $fake = function (bool $car) use ($me, $pl, $d, $NAMES) { $fid = make_fake($me, $pl, $car); $fp = row('SELECT * FROM profiles WHERE id=?', [$fid]); $fd = pdata($fp);
             $fd['pg'] = $d['pg'] ?? 'f'; $fd['role'] = $car ? 'drive' : 'pay'; $fd['seats'] = $car ? 3 : 0; $fd['family'] = $NAMES[array_rand($NAMES)] . ' (آزمایشی)'; $fd['days'] = [0, 1, 2, 3, 4];
@@ -499,13 +528,13 @@ function x_route(string $a, array $in): void {
             try { q('UPDATE profiles SET hcell=? WHERE id=?', [hcell((float)$fd['lat'], (float)$fd['lng']), $fid]); } catch (Throwable $e) {} return row('SELECT * FROM profiles WHERE id=?', [$fid]); };
         $gr = !empty($in['group']) ? row('SELECT * FROM tgroups WHERE id=?', [(string)$in['group']]) : null;
         $joinAs = function (array $fp, string $role) use ($gr, $me) { q('INSERT INTO tg_members(group_id,profile_id,user_id,role,seats,created) VALUES(?,?,?,?,?,?)', [$gr['id'], $fp['id'], $fp['user_id'], $role, $role === 'car' ? 3 : 1, time()]);
-            $T = hhmm((int)$gr['at']); $who = (string)(pdata($fp)['family'] ?? ''); $h = (string)(pdata($me)['hood'] ?? '');
-            note($me['id'], $role === 'car' ? "🎉 $who با ماشین می‌آید! ساعت $T" . ($h ? " سمت $h" : '') . ' سوارتان می‌کند. کفش‌ها را بپوشید 👟' : "🎉 $who هم می‌آید! ساعت $T سوارش کنید 🙂", 'match', $gr['id']); };
+            $T = hhmm((int)$gr['at']); $who = hon(pdata($fp)); $h = (string)(pdata($me)['hood'] ?? '');
+            note($me['id'], $role === 'car' ? "🎉 $who با ماشین می‌آید، دمشان گرم! ساعت $T" . ($h ? " سمت $h" : '') . ' سوارتان می‌کند. کفش‌ها را بپوشید 👟' : "🎉 $who هم می‌آید! ساعت $T سوارش کنید 🙂", 'match', $gr['id']); };
         if ($k === 'near') { for ($i = 0; $i < 5; $i++) $fake($i < 2); YES(['msg' => '۵ همکار آزمایشی (۲ ماشین‌دار) نزدیک خانه‌تان ساخته شد.']); }
         if (in_array($k, ['car', 'car2', 'ride'], true)) { if (!$gr || !tg_member($gr['id'], $me['id'])) NO('اول «اعلام» کنید؛ این دکمه در کارت «در راه» است.');
             for ($i = 0; $i < ($k === 'car2' ? 2 : 1); $i++) $joinAs($fake($k !== 'ride'), $k === 'ride' ? 'ride' : 'car'); YES(['msg' => 'هم‌مسیر آزمایشی پیوست.']); }
         if ($k === 'here' || $k === 'quit') { if (!$gr) NO('گروهی نیست.'); $fm = row("SELECT m.* FROM tg_members m JOIN profiles p ON p.id=m.profile_id WHERE m.group_id=? AND p.fake=1 ORDER BY m.created LIMIT 1", [$gr['id']]); if (!$fm) NO('اول یک هم‌مسیر آزمایشی بیاورید.');
-            $who = (string)(pdata(row('SELECT * FROM profiles WHERE id=?', [$fm['profile_id']]))['family'] ?? '');
+            $who = hon(pdata(row('SELECT * FROM profiles WHERE id=?', [$fm['profile_id']])));
             if ($k === 'here') { note($me['id'], "🚗 $who کنار در است. بدوید، ولی با احتیاط 😄", 'match', $gr['id']); YES(['msg' => 'راننده‌ی آزمایشی کنار در است.']); }
             q('DELETE FROM tg_members WHERE group_id=? AND profile_id=?', [$gr['id'], $fm['profile_id']]); note($me['id'], "😕 $who نمی‌تواند بیاید (برنامه‌ام عوض شد). اعلامتان هنوز باز است؛ شاید کس دیگری بیاید.", 'near', $gr['id']); YES(['msg' => 'هم‌مسیر آزمایشی انصراف داد.']); }
         if ($k === 'hist') { $mate = $fake(($d['role'] ?? 'pay') === 'pay'); $H = time(); for ($i = 1; $i <= 3; $i++) { $gid = 'G' . uid(11); $at = $H - $i * 86400; $dir = (int)date('G') < 11 ? 'work' : 'home';
@@ -533,15 +562,15 @@ function x_route(string $a, array $in): void {
     case 'leave_quit': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $gr = row('SELECT * FROM tgroups WHERE id=?', [(string)($in['group'] ?? '')]); if (!$gr || !tg_member($gr['id'], $me['id'])) NO('گروه پیدا نشد.', 404);
         q('DELETE FROM tg_members WHERE group_id=? AND profile_id=?', [$gr['id'], $me['id']]); $left = tg_members($gr['id']);
         $WHY = ['late' => 'دیرم شد', 'plan' => 'برنامه‌ام عوض شد', 'other' => 'با کس دیگری می‌روم', 'sick' => 'حالم خوب نیست']; $why = $WHY[(string)($in['why'] ?? '')] ?? '';
-        if ($why) ev_log('leave_cancel', $why, ['g' => $gr['id']]);
-        if ($left && empty($in['done'])) { $who = (string)(pdata($me)['family'] ?? 'هم‌مسیر'); foreach ($left as $m) note($m['profile_id'], "😕 $who نمی‌تواند بیاید" . ($why ? " ($why)" : '') . '. اعلامتان هنوز باز است؛ شاید کس دیگری بیاید.', 'near', $gr['id']); }
+        if ($why) ev_log('leave_cancel', $why, ['g' => $gr['id'], 'u' => $u['user_id']]);
+        if ($left && empty($in['done'])) { $who = hon(pdata($me)); foreach ($left as $m) note($m['profile_id'], "😕 $who نمی‌تواند بیاید" . ($why ? " ($why)" : '') . '. اعلامتان هنوز باز است؛ شاید کس دیگری بیاید.', 'near', $gr['id']); }
         if (!$left || !empty($in['done'])) q("UPDATE tgroups SET status='closed' WHERE id=?", [$gr['id']]); elseif ($gr['owner'] === $me['id']) q('UPDATE tgroups SET owner=? WHERE id=?', [$left[0]['profile_id'], $gr['id']]);
         if ($left && empty($in['done'])) q('INSERT INTO msgs(id,team_id,profile_id,text,created) VALUES(?,?,?,?,?)', [uid(), $gr['id'], 'system', 'یک نفر از گروه رفت.', time()]); YES(); }
     case 'tg_chat': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $gr = row('SELECT * FROM tgroups WHERE id=?', [(string)($in['group'] ?? '')]); if (!$gr || !tg_member($gr['id'], $me['id'])) NO('گروه پیدا نشد.', 404);
         $t = s1((string)($in['text'] ?? ''), 400);
         if ($t !== '') { if ($gr['status'] !== 'open' && $gr['kind'] === 'leave') NO('گروه بسته شده است.'); $last = (int)q('SELECT COALESCE(MAX(created),0) FROM msgs WHERE profile_id=?', [$me['id']])->fetchColumn(); if (time() - $last < 2) NO('کمی آرام‌تر 🙂', 429);
             if ($e = x_bad($t, true)) NO($e); q('INSERT INTO msgs(id,team_id,profile_id,text,created) VALUES(?,?,?,?,?)', [uid(), $gr['id'], $me['id'], $t, time()]);
-            $d = pdata($me); $who = trim(($d['title'] ?? '') . ' ' . ($d['family'] ?? '')); foreach (tg_members($gr['id']) as $m) if ($m['profile_id'] !== $me['id']) push_queue(fam_users($m['profile_id']), $gr['title'], "$who: " . mb_substr($t, 0, 80), 'team'); }
+            $d = pdata($me); $who = hon($d, ''); foreach (tg_members($gr['id']) as $m) if ($m['profile_id'] !== $me['id']) push_queue(fam_users($m['profile_id']), $gr['title'], "$who: " . mb_substr($t, 0, 80), 'team'); }
         $L = []; foreach (rows('SELECT m.*, p.data pdata FROM msgs m LEFT JOIN profiles p ON p.id=m.profile_id WHERE m.team_id=? ORDER BY m.created DESC LIMIT 80', [$gr['id']]) as $m) { $dd = json_decode((string)$m['pdata'], true) ?: [];
             $L[] = ['text' => $m['text'], 'at' => (int)$m['created'], 'mine' => $m['profile_id'] === $me['id'], 'sys' => $m['profile_id'] === 'system', 'who' => $m['profile_id'] === 'system' ? 'رسیدیم' : (trim(($dd['title'] ?? '') . ' ' . ($dd['family'] ?? '')) ?: 'عضو')]; }
         usort($L, fn($x, $y) => [$x['at'], $x['sys'] ? 0 : 1] <=> [$y['at'], $y['sys'] ? 0 : 1]);
@@ -586,6 +615,7 @@ function x_route(string $a, array $in): void {
     case 'my_info': { $u = auth(); $me = $u['user_id']; $I = json_decode((string)(row('SELECT info FROM users WHERE id=?', [$me])['info'] ?? ''), true) ?: [];
         if (!empty($in['save'])) { $f = fn($k, $n) => s1((string)($in[$k] ?? ''), $n);
             unset($I['plate']);
+            if (array_key_exists('av', $in)) { $I['av'] = av_clean((string)$in['av']); if ($in['av'] !== '' && $I['av'] === '') NO('این عکس پذیرفته نشد؛ یک عکس دیگر بفرستید.'); unset($in['av']); }
             if (array_key_exists('rel', $in)) { $I['rel'] = in_array($in['rel'], ['mother', 'father', 'grandma', 'grandpa', 'sister', 'brother', 'other'], true) ? $in['rel'] : ''; $I['rel_t'] = $I['rel'] === 'other' ? mb_substr(trim((string)($in['rel_t'] ?? '')), 0, 30) : ''; unset($in['rel'], $in['rel_t']); }
             if (array_key_exists('job', $in)) { $I['job'] = in_array($in['job'], ['teacher', 'cleric', 'academic', 'student', 'medic', 'other'], true) ? $in['job'] : ''; unset($in['job']); }
             if (array_key_exists('tcode', $in)) $I['tcode'] = substr(dg((string)$in['tcode']), 0, 12);
@@ -649,7 +679,7 @@ function pn_sim(string $a, string $b): float {
     $pr = range(0, $m); for ($i = 1; $i <= $n; $i++) { $cu = [$i]; for ($j = 1; $j <= $m; $j++) $cu[$j] = min($pr[$j] + 1, $cu[$j - 1] + 1, $pr[$j - 1] + ($A[$i - 1] === $B[$j - 1] ? 0 : 1)); $pr = $cu; }
     return 1 - $pr[$m] / max($n, $m);
 }
-const PN_GENERIC = ['محل کار', 'کار', 'سر کار', 'سرکار', 'شرکت', 'اداره', 'دانشگاه', 'دانشکده', 'خانه', 'مدرسه', 'مهد', 'مسیرک', 'باشگاه', 'work', 'office', 'uni'];
+const PN_GENERIC = ['مسیرک', 'محل کار', 'کار', 'سر کار', 'سرکار', 'شرکت', 'اداره', 'دانشگاه', 'دانشکده', 'خانه', 'مدرسه', 'مهد', 'مسیر', 'باشگاه', 'work', 'office', 'uni'];
 function place_consensus(string $pid): ?string {
     $pl = row('SELECT * FROM places WHERE id=?', [$pid]); if (!$pl || (int)($pl['verified'] ?? 0) || !empty($pl['dash_token']) || !empty($pl['plan_tier'])) return null;
     $V = []; foreach (rows('SELECT user_id, label FROM profiles WHERE place_id=? AND complete=1 AND COALESCE(fake,0)=0', [$pid]) as $r) {

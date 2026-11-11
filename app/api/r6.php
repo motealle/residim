@@ -587,7 +587,7 @@ function fam_trial_ok(array $l, ?string $owner, ?string $team = null): bool { re
 function my_profile(array $u, string $pid): array {
     $p = row('SELECT * FROM profiles WHERE id=? AND user_id=?', [$pid, $u['user_id']]); if ($p) return $p;
     $l = $pid ? fam_link($pid, (string)$u['user_id']) : null; $p = $l ? row('SELECT * FROM profiles WHERE id=?', [$pid]) : null;
-    if (!$p) NO('این مسیرک پیدا نشد.', 404, 'profile');
+    if (!$p) NO('این مسیر پیدا نشد.', 404, 'profile');
     if (!fam_trial_ok($l, $p['user_id'], $p['team_id'] ?? null)) NO('یک ماه رایگان «همراه خانواده» تمام شده؛ «همراه خانواده» جزو اشتراک تیم است.', 402, 'fam_trial');
     if ($l['role'] !== 'act' && !in_array($GLOBALS['a'] ?? '', FAM_READ, true)) NO('شما در حالت «فقط دیدن» هستید. برای انجام کار، «من ادامه می‌دهم» را بزنید.', 403, 'watch');
     return $p;
@@ -786,7 +786,7 @@ case 'cfg': daily_backup(); try { require_once __DIR__ . '/r6x.php'; route_tick(
     'flags' => ['contacts' => getv('contacts_on', '1') === '1', 'trip_scene' => getv('trip_scene', '1') === '1', 'family_link' => getv('family_link', '1') === '1', 'cand_swipe' => getv('cand_swipe', '0') === '1', 'trip_window' => getv('trip_window', '0') === '1', 'bismillah' => getv('bismillah', '1') === '1', 'stories' => getv('stories', '1') === '1', 'ads' => getv('ads_on', '1') === '1', 'leave' => getv('leave_on', '1') === '1', 'go' => getv('go_on', '1') === '1', 'org_fleet' => getv('org_fleet', '0') === '1', 'ordu' => getv('ordu_on', '1') === '1', 'price_poll' => getv('price_poll', '0') === '1', 'trusted_driver' => getv('trusted_driver', '0') === '1', 'sms_direct' => flag('sms_direct'), 'otp_bale' => flag('otp_bale') && (bool)C('bale_client_id'), 'test_tools' => flag('test_tools'), 'auto_arrive' => flag('auto_arrive'), 'sms_arrive' => flag('sms_arrive'), 'signup_open' => flag('signup_open'), 'league_on' => flag('league_on'), 'paid_mode' => flag('paid_mode'), 'station_on' => flag('station_on')], 'donate' => ['card' => (string)getv('donate_card', ''), 'name' => (string)getv('donate_name', ''), 'gateway' => flag('pay_gateway') && (bool)pp_token(), 'test' => getv('pay_env', 'test') !== 'live'], 'notice' => (string)getv('notice', ''), 'tips' => json_decode((string)getv('tips', ''), true) ?: null, 'app' => ['ver' => (string)getv('app_ver', ''), 'url' => (string)getv('app_url', '')], 'jyear' => jyear(), 'wk' => week_key(), 'radio_votes' => (int)getv('radio_votes', '0')]);
 
 /* auth */
-case 'dup_send': { $u = auth(); $o = row('SELECT p.*, u.phone FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.id=?', [(string)($in['other'] ?? '')]); if (!$o || !$o['phone']) NO('برای این مسیرک کدی لازم نیست.'); $in['phone'] = $o['phone']; $in['channel'] = ''; }
+case 'dup_send': { $u = auth(); $o = row('SELECT p.*, u.phone FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.id=?', [(string)($in['other'] ?? '')]); if (!$o || !$o['phone']) NO('برای این مسیر کدی لازم نیست.'); $in['phone'] = $o['phone']; $in['channel'] = ''; }
     // fall through on purpose: the code goes to the other profile's phone with every OTP limit in place
 case 'otp_send': {
     $ph = phone_norm((string)($in['phone'] ?? '')); if (!$ph) NO('شماره را به شکل ۰۹۱۲۳۴۵۶۷۸۹ بنویسید.');
@@ -815,11 +815,11 @@ case 'otp_send': {
     YES(['sent' => false, 'dev_code' => $code, 'note' => 'سرویس پیامک فعال نیست؛ کد آزمایشی نمایش داده شد.']);
 }
 case 'dup_merge': { // keep one of two duplicate profiles; the other one is removed. Another account's profile needs its phone's code.
-    $u = auth(); $mine = my_profile($u, (string)($in['profile_id'] ?? '')); $o = row('SELECT p.*, u.phone FROM profiles p LEFT JOIN users u ON u.id=p.user_id WHERE p.id=?', [(string)($in['other'] ?? '')]); if (!$o || $o['place_id'] !== $mine['place_id']) NO('این دو مسیرک یکی نیستند.');
+    $u = auth(); $mine = my_profile($u, (string)($in['profile_id'] ?? '')); $o = row('SELECT p.*, u.phone FROM profiles p LEFT JOIN users u ON u.id=p.user_id WHERE p.id=?', [(string)($in['other'] ?? '')]); if (!$o || $o['place_id'] !== $mine['place_id']) NO('این دو مسیر یکی نیستند.');
     if ($o['user_id'] !== $u['user_id']) {
         if ($o['phone']) { $code = preg_replace('/\D/', '', strtr((string)($in['code'] ?? ''), ['۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4','۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9'])); $ot = row('SELECT * FROM otps WHERE phone=?', [$o['phone']]);
             if (!$ot || time() > (int)$ot['exp'] || (int)$ot['tries'] >= 5) NO('کد منقضی شده؛ دوباره بخواهید.'); if (!password_verify($code, $ot['hash'])) { q('UPDATE otps SET tries=tries+1 WHERE phone=?', [$o['phone']]); NO('کد درست نیست.'); } q('DELETE FROM otps WHERE phone=?', [$o['phone']]); }
-        elseif ($o['team_id']) NO('آن مسیرک در تیم است؛ از پشتیبانی بخواهید یکی‌شان کنند.'); }
+        elseif ($o['team_id']) NO('آن مسیر در تیم است؛ از پشتیبانی بخواهید یکی‌شان کنند.'); }
     if (($in['keep'] ?? 'mine') === 'other') { q('UPDATE profiles SET user_id=? WHERE id=?', [$u['user_id'], $o['id']]); wipe_profile($mine['id']); YES(['kept' => $o['id']]); }
     wipe_profile($o['id']); YES(['kept' => $mine['id']]); }
 case 'otp_verify': {
@@ -930,7 +930,7 @@ case 'profile_save': {
     $u = auth(); $id = (string)($in['id'] ?? ''); $data = (array)($in['data'] ?? []);
     foreach (['family', 'hood'] as $k) if (isset($data[$k])) $data[$k] = mb_substr(trim((string)$data[$k]), 0, 40);
     if (isset($data['seats'])) $data['seats'] = max(0, min(5, (int)$data['seats']));
-    $label = mb_substr(trim((string)($in['label'] ?? '')), 0, 60) ?: 'مسیرک'; $kind = (string)($in['kind'] ?? 'school'); $place = $in['place_id'] ?? null;
+    $label = mb_substr(trim((string)($in['label'] ?? '')), 0, 60) ?: 'مسیر'; $kind = (string)($in['kind'] ?? 'school'); $place = $in['place_id'] ?? null;
     if ($place && !row('SELECT 1 FROM places WHERE id=?', [$place])) NO('مکان پیدا نشد.');
     $complete = !empty($in['complete']) ? 1 : 0; $step = (int)($in['step'] ?? 0); $color = (int)($in['color'] ?? 0);
     $old = $id ? row('SELECT * FROM profiles WHERE id=? AND user_id=?', [$id, $u['user_id']]) : null;
@@ -942,7 +942,7 @@ case 'profile_save': {
         q('UPDATE profiles SET place_id=?, label=?, kind=?, color=?, data=?, step=?, complete=?, updated=? WHERE id=?', [$place, $label, $kind, $old['team_id'] ? (int)$old['color'] : $color, $json, $step, max($complete, (int)$old['complete']), time(), $id]);
         if ($old['team_id']) q('UPDATE teams SET price=? WHERE id=?', [fair_price($old['team_id']), $old['team_id']]);
     } else {
-        if ((int)q('SELECT COUNT(*) FROM profiles WHERE user_id=?', [$u['user_id']])->fetchColumn() >= 8 && !is_premium($u['user_id'])) NO('حداکثر ۸ مسیرک.');
+        if ((int)q('SELECT COUNT(*) FROM profiles WHERE user_id=?', [$u['user_id']])->fetchColumn() >= 8 && !is_premium($u['user_id'])) NO('حداکثر ۸ مسیر.');
         // v32: no paywall on creating mesiraks; what is paid for is running a team after its gift month
         $id = uid(); q('INSERT INTO profiles(id,user_id,place_id,label,kind,color,data,step,complete,team_id,fake,created,updated) VALUES(?,?,?,?,?,?,?,?,?,NULL,0,?,?)', [$id, $u['user_id'], $place, $label, $kind, $color, $json, $step, $complete, time(), time()]);
     }
@@ -997,7 +997,7 @@ case 'invite': {
     if ($me['team_id'] && $to['team_id']) NO('هر دو در تیم هستید؛ برای جابه‌جایی اول از تیم خودتان جدا شوید.');
     if ($me['team_id'] && $me['team_id'] === $to['team_id']) NO('هم‌تیمی شما هستند.');
     $all = array_merge(riders_of($me), riders_of($to)); foreach ([$me['team_id'], $to['team_id']] as $tid) if ($tid) foreach (rows('SELECT * FROM profiles WHERE team_id=?', [$tid]) as $x) if ($x['id'] !== $me['id'] && $x['id'] !== $to['id']) $all = array_merge($all, riders_of($x));
-    if (!team_rule_ok(row('SELECT * FROM places WHERE id=?', [$me['place_id']]), $all)) NO('طبق قانون رسیدیم این هم‌مسیری ممکن نیست (قاعده‌ی سن و جنسیت، یا هم‌جنس بودن در مسیرک‌های سفر).', 400, 'rule');
+    if (!team_rule_ok(row('SELECT * FROM places WHERE id=?', [$me['place_id']]), $all)) NO('طبق قانون رسیدیم این هم‌مسیری ممکن نیست (قاعده‌ی سن و جنسیت، یا هم‌جنس بودن در مسیرهای سفر).', 400, 'rule');
     if (count($all) > team_cap($all)) NO('این تیم در یک خودرو جا نمی‌شود: حداکثر ۴ نفر (۵ نفر فقط وقتی همه‌ی بچه‌ها زیر ۹ سال باشند). یک هم‌مسیر دیگر یا تیم کوچک‌تری انتخاب کنید.', 400, 'full');
     if (row('SELECT 1 FROM invites WHERE status=? AND ((from_p=? AND to_p=?) OR (from_p=? AND to_p=?))', ['pending', $me['id'], $to['id'], $to['id'], $me['id']])) NO('پیشنهاد قبلاً فرستاده شده و منتظر پاسخ است.');
     $today = (int)q('SELECT COUNT(*) FROM invites WHERE from_p=? AND created>?', [$me['id'], time() - 86400])->fetchColumn(); if ($today >= 12) NO('امروز پیشنهاد کافی فرستاده‌اید؛ فردا دوباره.', 429);
@@ -1110,8 +1110,8 @@ case 'fam_code': { $u = auth(); if (!fam_on()) NO('این امکان فعلاً 
     $c = code8(); q('DELETE FROM fam_codes WHERE created<?', [time() - 172800]); q('INSERT INTO fam_codes(code,profile_id,by_user,created) VALUES(?,?,?,?)', [$c, $p['id'], $u['user_id'], time()]); YES(['code' => $c, 'link' => 'https://residim.ir/#fam/' . $c]); }
 case 'fam_join': { $u = auth(); if (!fam_on()) NO('این امکان فعلاً خاموش است.'); if (!$u['phone']) NO('برای همراه شدن، اول با شماره‌تان وارد شوید.', 401, 'auth');
     $c = row('SELECT * FROM fam_codes WHERE code=?', [strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string)($in['code'] ?? '')))]); if (!$c || time() - (int)$c['created'] > 172800) NO('این لینک منقضی شده؛ یک لینک تازه بخواهید.');
-    $p = row('SELECT * FROM profiles WHERE id=?', [$c['profile_id']]); if (!$p) NO('این مسیرک دیگر نیست.'); if ($p['user_id'] === $u['user_id']) NO('این مسیرک مال خودتان است.');
-    if ((int)q('SELECT COUNT(*) FROM fam_links WHERE profile_id=?', [$p['id']])->fetchColumn() >= 3) NO('هر مسیرک حداکثر ۳ همراه دارد.');
+    $p = row('SELECT * FROM profiles WHERE id=?', [$c['profile_id']]); if (!$p) NO('این مسیر دیگر نیست.'); if ($p['user_id'] === $u['user_id']) NO('این مسیر مال خودتان است.');
+    if ((int)q('SELECT COUNT(*) FROM fam_links WHERE profile_id=?', [$p['id']])->fetchColumn() >= 3) NO('هر مسیر حداکثر ۳ همراه دارد.');
     if (!fam_link($p['id'], $u['user_id'])) q('INSERT INTO fam_links(profile_id,user_id,role,created) VALUES(?,?,?,?)', [$p['id'], $u['user_id'], 'watch', time()]);
     q('DELETE FROM fam_codes WHERE code=?', [$c['code']]); note($p['id'], 'یک همراه خانواده به «' . $p['label'] . '» پیوست؛ از این به بعد او هم رخدادها را می‌بیند.', 'team');
     YES(['profile_id' => $p['id']]); }
@@ -1119,11 +1119,11 @@ case 'fam_list': { $u = auth(); $p = my_profile($u, (string)($in['profile_id'] ?
     $own = row('SELECT phone FROM users WHERE id=?', [$p['user_id']]); $L = [['user' => 'owner', 'phone' => $mask($own['phone'] ?? ''), 'role' => 'owner', 'me' => $p['user_id'] === $u['user_id']]];
     foreach (rows('SELECT l.*, u.phone FROM fam_links l LEFT JOIN users u ON u.id=l.user_id WHERE l.profile_id=?', [$p['id']]) as $l) $L[] = ['user' => $l['user_id'], 'phone' => $mask($l['phone']), 'role' => $l['role'], 'me' => $l['user_id'] === $u['user_id'], 'trial_left' => max(0, (int)ceil(((int)$l['created'] + 2592000 - time()) / 86400))];
     YES(['list' => $L, 'paid' => flag('paid_mode')]); }
-case 'fam_role': { $u = auth(); $pid = (string)($in['profile_id'] ?? ''); $l = fam_link($pid, $u['user_id']); if (!$l) NO('شما همراه این مسیرک نیستید.'); my_profile($u, $pid);
+case 'fam_role': { $u = auth(); $pid = (string)($in['profile_id'] ?? ''); $l = fam_link($pid, $u['user_id']); if (!$l) NO('شما همراه این مسیر نیستید.'); my_profile($u, $pid);
     $r = ($in['role'] ?? '') === 'act' ? 'act' : 'watch'; q('UPDATE fam_links SET role=? WHERE profile_id=? AND user_id=?', [$r, $pid, $u['user_id']]);
     if ($r === 'act') note($pid, 'همراه خانواده کارها را در دست گرفت (من ادامه می‌دهم).', 'info'); YES(['role' => $r]); }
-case 'fam_remove': { $u = auth(); $pid = (string)($in['profile_id'] ?? ''); $who = (string)($in['user'] ?? $u['user_id']); $p = row('SELECT * FROM profiles WHERE id=?', [$pid]); if (!$p) NO('مسیرک پیدا نشد.');
-    if ($who !== $u['user_id'] && $p['user_id'] !== $u['user_id']) NO('فقط صاحب مسیرک می‌تواند همراه را حذف کند.', 403); q('DELETE FROM fam_links WHERE profile_id=? AND user_id=?', [$pid, $who]); YES(); }
+case 'fam_remove': { $u = auth(); $pid = (string)($in['profile_id'] ?? ''); $who = (string)($in['user'] ?? $u['user_id']); $p = row('SELECT * FROM profiles WHERE id=?', [$pid]); if (!$p) NO('مسیر پیدا نشد.');
+    if ($who !== $u['user_id'] && $p['user_id'] !== $u['user_id']) NO('فقط صاحب مسیر می‌تواند همراه را حذف کند.', 403); q('DELETE FROM fam_links WHERE profile_id=? AND user_id=?', [$pid, $who]); YES(); }
 /* duplicates: the same family registered more than once (same place, same family name, close homes) */
 case 'dup_find': { $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $d = pdata($me); $fam = pname_norm((string)($d['family'] ?? '')); $out = [];
     if ($fam !== '' && $me['place_id']) foreach (rows('SELECT p.*, u.phone FROM profiles p LEFT JOIN users u ON u.id=p.user_id WHERE p.place_id=? AND p.id<>? AND p.fake=0', [$me['place_id'], $me['id']]) as $o) { $od = pdata($o);
@@ -1144,7 +1144,7 @@ case 'pay_start': { // donation (and later subscription) through the PayPing gat
     if ($plan !== '' && !isset($PL[$plan])) NO('این اشتراک وجود ندارد.');
     if ($plan !== '' && empty($in['agree'])) NO('برای خرید، شرایط خرید و بازگشت وجه را بپذیرید.');
     if ($plan !== '') $in['amount'] = (string)$PL[$plan]['price'];
-    $tm = null; if ($plan !== '' && !empty($in['profile_id'])) { if (!$u) NO('برای خرید اشتراک تیم وارد شوید.', 401, 'auth'); $tm = my_profile($u, (string)$in['profile_id']); if (!$tm['team_id']) NO('این مسیرک هنوز تیم ندارد.'); if (empty($in['mobile'])) $in['mobile'] = (string)($u['phone'] ?? ''); }
+    $tm = null; if ($plan !== '' && !empty($in['profile_id'])) { if (!$u) NO('برای خرید اشتراک تیم وارد شوید.', 401, 'auth'); $tm = my_profile($u, (string)$in['profile_id']); if (!$tm['team_id']) NO('این مسیر هنوز تیم ندارد.'); if (empty($in['mobile'])) $in['mobile'] = (string)($u['phone'] ?? ''); }
     $amt = (int)preg_replace('/\D/', '', strtr((string)($in['amount'] ?? ''), ['۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9']));
     if ($amt < 10000) NO('کمترین مبلغ ۱۰ هزار تومان است.'); if ($amt > 200000000) NO('مبلغ بیش از حد مجاز است؛ برای کمک‌های بزرگ از «تماس با ما» هماهنگ کنیم.');
     if (!pay_ready()) NO('درگاه هنوز تنظیم نشده است.'); if (hit('pay_' . ip_tag(), 3600) > 10) NO('چند دقیقه‌ی دیگر دوباره امتحان کنید.', 429);
@@ -1613,7 +1613,7 @@ case 'admin_fake': { // test users around a place (by code) or around a real use
     need_admin(); $n = max(1, min(50, (int)($in['n'] ?? 5))); $tgt = trim((string)($in['target'] ?? ''));
     $ph = phone_norm($tgt); $place = null; $me = null;
     if ($ph) { $u = row('SELECT id FROM users WHERE phone=? AND fake=0', [$ph]); if (!$u) NO('کاربر واقعی با این شماره نیست.');
-        $me = row('SELECT * FROM profiles WHERE user_id=? AND complete=1 AND place_id IS NOT NULL ORDER BY updated DESC', [$u['id']]); if (!$me) NO('این کاربر هنوز مسیرکِ کامل ندارد.');
+        $me = row('SELECT * FROM profiles WHERE user_id=? AND complete=1 AND place_id IS NOT NULL ORDER BY updated DESC', [$u['id']]); if (!$me) NO('این کاربر هنوز مسیرِ کامل ندارد.');
         $place = row('SELECT * FROM places WHERE id=?', [$me['place_id']]); }
     else { $place = row('SELECT * FROM places WHERE code=?', [strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $tgt))]); if (!$place) NO('کد مکان یا شماره‌ی کاربر را درست بنویسید.');
         $me = ['data' => json_encode(['lat' => (float)$place['lat'], 'lng' => (float)$place['lng'], 'pg' => random_int(0, 1) ? 'f' : 'm'])]; }
