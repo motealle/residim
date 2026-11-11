@@ -2116,3 +2116,14 @@ img.gm-av.av-img{object-fit:cover;padding:0;pointer-events:none;-webkit-user-sel
 .dr-biz .schools-mi .grow{min-width:0}
 .ver-box{grid-auto-flow:row;padding:8px 10px;gap:4px;font-size:.74rem}
 .drawer .qtiles .qt,.side .qtiles .qt{grid-auto-flow:column;justify-content:center;align-items:center;gap:8px;min-height:48px;padding:8px}
+/* v57 team page: folded warnings + compact agreement card */
+details.hint-fold{display:block}
+details.hint-fold>summary{display:flex;gap:12px;align-items:flex-start;list-style:none;cursor:pointer}
+details.hint-fold>summary::-webkit-details-marker{display:none}
+details.hint-fold>summary span{flex:1;min-width:0}
+details.hint-fold>summary em{flex:none;font-style:normal;font-size:.74rem;font-weight:800;color:var(--muted);align-self:center}
+details.hint-fold[open]>summary em{visibility:hidden}
+details.hint-fold>p{margin:8px 34px 0 0;font-weight:500;line-height:1.8}
+.agree .ag-more>summary{display:inline-block;cursor:pointer;font-size:.8rem;font-weight:800;color:inherit;text-decoration:underline;text-underline-offset:3px;list-style:none}
+.agree .ag-more>summary::-webkit-details-marker{display:none}
+.agree .ag-more>span{display:block;margin-top:4px}
