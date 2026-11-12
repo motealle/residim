@@ -492,6 +492,10 @@ function x_route(string $a, array $in): void {
             foreach (rows("SELECT id, phone FROM users WHERE phone IN ($ph) AND COALESCE(fake,0)=0", $ch) as $r) { if ($g && user_g($r['id']) && user_g($r['id']) !== $g) continue;
                 $org = $myp ? (bool)row('SELECT 1 FROM profiles WHERE user_id=? AND complete=1 AND place_id IN (' . implode(',', array_fill(0, count($myp), '?')) . ')', [$r['id'], ...$myp]) : false; $out[] = ['phone' => $r['phone'], 'org' => $org]; } }
         YES(['list' => $out]); }
+    case 'near_peek': { /* v61 guest peek from the intro corridor: same coarse, anonymous count (never below 3, capped), 20 per device-IP per day, nothing stored */
+        if (hit('np_' . ip_tag(), 86400) > 20) YES(['n' => -1]); $la = (float)($in['lat'] ?? 0); $ln = (float)($in['lng'] ?? 0); if (!$la || abs($la) > 90 || abs($ln) > 180) YES(['n' => 0]); x_schema();
+        $HC = hcells($la, $ln); $n = (int)(row('SELECT COUNT(DISTINCT user_id) c FROM profiles WHERE hcell IN (' . implode(',', array_fill(0, 9, '?')) . ') AND complete=1', $HC)['c'] ?? 0);
+        YES(['n' => $n < 3 ? 0 : ($n > 50 ? 50 : $n)]); }
     case 'near_count': { $u = auth(); $la = (float)($in['lat'] ?? 0); $ln = (float)($in['lng'] ?? 0); if (!$la || abs($la) > 90 || abs($ln) > 180) YES(['n' => 0]); x_schema();
         $HC = hcells($la, $ln); $n = (int)(row('SELECT COUNT(DISTINCT user_id) c FROM profiles WHERE hcell IN (' . implode(',', array_fill(0, 9, '?')) . ") AND complete=1 AND user_id<>?", [...$HC, $u['user_id']])['c'] ?? 0);
         YES(['n' => $n < 3 ? 0 : ($n > 50 ? 50 : $n)]); } // anonymous and coarse: never below 3, capped at «۵۰+»

@@ -2171,13 +2171,7 @@ body.intro-on{overflow:hidden}
 /* scene 1: two homes, one road, one car — they meet */
 .in-art{position:relative;height:150px;margin-block:8px 18px}
 .in-meet .in-road{position:absolute;inset-inline:6%;top:96px;height:6px;border-radius:9px;background:repeating-linear-gradient(90deg,#04140B 0 18px,transparent 18px 30px);opacity:.55}
-.in-meet .in-pin{position:absolute;top:44px;font-size:2.6rem;filter:drop-shadow(0 6px 6px #04140B33)}
-.in-meet .in-pin.a{inset-inline-start:4%;animation:inPinA 2.6s ease-in-out infinite alternate}.in-meet .in-pin.b{inset-inline-end:4%;animation:inPinB 2.6s ease-in-out infinite alternate}
 @keyframes inPinA{to{transform:translateX(-46px)}}@keyframes inPinB{to{transform:translateX(46px)}}
-.in-meet .in-car{position:absolute;top:66px;inset-inline-start:calc(50% - 22px);font-size:2.4rem;transform:scaleX(-1);animation:inCar 2.6s ease-in-out infinite alternate}
-@keyframes inCar{0%{transform:scaleX(-1) translateY(0)}50%{transform:scaleX(-1) translateY(-6px)}100%{transform:scaleX(-1) translateY(0)}}
-.in-meet .in-heart{position:absolute;top:8px;inset-inline-start:calc(50% - 14px);font-size:1.8rem;animation:inHeart 2.6s ease-in-out infinite}
-@keyframes inHeart{0%,40%{opacity:0;transform:scale(.4)}60%{opacity:1;transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}
 .in-vals{display:none}
 .in-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 .in-list li{display:flex;align-items:center;gap:12px;background:#ffffff59;border-radius:18px;padding:12px 14px;font-weight:800;font-size:1.02rem;opacity:0;animation:inPop .45s cubic-bezier(.2,.9,.3,1.3) forwards;animation-delay:var(--d)}
@@ -2225,3 +2219,33 @@ body.intro-on{overflow:hidden}
 .in-top .in-bar{flex:1 1 100%;order:3}
 .in-top .in-skip{margin-inline-start:auto}
 .mi-halo b{font-size:.88rem;line-height:1.7;font-weight:800}
+/* ═════ v61 «سنجاقک حدس می‌زند» ═════ */
+.intro .in-pin.go-pin{display:block;position:relative;left:auto;top:auto;transform:none;width:56px;margin-inline:auto;flex:0 0 auto}
+.intro .in-pin .pc{width:56px;height:77px}
+.intro .in-pin.land .pc{animation:land .5s cubic-bezier(.3,1.6,.5,1)}
+.in-meet .in-home{position:absolute;top:70px;font-size:2.4rem;filter:drop-shadow(0 6px 6px #04140B33)}
+.in-meet .in-home.a{inset-inline-start:4%;animation:inPinA 2.6s ease-in-out infinite alternate}.in-meet .in-home.b{inset-inline-end:4%;animation:inPinB 2.6s ease-in-out infinite alternate}
+.in-meet .in-road{top:118px}
+.in-meet .in-mid{position:absolute;top:0;inset-inline:0;display:grid;justify-content:center}
+.in-meet .in-mid .in-pin{animation:inBob 2.2s ease-in-out infinite}
+@keyframes inBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.in-top .in-meter{flex:1 1 100%;order:3;position:relative;padding-top:12px}
+.in-meter::before{content:"";position:absolute;top:0;inset-inline:0;height:7px;border-radius:9px;background:#04140B24}
+.in-meter i{position:absolute;top:0;height:7px;inset-inline-start:0;background:#04140B;border-radius:9px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.in-meter span{display:block;font-size:.74rem;font-weight:800;color:#04140B;opacity:.8;padding-top:4px}
+.in-say{display:flex;align-items:flex-end;gap:8px;min-width:0}
+.in-say .in-pin.go-pin{margin:0;width:44px}.in-say .in-pin .pc{width:44px;height:60px}
+.in-bub{position:relative;margin:0 0 18px;background:#fff;border-radius:18px 18px 18px 4px;padding:10px 12px;font-size:.88rem;line-height:1.75;font-weight:700;box-shadow:0 10px 22px -16px #04140B;animation:inPop .4s ease-out;min-width:0}
+.in-h.sm{font-size:clamp(1.25rem,5.6vw,1.7rem)}
+.in-opts .in-opt{opacity:0;animation:inPop .35s ease-out forwards;animation-delay:var(--d)}
+.in-opts.two{grid-template-columns:1fr 1fr}.in-opts.two .in-opt{flex-direction:column;text-align:center;gap:6px;padding:14px 8px}
+.in-opt:active{transform:scale(.97)}
+.in-guess{display:grid;gap:10px;justify-items:center;text-align:center}
+.in-guess .in-pin.up .pc{animation:inJump 1s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes inJump{0%{transform:translateY(20px) scale(.8)}50%{transform:translateY(-18px) scale(1.06)}100%{transform:none}}
+.in-k{margin:0;font-weight:900;font-size:1rem}
+.in-big{margin:0;background:#fff;border-radius:18px;padding:12px 14px;font-weight:800;line-height:1.8;max-width:40ch}
+.in-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.in-chip{border:1.5px solid #04140B33;background:#ffffff73;color:#04140B;font:inherit;font-size:.78rem;padding:6px 10px;border-radius:999px;cursor:pointer}.in-chip i{font-style:normal;opacity:.6;margin-inline-start:4px}
+[data-step="peek"],[data-step="plan"]{text-align:start}
+[data-step="peek"] .in-pin,[data-step="plan"] .in-pin{margin-inline:0}
