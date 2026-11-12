@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>بروشور رسیدیم</title><meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="../assets/icon.svg?v=60">
+<link rel="stylesheet" href="../assets/brochure.css?v=60">
+</head>
+<body>
+<header class="tool no-pdf">
+  <h1>بروشور «رسیدیم مدرسه» و «رسیدیم سازمان»</h1>
+  <div class="row">
+    <label>کدِ مکان‌ها (با ویرگول جدا) <input id="codes" dir="ltr" placeholder="AB12CD34, EF56GH78"></label>
+    <label>قطع <select id="mode"><option value="tri">سه‌لت A4 (یک بروشور در برگه)</option><option value="strip">نوار مربعی (۴ بروشور در هر A4)</option></select></label>
+    <button id="go">ساختن</button><button id="pdf" disabled>دانلود PDF</button>
+  </div>
+  <p class="hint">چاپ دورو؛ سه‌لت: «چرخش از لبه‌ی کوتاه». نوارها: «چرخش از لبه‌ی بلند»؛ بعد از چاپ، از خط‌چین‌های افقی ببرید و از خط‌های عمودی تا کنید. در حالت نوار، اگر یک کد بدهید هر چهار نوار برای همان مجموعه با چهار رنگ ساخته می‌شود.</p>
+</header>
+<main id="out"></main>
+<script src="../assets/qrcode.js?v=60"></script>
+<script src="../assets/html2canvas.min.js?v=60"></script>
+<script src="../assets/jspdf.umd.min.js?v=60"></script>
+<script src="../assets/brochure.js?v=60"></script>
+</body>
+</html>
