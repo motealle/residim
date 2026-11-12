@@ -1934,7 +1934,7 @@ const goDests = () => { const p = goProf(), I = ME.info || {}, d = p ? p.data ||
 async function goOpen() {
   if (!goAllowed()) return; const p = goProf(); if (p && S.active !== p.id) { S.active = p.id; ui.leave = null; } S.go = 1; persist();
   let root = $('#go-root'); if (!root) { root = document.createElement('div'); root.id = 'go-root'; document.body.appendChild(root); }
-  { const t = $('.tour'); if (t && t.__end) t.__end(); } if (!ui.gps) api('gp_mine', {}).then(r => { ui.gps = r.list || []; }).catch(() => { ui.gps = []; }); document.body.classList.add('go-on'); mswSync(); GO.map = null; GO.me = null; GO.mk = []; GO.rMove = 0; GO.H = []; GO.Hi = -1; const d = p ? p.data || {} : {}, I = ME.info || {};
+  { const t = $('.tour'); if (t && t.__end) t.__end(); } if (!ui.gps) api('gp_mine', {}).then(r => { ui.gps = r.list || []; }).catch(() => { ui.gps = []; }); document.body.classList.add('go-on'); mswSync(); goDrop(); GO.me = null; GO.mk = []; GO.rMove = 0; GO.H = []; GO.Hi = -1; const d = p ? p.data || {} : {}, I = ME.info || {};
   if (GO.role == null) GO.role = p ? ((d.role || 'pay') !== 'pay' ? 'car' : 'ride') : (I.car ? 'car' : 'ride'); GO.seats = I.seats || d.seats || 3; GO.st = 'pick'; GO.dest = null;
   root.innerHTML = `<div class="go snap" role="main" aria-label="حالت سریع">
     <div class="go-map"><div class="mapc-holder"></div></div>
@@ -1955,7 +1955,7 @@ async function goGuess() { const p = goProf(); if (!p || !goAllowed() || S.go) r
     if (me && p.place && p.place.lat && hav(me.lat, me.lng, p.place.lat, p.place.lng) < 700) dir = 'home'; else if (me && d.lat && hav(me.lat, me.lng, d.lat, d.lng) < 500 && h < 12) dir = 'work'; } } catch (e) {}
   return dir; }
 async function goSuggest() { if (ui.suggBusy) return; ui.suggBusy = 1; const dir = await goGuess().finally(() => { ui.suggBusy = 0; }); const was = ui.goHot; ui.goHot = dir || null; if (was !== ui.goHot && $('#leave-slot')) { const p = active(); if (p) { const n = $('#leave-slot'); n.outerHTML = leaveCard(p); } } }
-function goExit() { S.go = 0; persist(); GO.from = null; { const t = $('.tour'); if (t && t.__end) t.__end(); } const r = $('#go-root'); if (r) r.innerHTML = ''; document.body.classList.remove('go-on'); GO.map = null; GO.me = null; GO.mk = []; GO.st = 'pick'; renderMain(); }
+function goExit() { S.go = 0; persist(); GO.from = null; { const t = $('.tour'); if (t && t.__end) t.__end(); } const r = $('#go-root'); if (r) r.innerHTML = ''; document.body.classList.remove('go-on'); goDrop(); GO.me = null; GO.mk = []; GO.st = 'pick'; renderMain(); }
 function goPaint() { goPaint0(); goHd(); goSnap(); goGch(); const c = $('#go-card'); if (c && window.ResizeObserver && !c.__ro) { c.__ro = new ResizeObserver(goGch); c.__ro.observe(c); } }
 const goIsF = () => ((ME.info || {}).g || ((goProf() || {}).data || {}).pg) === 'f';
 /* the empty top slot in «همین حالا» becomes a one-line trip breadcrumb — the same job the title does in «سرویس ثابت» */
@@ -2082,13 +2082,18 @@ function goPrefBody() { const L = (ME.info || {}).pref || [];
 async function goPrefSave(list) { try { const r = await api('my_info', { save: 1, pref: list }); ME.info = r.info; } catch (e) { toast(e.message); } goPaint(); }
 async function goMap() {
   const box = $('#go-root .mapc-holder'); if (!box) return; const D = goDests(), c = D.find(x => x.dir === 'home') || D[0];
-  try { const node = document.createElement('div'); node.className = 'mapc'; box.appendChild(node); GO.mapP = makeMap(node, c && c.ll ? c.ll : [35.7, 51.39], 13); const r = await GO.mapP; GO.map = r.map; GO.L = r.L; goMarks(); goLpWire();
-  GO.map.on('click', () => { if (GO.st === 'from') { GO.st = GO.dest ? 'opt' : 'pick'; goPaint(); } });
-  GO.map.on('movestart', () => { const pn = $('#go-root .go-pin'); if (pn && GO.st === 'pin') { pn.classList.remove('land'); pn.classList.add('up'); } });
-  GO.map.on('moveend', e => { const pn = $('#go-root .go-pin'); if (pn && pn.classList.contains('up')) { pn.classList.remove('up'); void pn.offsetWidth; pn.classList.add('land'); }
-    if (GO.noSnap) return; if (false) goSnap(true); else { const L0 = GO.H[GO.Hi]; if (L0 && L0.k === JSON.stringify([GO.st, GO.dest && GO.dest.id, GO.from && GO.from.id, GO.role, GO.seats])) L0.cam = { c: GO.map.getCenter(), z: GO.map.getZoom() }; } }); }
+  try { const node = document.createElement('div'); node.className = 'mapc'; box.appendChild(node); const P = GO.mapP = makeMap(node, c && c.ll ? c.ll : [35.7, 51.39], 13); const r = await P;
+  // go mode was closed/reopened while loading → this map is an orphan; drop it instead of adopting it
+  if (GO.mapP !== P || !document.contains(node)) { setTimeout(() => { try { r.map.remove(); } catch (x) {} }, 0); return; }
+  const m = GO.map = r.map; GO.L = r.L; goMarks(); goLpWire();
+  m.on('click', () => { if (GO.map !== m) return; if (GO.st === 'from') { GO.st = GO.dest ? 'opt' : 'pick'; goPaint(); } });
+  m.on('movestart', () => { if (GO.map !== m) return; const pn = $('#go-root .go-pin'); if (pn && GO.st === 'pin') { pn.classList.remove('land'); pn.classList.add('up'); } });
+  m.on('moveend', e => { if (GO.map !== m) return; const pn = $('#go-root .go-pin'); if (pn && pn.classList.contains('up')) { pn.classList.remove('up'); void pn.offsetWidth; pn.classList.add('land'); }
+    if (GO.noSnap) return; if (false) goSnap(true); else { const L0 = GO.H[GO.Hi]; if (L0 && L0.k === JSON.stringify([GO.st, GO.dest && GO.dest.id, GO.from && GO.from.id, GO.role, GO.seats])) L0.cam = { c: m.getCenter(), z: m.getZoom() }; } }); }
   catch (e) { box.innerHTML = `<div class="go-nomap">${ic('map')}<span>نقشه در دسترس نیست؛ دکمه‌ها کار می‌کنند.</span></div>`; }
 }
+/* retire the quick-mode map: unhook it from GO first so late moveend/click events can't touch a null map, then remove it outside the current render frame */
+function goDrop() { const m = GO.map; GO.map = null; GO.mapP = null; if (m) setTimeout(() => { try { m.stop(); m.remove(); } catch (e) {} }, 0); }
 /* long-press anywhere on the map (touch hold 550ms without moving, or right-click) → «this spot is…» */
 function goLpWire() { const m = GO.map; let t = null, p0 = null; const clr = () => { clearTimeout(t); t = null; };
   m.on('touchstart', e => { clr(); if ((e.originalEvent.touches || []).length > 1) return; p0 = e.point; const ll = e.lngLat; t = setTimeout(() => { t = null; try { navigator.vibrate && navigator.vibrate(18); } catch (x) {} goLp(ll); }, 550); });
