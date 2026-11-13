@@ -2283,7 +2283,9 @@ body.intro-on{overflow:hidden}
 .pwrap.on.col .pcard{border-radius:18px}
 /* v62 audience: organisation visitors see grown-ups at the office, not kids at school */
 .splash .s-adult{display:none}
-:root[data-aud="org"] .splash .s-adult{display:inline}
+:root[data-aud="org"] .splash .s-adult.a-mix{display:inline}
+:root[data-aud="org"][data-adult] .splash .s-adult.a-mix{display:none}
+:root[data-aud="org"][data-adult="m"] .splash .a-m,:root[data-aud="org"][data-adult="f"] .splash .a-f,:root[data-aud="org"][data-adult="fc"] .splash .a-fc,:root[data-aud="org"][data-adult="cl"] .splash .a-cl{display:inline}
 :root[data-aud="org"] .splash .s-kid:not(.s-adult){display:none}
 /* v62 premium cards for «رسیدیم مدرسه» and «رسیدیم سازمان» (story-card look: deep gradient, hairline, foil sheen) */
 .dr-biz{grid-template-columns:1fr 1fr;gap:8px}
@@ -2347,3 +2349,20 @@ textarea.cap-ed{width:100%;box-sizing:border-box;font:inherit;font-size:.86rem;l
 #go-card .go-sheet2.min>:not(.go-grab):not(.go-cta):not(.go-row3):not(.go-pt):not(.go-tabs){display:none!important}
 #go-card .go-sheet2.min .go-tabs{opacity:.7}
 #go-card .go-sheet2.min .go-grab{background:#00A859}
+/* v64 in-app browser notice */
+#inapp{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px));background:radial-gradient(120% 70% at 100% 0,#2BD487 0,#1DBF73 55%,#17A863 100%);color:#04140B}
+#inapp .ia-card{display:grid;gap:12px;max-width:420px;width:100%;background:#fff;border-radius:24px;padding:22px 18px;text-align:center;box-shadow:0 20px 40px -24px #04140B}
+#inapp .ia-e{font-size:2.6rem}#inapp b{font-size:1.1rem}#inapp p{margin:0;line-height:1.9;font-size:.92rem}#inapp .ia-s{background:#F1FCF6;border-radius:14px;padding:10px}
+#inapp .ia-b{display:block;padding:14px;border-radius:16px;background:#04140B;color:#fff;font:inherit;font-weight:900;text-decoration:none;border:0;cursor:pointer}
+#inapp .ia-l{background:#F1FCF6;color:#04140B;border:1.5px solid #04140B22}
+#inapp .ia-x{border:0;background:transparent;color:#24493A;font:inherit;font-size:.85rem;text-decoration:underline;cursor:pointer}
+/* v64 pie timer: the wedge grows clockwise from 0 to 360° (no digits) */
+.shot-ring .sr-pie{width:30px;height:30px;border-radius:50%;background:conic-gradient(#00A859 calc(var(--p,0) * 1turn),var(--snl,#E3F1E9) 0);box-shadow:inset 0 0 0 2px #00A85933;transition:background .1s linear}
+.shot-ring.hold .sr-pie{animation:srHold 1s ease-in-out infinite}
+@keyframes srHold{50%{opacity:.55}}
+.why-l{margin:0;padding-inline-start:18px;display:grid;gap:8px;line-height:1.9;font-size:.9rem}
+.wt-n .linkish{display:inline;font-size:.82rem}
+/* v64 compact waiting screen on short phones */
+@media (max-height:720px){.go-wt{padding:8px 10px;gap:8px}.go-wt .wt-r{transform:scale(.8)}.wt-n{font-size:.78rem;line-height:1.7;margin:0}#go-card .go-steps,#go-card .go-stp{transform:scale(.92);transform-origin:top center;margin-bottom:-4px}}
+#go-card .go-row2 button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#go-card .go-row2 button{min-width:0}

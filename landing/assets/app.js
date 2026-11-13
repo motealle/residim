@@ -116,7 +116,7 @@ const SND = { ctx: null };
 const SND_FILE = { tune: 'tune', arrive: 'arrived', done: 'done', door: 'door', urgent: 'urgent', boarded: 'boarded', start: 'start', invite: 'invite', team: 'team', remind: 'remind', msg: 'msg' };
 const SND_ALT = { tune: 'done', door: 'honk', urgent: 'honk', boarded: 'step', start: 'whoosh', invite: 'ok', team: 'done', remind: 'ok', msg: 'tap' };
 function sndLoad(name) { const c = SND.ctx; if (!c) return; SND.buf = SND.buf || {}; if (SND.buf[name] !== undefined) return; SND.buf[name] = null;
-  fetch('assets/snd/' + name + '.mp3?v=63').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
+  fetch('assets/snd/' + name + '.mp3?v=64').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
 function snd(kind) {
   if (S.sound !== false && SND_FILE[kind]) { try { if (!SND.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) SND.ctx = new AC(); }
     const c = SND.ctx; if (c) { if (c.state === 'suspended') c.resume(); const nm = SND_FILE[kind]; sndLoad(nm); Object.values(SND_FILE).forEach(sndLoad); const b = SND.buf[nm];
@@ -278,7 +278,7 @@ async function mapLib() {
     }
     await loadCss('assets/maplibre-gl.css');
     await loadJs('assets/maplibre-gl.js', () => !!window.maplibregl, 12000);
-    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=63', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
+    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=64', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
     return (MapKit.lib = { name: 'libre', G: window.maplibregl });
   })();
   try { return await MapKit.loading; } catch (e) { MapKit.failed = true; MapKit.loading = null; throw e; }
@@ -287,7 +287,7 @@ async function makeMap(el, center, zoom) {
   const L = await mapLib();
   let map;
   if (L.name === 'neshan') map = new L.G.Map({ mapType: (isDark() && L.G.Map.mapTypes.neshanVectorNight) || L.G.Map.mapTypes.neshanVector, container: el, zoom, pitch: 0, center: [center[1], center[0]], minZoom: 4, maxZoom: 19, trackResize: true, mapKey: CFG.web_key, poi: false, traffic: false, mapTypeControllerOptions: { show: false } });
-  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=63' : 'assets/map-style.json?v=63', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=64' : 'assets/map-style.json?v=64', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('map-timeout')), 10000);
     map.on('load', () => { clearTimeout(t); res(); });
@@ -983,9 +983,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=63" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=64" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow tt" style="min-width:0"><span class="tt-r"><b class="mqw"><span>${esc(p.label)}</span></b><span class="pchip">${ic('down', '')}</span></span><small class="mqw"><span>${p.team ? esc(teamName(p.team)) + ' – ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</span></small></span>`; }
-  else t = `<img src="assets/icon.svg?v=63" alt=""><span><b>رسیدیم</b><small>${orgAud() ? 'هم‌مسیرِ همکار و همسایه' : 'سرویس مشارکتی والدین'}</small></span>`;
+  else t = `<img src="assets/icon.svg?v=64" alt=""><span><b>رسیدیم</b><small>${orgAud() ? 'هم‌مسیرِ همکار و همسایه' : 'سرویس مشارکتی والدین'}</small></span>`;
   $('#title').innerHTML = t; requestAnimationFrame(() => mqFit($('#title'))); $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -1025,7 +1025,10 @@ function widgetSync() { if (!NATIVE || !NP.Preferences) return; try { const p = 
 async function widgetTap() { if (!NATIVE || !NP.Preferences) return; try { const r = await NP.Preferences.get({ key: 'widget_tap' }); if (!r || !r.value) return; await NP.Preferences.remove({ key: 'widget_tap' });
     const [dir, at] = String(r.value).split('|'); if (Date.now() - (+at || 0) > 120000) return; if (dir === 'setup') return act('intro-now');
     const pp = goProf(); if (pp && pp.complete && (dir === 'work' || dir === 'home')) setTimeout(() => goQuick(dir, false), 300); } catch (e) {} }
-function render(anim) { try { const au = orgAud() ? 'org' : ''; if ((S.aud || '') !== au) { S.aud = au; persist(); } } catch (e) {} widgetSync(); renderTop(); renderMain(anim); renderSide(); paintNotice(); }
+/* v64 who steps out of the car on the next splash: two men, two women (headscarf), two women in chador (religious), or two clerics — from the active route */
+function adultKind() { const p = active(), d = (p && p.data) || {}, I = ME.info || {}, g = d.pg || (ui.intro && ui.intro.a.g) || '', cl = d.job === 'cleric' || I.job === 'cleric', rl = !!d.relig || cl;
+  if (!g) return ''; if (g === 'm') return cl ? 'cl' : 'm'; return rl ? 'fc' : 'f'; }
+function render(anim) { try { const au = orgAud() ? 'org' : ''; if ((S.aud || '') !== au) { S.aud = au; persist(); } const ak = adultKind(); if (ak && S.adult !== ak) { S.adult = ak; persist(); } } catch (e) {} widgetSync(); renderTop(); renderMain(anim); renderSide(); paintNotice(); }
 function paintNotice() { const n = CFG.notice || '', el = $('#notice'); if (!el) return; const show = n && S.noticeHid !== n && !ui.admin; el.classList.toggle('hide', !show); if (show) el.innerHTML = `${ic('bell')}<span class="grow">${esc(n)}</span><button class="icon-btn" data-a="notice-x" aria-label="بستن">${ic('close')}</button>`; }
 function renderSide() {
   const el = $('#side'); if (!el) return; if (!isDesk() || ui.admin) { el.innerHTML = ''; return; }
@@ -1080,7 +1083,7 @@ function drawer(keep) {
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const grp = (k, i, t, body) => `<div class="grp"><button class="sec-h" data-a="toggle" data-v="${k}" aria-expanded="${!!ui.open[k]}"><span>${ic(i, 'i')} ${t}</span>${ic('down', 'i chev' + (ui.open[k] ? ' open' : ''))}</button><div class="plist ${ui.open[k] ? '' : 'closed'}" style="max-height:${ui.open[k] ? 700 : 0}px">${body}</div></div>`;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=63" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ME.info && ME.info.av ? `<img class="fab-av" src="${esc(ME.info.av)}" alt="" draggable="false">` : ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=64" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ME.info && ME.info.av ? `<img class="fab-av" src="${esc(ME.info.av)}" alt="" draggable="false">` : ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     ${S.token ? `<div class="dr-duo">${goAllowed() ? (S.go ? `<button class="dr-go" data-a="go-exit"><span class="gch-ic">${ic('team')}</span><span class="grow"><b>سرویس ثابت</b><small>هم‌مسیرها، تیم، حساب</small></span></button>` : `<button class="dr-go ${ui.goHot ? 'hot' : ''}" data-a="go-open"><span class="gch-ic">${ic('now')}</span><span class="grow"><b>دارم می‌روم</b><small>${ui.goHot ? 'الان به کارتان می‌آید' : 'نقشه و رفتن با یک تپ'}</small></span></button>`) : ''}<button class="dr-me" data-a="my-info">${ic('user')}<span>اطلاعات من</span></button></div>` : ''}
     <div class="sec-h"><span>مسیرهای من <button class="q-mark" data-a="glossary" aria-label="مسیر یعنی چه؟">؟</button></span><button class="link small" data-a="new-profile">${ic('plus')}تازه</button></div>
     <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}${x.id === S.active && ui.pcol ? ' col' : ''}">${profRow(x)}${!x.complete && !x.shared ? `<button class="pdel" data-a="prof-del" data-id="${x.id}" aria-label="پاک کردن «${esc(x.label)}»">${ic('close')}</button>` : ''}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیر را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
@@ -1107,7 +1110,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۶۳</small></span>` : `<span>نسخه‌ی وب ۶۳${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
+    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۶۴</small></span>` : `<span>نسخه‌ی وب ۶۴${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -1176,7 +1179,7 @@ async function ambView() {
       <div class="row"><input id="amb-pl" dir="ltr" placeholder="WPXJUG5A" maxlength="8" style="flex:1"><button class="btn ac" data-a="amb-make">ساختن</button></div><div id="amb-out"></div></section>
     <section class="card stack"><h2>ایده‌های سریع</h2><ol class="steps3"><li>پوستر A5 را روی تابلوی اعلانات مدرسه (با اجازه‌ی مدرسه) بچسبانید.</li><li>متن آماده و لینک را در گروه کلاس و کانال مدرسه بگذارید؛ صبح‌های شنبه بهترین زمان است.</li><li>از ۲ خانواده‌ی هم‌محله بخواهید با هم ثبت‌نام کنند؛ تیم زودتر شکل می‌گیرد.</li></ol></section>
     ${A.list.length ? `<section class="card"><h2>ثبت‌شده‌ها</h2><table><tr><th>تاریخ</th><th>مکان</th><th>نوع</th><th>مبلغ</th></tr>${A.list.slice(0, 60).map(x => `<tr><td>${jLabel(new Date(x.created * 1000))}</td><td>${esc(x.place || '—')}</td><td>${x.kind === 'team' ? 'تیم شد' : 'ثبت‌نام'}</td><td>${money(x.amount)}${+x.paid ? ' ✓' : ''}</td></tr>`).join('')}</table></section>` : ''}</div>`;
-  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=63" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
+  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=64" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
 }
 function reportHtml(p, T) {
   const H = (ui.hist && ui.hist.trips) || [], done = H.filter(x => x.status === 'done').sort((a, b) => a.date < b.date ? -1 : 1), b = balances(T), now = new Date();
@@ -1210,7 +1213,7 @@ async function saveBlob(blob, name, title, text) {
 }
 /** Render an element (inside #print-root) to a PNG or a paged A4 PDF that never cuts through a row or a line. */
 async function elToFile(el, kind, name, title) {
-  try { await loadJs('assets/html2canvas.min.js?v=63', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=63', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
+  try { await loadJs('assets/html2canvas.min.js?v=64', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=64', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
   try { await document.fonts.ready; } catch (e) {}
   const cv = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }); let blob;
   if (kind === 'png') blob = await new Promise(res => cv.toBlob(res, 'image/png'));
@@ -2082,7 +2085,7 @@ function goPaint0() {
       <p class="gm-fun"><b>${iCar ? `ساعت ${fa(g.at_t || '')} ${esc(pick)} سوارش کنید.` : `${esc(mate.name)} ساعت ${fa(g.at_t || '')} ${esc(pick)} سوارتان می‌کند.`}</b> ${fun[(g.at || 0) % fun.length]}</p>`
       : any ? `<div class="go-done"><i class="go-wait" aria-hidden="true"></i><span><b>یک نفر به گروه آمد</b><small>در گفتگو هماهنگ شوید؛ هر تغییری با صدا خبرتان می‌کند.</small></span></div>`
       : `<div class="go-wt"><div class="wt-r" aria-hidden="true"><i></i><i></i><i></i><b>📡</b></div><div class="wt-t"><b>دنبال هم‌مسیر ${toWork ? 'سر کار' : 'خانه'} می‌گردیم…</b><small id="go-wl">${esc(GO_WAITL[0])}</small></div><div class="wt-el"><b id="go-el">۰:۰۰</b><small>گذشته</small></div></div>
-        <p class="wt-n">${GO.sent ? `به ${fa(GO.sent)} همکار نزدیک خبر رسید.` : 'به همکاران نزدیک خبر رسید.'} می‌توانید اپ را ببندید؛ تا کسی بگوید «من هم»، با صدا و لرزش خبرتان می‌کنیم.</p>`;
+        <p class="wt-n">${GO.sent ? `به ${fa(GO.sent)} همکار نزدیک خبر رسید.` : 'به همکاران نزدیک خبر رسید.'} می‌توانید اپ را ببندید؛ تا کسی بگوید «من هم»، با صدا و لرزش خبرتان می‌کنیم. <button class="linkish" data-a="go-why2">🔎 چرا هنوز کسی نیامده؟</button></p>`;
     box.innerHTML = `<div class="go-sheet2"><span class="go-grab"></span>${steps}${card}
       <div class="go-row2"><button data-a="lv-open" data-id="${g.id || ''}">${ic('chat')}<span>گفتگوی گروه</span></button>${GO.boarded ? `<button data-a="go-brag">${ic('share')}<span>خبر خوبش را پخش کنید</span></button>` : mate && !GO.boarded && iCar ? `<button data-a="go-here">${ic('car')}<span>کنار در هستم</span></button>` : mate && !GO.boarded ? `<button data-a="go-board">${ic('check')}<span>سوار شدم</span></button>` : `<button data-a="go-pshare">${ic('share')}<span>خبر به هم‌سفرهای من</span></button>`}</div>
       <div class="go-row3"><button class="go-cta ghost" data-a="go-cancel">${mate ? 'نمی‌توانم بیایم' : 'پشیمان شدم؛ لغو'}</button><button class="go-cta" data-a="go-reset">باشه</button></div></div>`;
@@ -2144,9 +2147,8 @@ const SHOT_MS = 6000;
 function goShot() { if (ui.shot) return; document.body.classList.add('go-shot');
   const m = GO.map; if (m && !m.__shotW) { m.__shotW = 1; try { m.on('movestart', () => { if (ui.shot) ui.shot.hold = 1; }); m.on('moveend', () => { if (ui.shot) { ui.shot.hold = 0; ui.shot.left = SHOT_MS; } }); } catch (e) {} } try { navigator.vibrate && navigator.vibrate(12); } catch (e) {}
   let r = $('#shot-ring'); if (!r) { r = document.createElement('button'); r.id = 'shot-ring'; r.className = 'shot-ring'; r.dataset.a = 'go-unshot'; r.setAttribute('aria-label', 'برگرداندن دکمه‌های بالا'); document.body.appendChild(r); }
-  r.innerHTML = '<svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" class="sr-bg"/><circle cx="18" cy="18" r="15" class="sr-fg"/></svg><b></b>';
-  ui.shot = { left: SHOT_MS, hold: 0, t: setInterval(() => { const S0 = ui.shot; if (!S0) return; if (!S0.hold) S0.left -= 100; const f = Math.max(0, S0.left / SHOT_MS), c = r.querySelector('.sr-fg'), b = r.querySelector('b');
-      if (c) c.style.strokeDashoffset = String(94.25 * (1 - f)); if (b) b.textContent = S0.hold ? '⏸' : fa(Math.ceil(S0.left / 1000)); if (S0.left <= 0) goUnshot(); }, 100) };
+  r.innerHTML = '<i class="sr-pie" aria-hidden="true"></i>'; r.style.setProperty('--p', '0');
+  ui.shot = { left: SHOT_MS, hold: 0, t: setInterval(() => { const S0 = ui.shot; if (!S0) return; if (!S0.hold) S0.left -= 100; const f = Math.max(0, S0.left / SHOT_MS); r.style.setProperty('--p', (1 - f).toFixed(3)); r.classList.toggle('hold', !!S0.hold); if (S0.left <= 0) goUnshot(); }, 100) };
   if (!S.tipShot) { S.tipShot = 1; persist(); setTimeout(() => toast('🚀 شوت شد! چند ثانیه بعد خودش برمی‌گردد؛ با زدن دایره همین الان برمی‌گردد.'), 300); } }
 function goUnshot() { const S0 = ui.shot; if (!S0) return; clearInterval(S0.t); ui.shot = null; const r = $('#shot-ring'); if (r) r.remove();
   document.body.classList.remove('go-shot'); document.body.classList.add('go-drop'); setTimeout(() => document.body.classList.remove('go-drop'), 700); }
@@ -2733,7 +2735,7 @@ function jrView(J) {
   <section class="card jr-dx"><h3>🩺 تشخیص</h3><ul>${D.map(f => `<li class="is-${f.lv}"><span class="jr-dxi">${f.ic}</span><span><b>${esc(f.t)}</b>${f.fix ? `<small>${esc(f.fix)}</small>` : ''}</span></li>`).join('')}</ul></section>
   ${J.profiles.length > 1 ? `<div class="jr-ptabs no-print">${J.profiles.map((p, i) => `<button data-a="jr-prof" data-v="${i}" aria-pressed="${p === P}">${kindIc(p.kind)}<span>${esc(p.place ? p.place.name : p.label)}</span>${p.team ? '<i>تیم</i>' : ''}</button>`).join('')}</div>` : ''}
   <section class="card jr-swc"><h3>🗺️ مسیر در فرایند رسیدیم ${P && P.place ? `<small>${esc(P.place.name)}${P.place.city ? '، ' + esc(P.place.city) : ''}</small>` : ''}</h3>
-    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=63" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
+    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=64" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
       <div class="jr-grid" style="--n:${S.length}">${[0, 1, 2].map(l => `<i class="jr-lane l${l}" style="grid-column:${l + 2}"></i>`).join('')}<svg class="jr-wires" aria-hidden="true"></svg>
         ${S.map((s, i) => `<span class="jr-no is-${s.st}" style="grid-row:${i + 1}">${fa(i + 1)}</span><div class="jr-node is-${s.st} l${s.lane}" style="grid-row:${i + 1};grid-column:${s.lane + 2};--d:${i}" data-i="${i}">${i === cur ? `<span class="jr-here">${shapeAv(P ? P.id : u.id, 30)}<em>اینجاست</em></span>` : ''}<b><i>${s.ic}</i>${s.t}</b><small>${esc(s.sub || '')}</small>${s.at ? `<time>${jrAgo(s.at)}</time>` : ''}</div>`).join('')}
       </div></div>
@@ -3161,6 +3163,14 @@ async function act(a, el) {
     case 'go-back': { if (GO.st === 'from') { GO.st = GO.dest ? 'opt' : 'pick'; goPaint(); return; } if (GO.st === 'pin' && GO.pin && GO.pin.kind === 'from') { GO.pin = null; GO.st = 'from'; goPaint(); return; } if (GO.st === 'pick') return goExit(); GO.st = 'pick'; GO.dest = null; GO.pin = null; goPaint(); return goMarks(); }
     case 'go-reset': { GO.st = 'pick'; GO.dest = null; GO.group = null; goPaint(); return goMarks(); }
     case 'go-role': { GO.role = el.dataset.v; $$('.go-seg [data-a="go-role"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === GO.role)); if (GO.st === 'opt') goPaint(); return; }
+    case 'go-why2': { const p = goProf(); if (!p) return; let r; try { r = await api('leave_why', { profile_id: p.id }); } catch (e) { return toast(e.message); }
+      const O = r.other || {}, home = r.dir === 'home', L = [];
+      L.push(`در «${esc(r.place)}» و مکان‌های تا ۱٫۵ کیلومتری‌اش، <b>${fa(r.all)}</b> نفر مسیر کامل دارند؛ <b>${fa(r.same_g)}</b> نفر هم‌جنس شما.`);
+      L.push(r.way ? `<b>${fa(r.way)}</b> نفر خانه‌شان هم‌جهت با شماست${r.comp ? `؛ <b>${fa(r.comp)}</b> نفر ${r.role === 'car' ? 'بی‌ماشین‌اند' : 'ماشین دارند'} و همین‌ها خبر شدند` : `، ولی هیچ‌کدام ${r.role === 'car' ? 'بی‌ماشین نیست' : 'ماشین ندارد'}`}.` : 'هنوز کسی که خانه‌اش هم‌جهت با شما باشد ثبت‌نام نکرده است.');
+      if (r.off) L.push(`${fa(r.off)} نفر «دارم می‌روم» را برای خودشان خاموش کرده‌اند.`);
+      const oo = []; if (O.dir) oo.push(`${fa(O.dir)} اعلام ${home ? 'به سمت محل کار' : 'به سمت خانه'}`); if (O.time) oo.push(`${fa(O.time)} اعلام با بیش از ۲۵ دقیقه فاصله‌ی زمانی`); if (O.way) oo.push(`${fa(O.way)} اعلام هم‌زمان ولی با خانه‌ای در جهت دیگر`); if (O.g) oo.push(`${fa(O.g)} اعلام از جنس دیگر (طبق قانون هم‌جنسی دیده نمی‌شود)`);
+      L.push(oo.length ? 'اعلام‌های باز دیگر: ' + oo.join('، ') + '.' : 'الان اعلام باز دیگری در این حوالی نیست.');
+      return sheet('🔎 چرا هنوز کسی نیامده؟', `<ul class="why-l">${L.map(x => `<li>${x}</li>`).join('')}</ul><p class="muted small">همه‌ی عددها بی‌نام‌اند. پیشنهاد: ${r.way < 3 ? 'با پوستر و پیام آماده، همکارهای هم‌مسیر را بیاورید.' : 'ساعت حرکت را با همکارها هماهنگ کنید تا اعلام‌ها هم‌زمان شوند.'}</p><div class="row2"><button class="btn ac" data-a="poster">🖼️ پوستر و پیام</button><button class="btn line" data-a="close">باشه</button></div>`); }
     case 'go-unshot': return goUnshot();
     case 'go-seat': { GO.seats = +el.dataset.v; GO.role = 'car'; return goPaint(); }
     case 'go-when': { const o = [0, 15, 30, 60], k = (o.indexOf(GO.in) + 1) % o.length; GO.in = o[k]; if (GO.st === 'pick') { const n = $('.go-now'); if (n) n.innerHTML = ic('clock2') + (GO.in ? fa(GO.in) + ' دقیقه‌ی دیگر' : 'همین حالا') + '<small>▾</small>'; return; } return goPaint(); }

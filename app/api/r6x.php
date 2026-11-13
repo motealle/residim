@@ -107,6 +107,12 @@ function x_anomaly(): void { $day = date('Ymd'); if (getv('anom_day', '') === $d
     $B = []; foreach (rows("SELECT data FROM profiles WHERE data LIKE '%\"blocked\"%' LIMIT 5000") as $r) foreach ((array)(pdata($r)['blocked'] ?? []) as $pid) $B[(string)$pid] = ($B[(string)$pid] ?? 0) + 1;
     foreach ($B as $pid => $n) if ($n >= 2 && ($p = row('SELECT user_id FROM profiles WHERE id=?', [$pid]))) $out[] = ['🚫 چند نفر جداگانه مسدودش کرده‌اند', $p['user_id'], $n];
     try { foreach (rows('SELECT user_id, COUNT(*) c FROM ads WHERE created>? GROUP BY user_id HAVING COUNT(*)>=5', [$since]) as $r) $out[] = ['📢 آگهیِ پرتعداد (احتمال کرایه‌کشی)', $r['user_id'], (int)$r['c']]; } catch (Throwable $e) {}
+    /* v64 the same workplace registered twice (a few metres apart, similar names) — groups now merge anyway, but the admin should merge the records */
+    try { $PL = rows("SELECT p.id, p.name, p.lat, p.lng, COUNT(f.id) c FROM places p JOIN profiles f ON f.place_id=p.id WHERE p.kind IN ('work','uni') GROUP BY p.id, p.name, p.lat, p.lng LIMIT 3000"); $dup = 0;
+        for ($i = 0; $i < count($PL) && $dup < 10; $i++) for ($j = $i + 1; $j < count($PL); $j++) { $A = $PL[$i]; $B = $PL[$j]; if (abs($A['lat'] - $B['lat']) > .002 || abs($A['lng'] - $B['lng']) > .002) continue;
+            $m = hav((float)$A['lat'], (float)$A['lng'], (float)$B['lat'], (float)$B['lng']); if ($m > 200) continue; $na = pn_norm((string)$A['name']); $nb = pn_norm((string)$B['name']);
+            if (!($na === $nb || str_contains($na, $nb) || str_contains($nb, $na) || pn_sim($na, $nb) >= .7)) continue;
+            ev_log('alert', "🏢 مکان تکراری احتمالی: «{$A['name']}» (" . fa_d((string)$A['c']) . " نفر) و «{$B['name']}» (" . fa_d((string)$B['c']) . ' نفر)، ' . fa_d((string)(int)$m) . ' متر فاصله. «دارم می‌روم» این دو را با هم جور می‌کند؛ برای سرویس ثابت، یکی کردنشان بهتر است.', ['a' => $A['id'], 'b' => $B['id']]); if (++$dup >= 10) break; } } catch (Throwable $e) {}
     foreach (array_slice($out, 0, 30) as [$t, $uid, $n]) { $ph = (string)(row('SELECT phone FROM users WHERE id=?', [$uid])['phone'] ?? ''); ev_log('alert', "$t: " . pmask($ph ?: null) . ' (' . fa_d((string)$n) . ' بار در ۷ روز)', ['u' => $uid, 'n' => $n]); } }
 function route_tick(): void { if ((int)getv('rt_tick', '0') > time() - 300) return; if (is_file(dirname(__DIR__) . '/storage/bug-ack.json')) try { bug_outbox(); } catch (Throwable $e) {} setv('rt_tick', (string)time()); x_schema(); try { x_anomaly(); } catch (Throwable $e) {}
     $tz = new DateTimeZone('Asia/Tehran'); $now = new DateTime('now', $tz); $hm = (int)$now->format('G') * 60 + (int)$now->format('i'); $dw = ((int)$now->format('w') + 1) % 7; $day = $now->format('Ymd'); $n = 0;
@@ -495,6 +501,19 @@ function x_route(string $a, array $in): void {
             foreach (rows("SELECT id, phone FROM users WHERE phone IN ($ph) AND COALESCE(fake,0)=0", $ch) as $r) { if ($g && user_g($r['id']) && user_g($r['id']) !== $g) continue;
                 $org = $myp ? (bool)row('SELECT 1 FROM profiles WHERE user_id=? AND complete=1 AND place_id IN (' . implode(',', array_fill(0, count($myp), '?')) . ')', [$r['id'], ...$myp]) : false; $out[] = ['phone' => $r['phone'], 'org' => $org]; } }
         YES(['list' => $out]); }
+    case 'leave_why': { /* v64 «چرا هنوز کسی نیامده؟» — honest, anonymous counts for my open announcement: who could hear it and why others are not in my group */
+        $u = auth(); $me = my_profile($u, (string)($in['profile_id'] ?? '')); $pl = row('SELECT * FROM places WHERE id=?', [$me['place_id']]); if (!$pl) NO('مسیر پیدا نشد.');
+        $d = pdata($me); $g = (string)($d['pg'] ?? 'f'); $gr = row("SELECT g.* FROM tgroups g JOIN tg_members m ON m.group_id=g.id WHERE g.kind='leave' AND g.status='open' AND g.until>? AND m.profile_id=? ORDER BY g.at DESC LIMIT 1", [time(), $me['id']]);
+        $dir = $gr ? ($gr['dir'] ?: 'home') : (($in['dir'] ?? '') === 'work' ? 'work' : 'home'); $myRole = $gr ? (string)(row('SELECT role FROM tg_members WHERE group_id=? AND profile_id=?', [$gr['id'], $me['id']])['role'] ?? 'ride') : 'ride';
+        $NP = lv_places($pl); $ph = implode(',', array_fill(0, count($NP), '?')); $all = 0; $sameG = 0; $way = 0; $comp = 0; $off = 0;
+        foreach (rows("SELECT p.* FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.place_id IN ($ph) AND p.complete=1 AND p.kind IN ('work','uni') AND p.user_id<>? AND COALESCE(u.fake,0)=0 LIMIT 2000", [...array_keys($NP), $u['user_id']]) as $o) {
+            $all++; $od = pdata($o); if (($od['pg'] ?? 'f') !== $g) continue; $sameG++; if (!empty($od['leave_off'])) { $off++; continue; }
+            if (!same_way($pl, $d, $od) && lv_corr($pl, $d, row('SELECT * FROM places WHERE id=?', [$o['place_id']]) ?: $pl, $od) === null) continue; $way++;
+            $rr = (string)($od['role'] ?? 'pay'); if (in_array($rr, $myRole === 'car' ? ['pay', 'both'] : ['drive', 'both'], true)) $comp++; }
+        $other = ['dir' => 0, 'time' => 0, 'way' => 0, 'g' => 0]; $at = $gr ? (int)$gr['at'] : time();
+        foreach (rows("SELECT * FROM tgroups WHERE kind='leave' AND status='open' AND until>? AND place_id IN ($ph)" . ($gr ? ' AND id<>?' : ''), [time(), ...array_keys($NP), ...($gr ? [$gr['id']] : [])]) as $c) {
+            if ($c['g'] !== $g) { $other['g']++; continue; } if (($c['dir'] ?: 'home') !== $dir) { $other['dir']++; continue; } if (abs((int)$c['at'] - $at) > 1500) { $other['time']++; continue; } $other['way']++; }
+        YES(['place' => $pl['name'], 'dir' => $dir, 'role' => $myRole, 'all' => $all, 'same_g' => $sameG, 'way' => $way, 'comp' => $comp, 'off' => $off, 'other' => $other, 'members' => $gr ? count(tg_members($gr['id'])) : 0]); }
     case 'poi_search': { /* v62 «where do you work?»: our own places first (with how many colleagues are already here), then the live map
            (Neshan when its service key is set, else OpenStreetMap), so ANY workplace/campus/office in the city can be found. Guests allowed, rate-limited, cached a day. */
         if (hit('poi_' . ip_tag(), 3600) > 60) NO('کمی بعد دوباره جستجو کنید.'); $qq = trim(mb_substr((string)($in['q'] ?? ''), 0, 50)); $la = (float)($in['lat'] ?? 0); $ln = (float)($in['lng'] ?? 0);
