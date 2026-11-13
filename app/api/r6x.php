@@ -225,7 +225,7 @@ function pref_has(string $myPid, string $uid): bool { static $P = [], $U = []; i
     if (!isset($P[$myPid])) { $o = row('SELECT u.info FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.id=?', [$myPid]); $I = json_decode((string)($o['info'] ?? ''), true) ?: []; $P[$myPid] = array_flip(array_column((array)($I['pref'] ?? []), 'phone')); }
     if (!$P[$myPid]) return false; $U[$uid] ??= (string)(row('SELECT phone FROM users WHERE id=?', [$uid])['phone'] ?? ''); return isset($P[$myPid][$U[$uid]]); }
 function hon(array $d, string $fb = 'هم‌مسیر'): string { $f = trim((string)($d['family'] ?? '')); if ($f === '') return $fb; $j = (string)($d['job'] ?? '');
-    $t = $j === 'cleric' ? (($d['pg'] ?? 'f') === 'm' ? 'حاج‌آقا' : 'حاج‌خانم') : (in_array($j, ['academic', 'medic'], true) ? 'دکتر' : (string)($d['title'] ?? '')); return trim("$t $f"); }
+    $t = $j === 'cleric' ? (($d['pg'] ?? 'f') === 'm' ? 'حاج‌آقا' : 'حاج‌خانم') : (in_array($j, ['academic', 'medic'], true) ? 'دکتر' : ((string)($d['title'] ?? '') ?: (($d['pg'] ?? '') === 'm' ? 'آقای' : (($d['pg'] ?? '') === 'f' ? 'خانم' : '')))); return trim("$t $f"); }
 function tg_out(array $g, string $me): array {
     $M = tg_members($g['id']); $car = 0; $ride = 0; $out = [];
     foreach ($M as $m) { $d = json_decode((string)$m['data'], true) ?: []; if ($m['role'] === 'car') $car += (int)$m['seats']; else $ride += max(1, (int)$m['seats']);
@@ -434,7 +434,10 @@ function x_route(string $a, array $in): void {
             $ow = row('SELECT * FROM profiles WHERE id=?', [$gr['owner']]); if (!$ow || in_array($me['id'], (array)(pdata($ow)['blocked'] ?? []), true) || in_array($ow['id'], (array)($d['blocked'] ?? []), true)) NO('این گروه دیگر باز نیست.', 404); $dir = $gr['dir'] ?: 'home'; }
         else { if (hit('leave_' . $me['id'], 86400) > 6) NO('امروز چند بار اعلام رفتن کردید؛ اگر لازم است در گفتگوی گروه بنویسید.', 429);
             $at = time() + max(0, min(90, (int)($in['in_min'] ?? 0))) * 60; $gr = null; $bd = 1e12;
-            foreach (rows("SELECT * FROM tgroups WHERE kind='leave' AND place_id=? AND g=? AND status='open' AND until>? AND ABS(at-?)<=1500 AND COALESCE(dir,'home')=?", [$me['place_id'], $g, time(), $at, $dir]) as $c) { $ow = row('SELECT * FROM profiles WHERE id=?', [$c['owner']]);
+            /* v63: the same workplace is often registered twice («فرهنگستان» by two colleagues, a few metres apart) — join open groups of every place within 1.5 km, not only my exact place record */
+            $NPg = lv_places($pl); $phg = implode(',', array_fill(0, count($NPg), '?'));
+            foreach (rows("SELECT * FROM tgroups WHERE kind='leave' AND place_id IN ($phg) AND g=? AND status='open' AND until>? AND ABS(at-?)<=1500 AND COALESCE(dir,'home')=?", [...array_keys($NPg), $g, time(), $at, $dir]) as $c) { $ow = row('SELECT * FROM profiles WHERE id=?', [$c['owner']]);
+                if ($ow && in_array($me['id'], (array)(pdata($ow)['blocked'] ?? []), true)) continue;
                 if ($ow && same_way($pl, $d, pdata($ow))) { $dd = isset($d['lat']) ? hav((float)$d['lat'], (float)$d['lng'], (float)(pdata($ow)['lat'] ?? 0), (float)(pdata($ow)['lng'] ?? 0)) : 0; if ($dd < $bd) { $bd = $dd; $gr = $c; } } }
             if (!$gr) { $id = 'G' . uid(11); q('INSERT INTO tgroups(id,kind,ref,place_id,g,owner,title,at,until,status,created,dir) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', [$id, 'leave', $me['id'], $me['place_id'], $g, $me['id'], $dir === 'home' ? 'رفتن به خانه از ' . $pl['name'] : 'رفتن به ' . $pl['name'], $at, $at + 5400, 'open', time(), $dir]); $gr = row('SELECT * FROM tgroups WHERE id=?', [$id]); $new = true; } }
         q('INSERT INTO tg_members(group_id,profile_id,user_id,role,seats,at_site,created) VALUES(?,?,?,?,?,?,?)', [$gr['id'], $me['id'], $u['user_id'], $role, $seats, $site, time()]);
@@ -495,7 +498,10 @@ function x_route(string $a, array $in): void {
     case 'poi_search': { /* v62 «where do you work?»: our own places first (with how many colleagues are already here), then the live map
            (Neshan when its service key is set, else OpenStreetMap), so ANY workplace/campus/office in the city can be found. Guests allowed, rate-limited, cached a day. */
         if (hit('poi_' . ip_tag(), 3600) > 60) NO('کمی بعد دوباره جستجو کنید.'); $qq = trim(mb_substr((string)($in['q'] ?? ''), 0, 50)); $la = (float)($in['lat'] ?? 0); $ln = (float)($in['lng'] ?? 0);
-        if (mb_strlen($qq) < 2) YES(['list' => []]); $out = []; $seen = [];
+        if (mb_strlen($qq) < 2) { if (!$la || empty($in['near'])) YES(['list' => []]); $L = [];
+            foreach (rows('SELECT * FROM places WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ? LIMIT 120', [$la - .02, $la + .02, $ln - .025, $ln + .025]) as $p0) { $d = hav($la, $ln, (float)$p0['lat'], (float)$p0['lng']); if ($d > 1500 || in_array($p0['kind'], ['school', 'kinder', 'institute', 'club'], true)) continue; $o = place_out($p0); $L[] = ['src' => 'r', 'id' => $o['id'], 'name' => $o['name'], 'sub' => km_t((int)$d) . ' از شما', 'kind' => $o['kind'], 'lat' => $o['lat'], 'lng' => $o['lng'], 'n' => $o['families'], 'd' => (int)$d]; }
+            usort($L, fn($x, $y) => $x['d'] <=> $y['d']); YES(['list' => array_slice($L, 0, 6)]); }
+        $out = []; $seen = [];
         foreach (rows('SELECT * FROM places WHERE (fake=0 OR created_by IS NOT NULL) AND (name LIKE ? OR city LIKE ?) LIMIT 60', ['%' . $qq . '%', '%' . $qq . '%']) as $p0) {
             $d = $la ? hav($la, $ln, (float)$p0['lat'], (float)$p0['lng']) : 0; if ($la && $d > 60000) continue; foreach ($out as $x0) if ($x0['name'] === $p0['name'] && hav($x0['lat'], $x0['lng'], (float)$p0['lat'], (float)$p0['lng']) < 150) continue 2; $o = place_out($p0); $out[] = ['src' => 'r', 'id' => $o['id'], 'name' => $o['name'], 'sub' => $o['city'], 'kind' => $o['kind'], 'lat' => $o['lat'], 'lng' => $o['lng'], 'n' => $o['families'], 'd' => (int)$d]; $seen[] = [$o['lat'], $o['lng']]; }
         usort($out, fn($x, $y) => ($y['n'] <=> $x['n']) ?: ($x['d'] <=> $y['d'])); $out = array_slice($out, 0, 6);

@@ -2307,3 +2307,43 @@ body.go-on .drawer .lux{background:linear-gradient(160deg,var(--lb),var(--ld) 70
 .dr-biz .lux{min-height:132px;padding-block:12px 36px;color:#fff}
 .dr-biz .lux small{white-space:normal;overflow:visible;display:block}
 body.go-on .drawer .lux,body.go-on .drawer .lux small{color:#fff}
+/* v63 small screens: the car choice is two compact tiles + one row of seats (was a 5-line label on 360 px) */
+.go-roles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.go-rt{display:flex;align-items:center;gap:8px;min-width:0;padding:10px;border:2px solid var(--snl);border-radius:14px;background:transparent;color:var(--snt);font:inherit;text-align:start;cursor:pointer}
+.go-rt.on{border-color:var(--sn);background:color-mix(in srgb,var(--sn) 8%,transparent)}
+.go-rt i{font-style:normal;font-size:1.6rem;flex:none}.go-rt span{display:grid;min-width:0}
+.go-rt b{font-size:.98rem;font-weight:900;white-space:nowrap}.go-rt small{font-size:.72rem;color:var(--snm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.go-seats{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.go-seats>span{font-size:.82rem;font-weight:800;color:var(--snm)}
+.go-seats em{font-style:normal;display:flex;gap:6px}
+.go-seats u{text-decoration:none;width:40px;height:36px;border-radius:10px;display:grid;place-items:center;font-weight:900;background:var(--snl);color:var(--snt);cursor:pointer}
+.go-seats u.on{background:var(--sn);color:var(--sni,#fff)}
+.go-rnote{font-size:.78rem;color:var(--snm)}
+#go-card .go-sheet2{touch-action:pan-y;-webkit-overflow-scrolling:touch}
+@media (max-height:700px){#go-card .go-sheet2{max-height:52dvh;gap:8px;padding-top:4px}.go-tabs button{padding-block:8px}}
+/* v63 «شوت به آسمان» */
+body.go-shot .go .go-top,body.go-shot #msw,body.go-shot .go .go-ur{animation:shotUp .45s cubic-bezier(.5,-0.4,.9,.4) forwards;pointer-events:none}
+@keyframes shotUp{0%{translate:0 0}25%{translate:0 8px;scale:.97}100%{translate:0 -240px;rotate:-6deg;scale:.8;opacity:0}}
+body.go-drop .go .go-top,body.go-drop #msw,body.go-drop .go .go-ur{animation:shotDrop .6s cubic-bezier(.3,1.5,.5,1)}
+@keyframes shotDrop{0%{translate:0 -160px;opacity:0}60%{translate:0 6px;opacity:1}80%{translate:0 -3px}100%{translate:0 0}}
+.shot-ring{position:fixed;z-index:60;top:calc(env(safe-area-inset-top,0px) + 10px);left:50%;translate:-50% 0;width:44px;height:44px;border:0;border-radius:50%;background:var(--snb,#fff);box-shadow:0 6px 18px -6px #0006;display:grid;place-items:center;cursor:pointer;padding:0;animation:inPop .3s ease-out}
+.shot-ring svg{position:absolute;inset:4px;width:36px;height:36px;transform:rotate(-90deg)}
+.shot-ring .sr-bg{fill:none;stroke:var(--snl,#e5efe9);stroke-width:3}
+.shot-ring .sr-fg{fill:none;stroke:#00A859;stroke-width:3;stroke-linecap:round;stroke-dasharray:94.25;stroke-dashoffset:0;transition:stroke-dashoffset .1s linear}
+.shot-ring b{position:relative;font-size:.8rem;font-weight:900;color:var(--snt,#04140B)}
+@media (prefers-reduced-motion:reduce){body.go-shot .go .go-top,body.go-shot #msw,body.go-shot .go .go-ur{animation:none;visibility:hidden}body.go-drop .go .go-top,body.go-drop #msw{animation:none}}
+.in-opts.two .in-opt.wide{grid-column:1/-1;flex-direction:row;text-align:start;padding:12px 14px;background:#fff}
+.in-here{background:#fff;border:2px dashed #04140B44}
+/* v63 location help as swipeable cards */
+.geo-sl{display:grid;grid-auto-flow:column;grid-auto-columns:86%;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;overscroll-behavior-x:contain}
+.geo-c{scroll-snap-align:center;display:grid;gap:6px;justify-items:center;text-align:center;padding:16px 12px;border-radius:18px;background:var(--soft,#F1FCF6);border:1px solid var(--line)}
+.geo-e{font-size:2.2rem}.geo-c b{font-size:.78rem;color:var(--muted)}.geo-c p{margin:0;font-size:.9rem;line-height:1.8}
+.fab-av{width:100%;height:100%;border-radius:inherit;object-fit:cover;pointer-events:none}
+.cap-l{display:block;font-size:.8rem;font-weight:800;margin-top:10px}
+textarea.cap-ed{width:100%;box-sizing:border-box;font:inherit;font-size:.86rem;line-height:1.8;white-space:pre-wrap;border:1.5px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--surface);color:var(--fg,#04140B);resize:vertical}
+/* v63 folded go sheet: only the title row and the main button stay */
+#go-card .go-grab{display:block;width:56px;height:6px;margin:2px auto 4px;border-radius:9px;cursor:pointer;position:relative}
+#go-card .go-grab::after{content:"";position:absolute;inset:-14px -30px}
+#go-card .go-sheet2.min>:not(.go-grab):not(.go-cta):not(.go-row3):not(.go-pt):not(.go-tabs){display:none!important}
+#go-card .go-sheet2.min .go-tabs{opacity:.7}
+#go-card .go-sheet2.min .go-grab{background:#00A859}
