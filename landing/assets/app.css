@@ -1144,7 +1144,7 @@ body.native .top{background:var(--bg)!important;-webkit-backdrop-filter:none;bac
 .rp,.rp *{letter-spacing:0!important;word-spacing:normal!important}
 
 /* ═════════ v19 ═════════ */
-.beta-t{display:block;font-size:.6rem;font-weight:700;color:var(--muted);margin:-2px 0 0;line-height:1.2}
+.beta-t{display:block;font-size:.6rem;font-weight:700;color:var(--muted);margin:3px 0 1px;line-height:1.2}
 .dr-head .icon-btn.sq{width:44px;height:44px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--ink)}
 .dr-head .icon-btn.sq svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .dr-head [data-a="theme"]{background:linear-gradient(145deg,#EEF2FF,#E0E7FF);border-color:#C7D2FE;color:#4338CA}
@@ -2249,3 +2249,61 @@ body.intro-on{overflow:hidden}
 .in-chip{border:1.5px solid #04140B33;background:#ffffff73;color:#04140B;font:inherit;font-size:.78rem;padding:6px 10px;border-radius:999px;cursor:pointer}.in-chip i{font-style:normal;opacity:.6;margin-inline-start:4px}
 [data-step="peek"],[data-step="plan"]{text-align:start}
 [data-step="peek"] .in-pin,[data-step="plan"] .in-pin{margin-inline:0}
+/* ═════ v62 operational corridor: name, location, workplace, sign-in ═════ */
+.in-name{display:flex;align-items:center;gap:10px;background:#fff;border-radius:18px;padding:6px 6px 6px 14px;box-shadow:0 10px 24px -16px #04140B;min-width:0}
+.in-name>span{flex:0 0 auto;font-weight:900;padding-inline-start:8px}
+.in-name input{flex:1;min-width:0;border:0;background:#F1FCF6;border-radius:12px;padding:12px;font:inherit;font-size:1.05rem;font-weight:800;color:#04140B}
+.in-name.sm{flex-wrap:wrap}.in-name.sm>span{font-size:.82rem}
+.in-search{display:flex;align-items:center;gap:8px;background:#fff;border-radius:16px;padding:4px 12px;box-shadow:0 10px 24px -16px #04140B}
+.in-search svg{width:20px;height:20px;flex:none;stroke:#04140B;fill:none;stroke-width:2}
+.in-search input{flex:1;min-width:0;border:0;background:transparent;padding:12px 0;font:inherit;font-size:1rem;color:#04140B;outline:0}
+.in-res{display:grid;gap:8px}.in-res .in-opt{padding:10px 12px}.in-res .in-oe{font-size:1.3rem}
+.in-n{font-style:normal;font-weight:900;color:#0B6B3A}
+.in-pick{display:flex;align-items:center;gap:10px;background:#fff;border-radius:18px;padding:12px;border:2px solid #04140B}
+.in-pick>span:first-child{font-size:1.5rem}.in-pick .grow{display:grid;min-width:0}.in-pick small{font-size:.76rem;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.in-foot .in-later{flex:1;min-height:54px;background:#ffffff40;border-color:#04140B33;color:#04140B}
+.in-foot .in-next+.in-later{flex:0 0 auto}
+.in-help li{background:#fff}
+.in-route{display:flex;align-items:center;gap:8px;background:#fff;border-radius:20px;padding:14px;font-weight:900;font-size:.9rem;box-shadow:0 12px 28px -18px #04140B;min-width:0}
+.in-route>span{display:flex;align-items:center;gap:6px;min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.in-route i{font-style:normal;font-size:1.3rem}.in-route em{font-style:normal;font-weight:700;opacity:.6;font-size:.8rem}
+.in-dash{flex:1 1 30px;min-width:20px;height:4px;border-radius:9px;background:repeating-linear-gradient(90deg,#00A859 0 8px,transparent 8px 14px);background-size:28px 4px;animation:inDash 1s linear infinite}
+@keyframes inDash{to{background-position:-28px 0}}
+.in-rule{display:flex;gap:10px;align-items:flex-start;background:#ffffff59;border-radius:16px;padding:10px 12px;font-size:.82rem;line-height:1.8;cursor:pointer}
+.in-rule input{width:22px;height:22px;flex:none;accent-color:#04140B;margin-top:3px}
+.intro .field label{color:#04140B;font-weight:800}.intro .field input{background:#fff;border-color:#04140B33;color:#04140B}
+.intro .note{color:#04140B}
+.pio{display:grid;gap:10px;justify-items:center;text-align:center}
+.pio .in-pin.go-pin{display:block;position:relative;left:auto;top:auto;transform:none;width:56px}
+.pio-steps{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.pio-steps span{font-size:.78rem;font-weight:800;padding:6px 10px;border-radius:999px;background:var(--line);opacity:.7}
+.pio-steps span.on{background:#00C46A;color:#04140B;opacity:1}
+.pio .in-pin .pc{width:56px;height:77px}
+
+.pwrap.on.col .pcard{border-radius:18px}
+/* v62 audience: organisation visitors see grown-ups at the office, not kids at school */
+.splash .s-adult{display:none}
+:root[data-aud="org"] .splash .s-adult{display:inline}
+:root[data-aud="org"] .splash .s-kid:not(.s-adult){display:none}
+/* v62 premium cards for «رسیدیم مدرسه» and «رسیدیم سازمان» (story-card look: deep gradient, hairline, foil sheen) */
+.dr-biz{grid-template-columns:1fr 1fr;gap:8px}
+.lux{position:relative;display:grid;align-content:start;gap:3px;min-height:132px;padding:12px 12px 36px;border-radius:20px;color:#fff!important;text-decoration:none;overflow:hidden;isolation:isolate;background:linear-gradient(160deg,var(--lb),var(--ld) 70%);box-shadow:0 18px 30px -20px var(--ld),inset 0 0 0 1px #ffffff2e;min-width:0}
+.lux-sc{--lb:#C2410C;--ld:#7C2D12}.lux-og{--lb:#3B4FC4;--ld:#111A4A}
+.lux b{font-size:.95rem;font-weight:900;line-height:1.4}
+.lux small{font-size:.7rem;line-height:1.6;opacity:.9;color:#fff}
+.lux-k{font-size:.62rem;font-weight:900;letter-spacing:.02em;color:#FFE08A;display:flex;align-items:center;gap:5px}
+.lux-k::before{content:"";width:6px;height:6px;border-radius:50%;background:#FFE08A;box-shadow:0 0 10px #FFE08A}
+.lux-sc .lux-k{color:#FFF6D6}.lux-sc .lux-k::before{background:#FFF6D6;box-shadow:0 0 10px #fff}
+.lux-art{position:absolute;inset-inline-end:-6px;inset-block-end:-8px;font-size:3.2rem;opacity:.28;z-index:-1;transform:rotate(-10deg)}
+.lux-go{position:absolute;inset-inline-start:12px;inset-block-end:10px;display:flex;align-items:center;gap:2px;font-size:.72rem;font-weight:900;background:#ffffff26;border-radius:99px;padding:3px 10px}
+.lux-go svg{width:12px;height:12px;stroke:#fff}
+.lux::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,transparent 35%,#ffffff40 50%,transparent 65%);background-size:250% 100%;animation:luxSheen 5.5s ease-in-out infinite}
+.lux-og::after{animation-delay:2.7s}
+@keyframes luxSheen{0%,60%{background-position:130% 0}100%{background-position:-30% 0}}
+.lux:active{transform:scale(.98)}
+@media (prefers-reduced-motion:reduce){.lux::after{animation:none;opacity:0}}
+body.go-on .drawer .lux{background:linear-gradient(160deg,var(--lb),var(--ld) 70%)!important}
+@media (max-width:340px){.dr-biz{grid-template-columns:1fr}}
+.dr-biz .lux{min-height:132px;padding-block:12px 36px;color:#fff}
+.dr-biz .lux small{white-space:normal;overflow:visible;display:block}
+body.go-on .drawer .lux,body.go-on .drawer .lux small{color:#fff}

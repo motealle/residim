@@ -9,6 +9,7 @@
     "@capacitor/cli": "^7.0.0",
     "@capacitor/core": "^7.0.0",
     "@capacitor/haptics": "^7.0.0",
+    "@capacitor/preferences": "^7.0.0",
     "@capacitor/local-notifications": "^7.0.0",
     "@capacitor-community/background-geolocation": "^1.2.0",
     "@capacitor/filesystem": "^7.0.0",

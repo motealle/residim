@@ -21,6 +21,18 @@ printf '<?xml version="1.0" encoding="utf-8"?>\n<resources><color name="ic_launc
 # splash: green with the app icon
 find android/app/src/main/res -name 'splash.png' | while read -r f; do read -r w h < <(identify -format '%w %h\n' "$f"); m=$(( (w<h?w:h)*30/100 ))
   convert -size ${w}x${h} xc:'#16A34A' \( "$SRC" -resize ${m}x${m} \) -gravity center -composite "$f"; done
+# home-screen widget «دارم می‌روم» (one big button with the likely next trip; no service, no network)
+J=android/app/src/main/java/ir/residim/app
+if [ -d "$J" ]; then
+  cp res/widget/*.java "$J/"
+  mkdir -p android/app/src/main/res/layout android/app/src/main/res/xml
+  cp res/widget/residim_widget.xml android/app/src/main/res/layout/
+  cp res/widget/residim_widget_bg.xml res/widget/residim_widget_btn.xml android/app/src/main/res/drawable/
+  cp res/widget/residim_widget_info.xml android/app/src/main/res/xml/
+  grep -q 'ResidimWidget' "$M" || sed -i 's#</application>#    <receiver android:name=".ResidimWidget" android:exported="false" android:label="دارم می‌روم"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/residim_widget_info" /></receiver>\n    <activity android:name=".WidgetTapActivity" android:exported="false" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:noHistory="true" />\n</application>#' "$M"
+  grep -q 'ResidimWidget' "$J/MainActivity.java" || sed -i -E 's#public class MainActivity extends BridgeActivity \{\s*\}#public class MainActivity extends BridgeActivity { @Override public void onPause() { super.onPause(); try { ResidimWidget.refresh(this); } catch (Exception e) {} } }#' "$J/MainActivity.java"
+  echo "widget: on"
+fi
 G=android/app/build.gradle
 sed -i -E "s/versionCode [0-9]+/versionCode $CODE/; s/versionName \"[^\"]*\"/versionName \"$VER\"/" "$G"
 sed -i "s#ResidimApp/[0-9.]*#ResidimApp/$VER#" capacitor.config.json

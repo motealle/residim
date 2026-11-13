@@ -101,7 +101,7 @@ function bug_outbox(?array $add = null): void { $dir = dirname(__DIR__) . '/stor
         if ($add) $L[] = $add; $L = array_slice($L, -300); ftruncate($fp, 0); rewind($fp); fwrite($fp, json_encode($L, JSON_UNESCAPED_UNICODE)); } finally { flock($fp, LOCK_UN); fclose($fp); } }
 /** v57 quiet pattern watch for admins (once a day): repeated cancels after matching, people blocked by several others, ad floods.
     Users are never told; the admin event feed gets one masked line per pattern so rules can be tuned. No AI service, no data leaves the server. */
-function x_anomaly(): void { $day = date('Ymd'); if (getv('anom_day', '') === $day) return; setv('anom_day', $day); $since = time() - 7 * 86400; $out = [];
+function x_anomaly(): void { $day = date('Ymd'); if (getv('anom_day', '') === $day) return; setv('anom_day', $day); try { q("DELETE FROM settings WHERE k LIKE 'poi:%'"); } catch (Throwable $e) {} $since = time() - 7 * 86400; $out = [];
     $C = []; foreach (rows("SELECT meta FROM events WHERE kind='leave_cancel' AND created>? LIMIT 3000", [$since]) as $r) { $m = json_decode((string)$r['meta'], true) ?: []; if (!empty($m['u'])) $C[$m['u']] = ($C[$m['u']] ?? 0) + 1; }
     foreach ($C as $id => $n) if ($n >= 3) $out[] = ['🔁 لغوِ مکرر پس از جور شدن', $id, $n];
     $B = []; foreach (rows("SELECT data FROM profiles WHERE data LIKE '%\"blocked\"%' LIMIT 5000") as $r) foreach ((array)(pdata($r)['blocked'] ?? []) as $pid) $B[(string)$pid] = ($B[(string)$pid] ?? 0) + 1;
@@ -491,6 +491,23 @@ function x_route(string $a, array $in): void {
         foreach (array_chunk(array_keys($P), 200) as $ch) { $ph = implode(',', array_fill(0, count($ch), '?'));
             foreach (rows("SELECT id, phone FROM users WHERE phone IN ($ph) AND COALESCE(fake,0)=0", $ch) as $r) { if ($g && user_g($r['id']) && user_g($r['id']) !== $g) continue;
                 $org = $myp ? (bool)row('SELECT 1 FROM profiles WHERE user_id=? AND complete=1 AND place_id IN (' . implode(',', array_fill(0, count($myp), '?')) . ')', [$r['id'], ...$myp]) : false; $out[] = ['phone' => $r['phone'], 'org' => $org]; } }
+        YES(['list' => $out]); }
+    case 'poi_search': { /* v62 «where do you work?»: our own places first (with how many colleagues are already here), then the live map
+           (Neshan when its service key is set, else OpenStreetMap), so ANY workplace/campus/office in the city can be found. Guests allowed, rate-limited, cached a day. */
+        if (hit('poi_' . ip_tag(), 3600) > 60) NO('کمی بعد دوباره جستجو کنید.'); $qq = trim(mb_substr((string)($in['q'] ?? ''), 0, 50)); $la = (float)($in['lat'] ?? 0); $ln = (float)($in['lng'] ?? 0);
+        if (mb_strlen($qq) < 2) YES(['list' => []]); $out = []; $seen = [];
+        foreach (rows('SELECT * FROM places WHERE (fake=0 OR created_by IS NOT NULL) AND (name LIKE ? OR city LIKE ?) LIMIT 60', ['%' . $qq . '%', '%' . $qq . '%']) as $p0) {
+            $d = $la ? hav($la, $ln, (float)$p0['lat'], (float)$p0['lng']) : 0; if ($la && $d > 60000) continue; foreach ($out as $x0) if ($x0['name'] === $p0['name'] && hav($x0['lat'], $x0['lng'], (float)$p0['lat'], (float)$p0['lng']) < 150) continue 2; $o = place_out($p0); $out[] = ['src' => 'r', 'id' => $o['id'], 'name' => $o['name'], 'sub' => $o['city'], 'kind' => $o['kind'], 'lat' => $o['lat'], 'lng' => $o['lng'], 'n' => $o['families'], 'd' => (int)$d]; $seen[] = [$o['lat'], $o['lng']]; }
+        usort($out, fn($x, $y) => ($y['n'] <=> $x['n']) ?: ($x['d'] <=> $y['d'])); $out = array_slice($out, 0, 6);
+        $ck = 'poi:' . md5($qq . '|' . round($la, 1) . '|' . round($ln, 1)); $cached = json_decode((string)getv($ck, ''), true); $ext = [];
+        if (is_array($cached) && ($cached['t'] ?? 0) > time() - 86400) $ext = $cached['l'] ?? [];
+        else { if (C('neshan_service_key')) { $r = neshan('/v1/search', ['term' => $qq, 'lat' => $la ?: 35.6997, 'lng' => $ln ?: 51.3380]);
+                foreach ((array)($r['items'] ?? []) as $it) if (!empty($it['location']['y'])) $ext[] = ['src' => 'n', 'name' => mb_substr((string)$it['title'], 0, 80), 'sub' => mb_substr((string)($it['address'] ?? ($it['region'] ?? '')), 0, 90), 'lat' => (float)$it['location']['y'], 'lng' => (float)$it['location']['x']]; }
+            if (!$ext) { $vb = $la ? '&viewbox=' . ($ln - .5) . ',' . ($la + .5) . ',' . ($ln + .5) . ',' . ($la - .5) : '';
+                $r = http_get('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&countrycodes=ir&accept-language=fa&q=' . rawurlencode($qq) . $vb, ['User-Agent: Residim/1.0 (+https://residim.ir)'], 6);
+                foreach ((array)$r as $it) if (is_array($it) && isset($it['lat'])) { $nm = (string)($it['name'] ?? '') ?: explode('،', (string)($it['display_name'] ?? ''))[0]; $ext[] = ['src' => 'o', 'name' => mb_substr($nm, 0, 80), 'sub' => mb_substr(implode('، ', array_slice(explode(', ', (string)($it['display_name'] ?? '')), 1, 3)), 0, 90), 'lat' => (float)$it['lat'], 'lng' => (float)$it['lon']]; } }
+            setv($ck, json_encode(['t' => time(), 'l' => $ext], JSON_UNESCAPED_UNICODE)); }
+        foreach ($ext as $e) { foreach ($seen as [$a1, $b1]) if (hav($a1, $b1, $e['lat'], $e['lng']) < 150) continue 2; $out[] = $e; if (count($out) >= 12) break; }
         YES(['list' => $out]); }
     case 'near_peek': { /* v61 guest peek from the intro corridor: same coarse, anonymous count (never below 3, capped), 20 per device-IP per day, nothing stored */
         if (hit('np_' . ip_tag(), 86400) > 20) YES(['n' => -1]); $la = (float)($in['lat'] ?? 0); $ln = (float)($in['lng'] ?? 0); if (!$la || abs($la) > 90 || abs($ln) > 180) YES(['n' => 0]); x_schema();

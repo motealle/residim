@@ -116,7 +116,7 @@ const SND = { ctx: null };
 const SND_FILE = { tune: 'tune', arrive: 'arrived', done: 'done', door: 'door', urgent: 'urgent', boarded: 'boarded', start: 'start', invite: 'invite', team: 'team', remind: 'remind', msg: 'msg' };
 const SND_ALT = { tune: 'done', door: 'honk', urgent: 'honk', boarded: 'step', start: 'whoosh', invite: 'ok', team: 'done', remind: 'ok', msg: 'tap' };
 function sndLoad(name) { const c = SND.ctx; if (!c) return; SND.buf = SND.buf || {}; if (SND.buf[name] !== undefined) return; SND.buf[name] = null;
-  fetch('assets/snd/' + name + '.mp3?v=61').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
+  fetch('assets/snd/' + name + '.mp3?v=62').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { SND.buf[name] = b; }).catch(() => { SND.buf[name] = false; }); }
 function snd(kind) {
   if (S.sound !== false && SND_FILE[kind]) { try { if (!SND.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) SND.ctx = new AC(); }
     const c = SND.ctx; if (c) { if (c.state === 'suspended') c.resume(); const nm = SND_FILE[kind]; sndLoad(nm); Object.values(SND_FILE).forEach(sndLoad); const b = SND.buf[nm];
@@ -278,7 +278,7 @@ async function mapLib() {
     }
     await loadCss('assets/maplibre-gl.css');
     await loadJs('assets/maplibre-gl.js', () => !!window.maplibregl, 12000);
-    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=61', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
+    try { const pr = window.maplibregl.setRTLTextPlugin(new URL('assets/rtl-text.js?v=62', location.href).href, true); if (pr && pr.catch) pr.catch(() => { MapKit.noRtl = true; }); } catch (e) { MapKit.noRtl = true; }
     return (MapKit.lib = { name: 'libre', G: window.maplibregl });
   })();
   try { return await MapKit.loading; } catch (e) { MapKit.failed = true; MapKit.loading = null; throw e; }
@@ -287,7 +287,7 @@ async function makeMap(el, center, zoom) {
   const L = await mapLib();
   let map;
   if (L.name === 'neshan') map = new L.G.Map({ mapType: (isDark() && L.G.Map.mapTypes.neshanVectorNight) || L.G.Map.mapTypes.neshanVector, container: el, zoom, pitch: 0, center: [center[1], center[0]], minZoom: 4, maxZoom: 19, trackResize: true, mapKey: CFG.web_key, poi: false, traffic: false, mapTypeControllerOptions: { show: false } });
-  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=61' : 'assets/map-style.json?v=61', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+  else map = new L.G.Map({ container: el, style: isDark() ? 'assets/map-style-dark.json?v=62' : 'assets/map-style.json?v=62', center: [center[1], center[0]], zoom, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('map-timeout')), 10000);
     map.on('load', () => { clearTimeout(t); res(); });
@@ -638,18 +638,20 @@ function slideWatch() { const tr = $('#sl-track'); if (!tr || tr.dataset.w) retu
   clearInterval(ui.slT); ui.slT = setInterval(() => { if (!document.body.contains(tr)) return clearInterval(ui.slT); if (document.hidden || Date.now() - hold < 12000 || matchMedia('(prefers-reduced-motion:reduce)').matches) return; if (i === 1 && $('#sh-scene') && $('#sh-scene').dataset.step !== '4') return; if (i === 0 && (ui.slW = (ui.slW || 0) + 1) < 3) return; ui.slW = 0; i = (i + 1) % tr.children.length; const c = tr.children[i]; tr.scrollBy({ left: c.getBoundingClientRect().left - tr.getBoundingClientRect().left, behavior: 'smooth' }); dots(); }, 6500); }
 function home() {
   const dr = S.drafts[0];
-  return `<div class="home-grid"><section class="hero-g hero-sl" aria-roledescription="اسلاید"><div class="sl-track" id="sl-track"><div class="sl"><span class="small" style="font-weight:800">سرویس مشارکتی!</span><h1>مامان، بابا،<br>رسیدیم!</h1>
-    <p>هم‌مسیرهای نزدیک‌تان را پیدا کنید، تیم شوید و نوبتی ببرید و بیاورید؛ برای مدرسه، مهد، آموزشگاه، باشگاه، محل کار و دانشگاه.</p>
+  const ORG = orgAud(), DOOR = CFG.flags && CFG.flags.go_on === false ? '' : `<button class="go-door" data-a="intro-now"><span class="gd-ic" aria-hidden="true">⚡</span><span class="grow"><b>هر روز بین خانه و کار یا دانشگاه؟</b><small>«دارم می‌روم»: یک بار خانه و مقصد را بگذارید؛ بعد با یک تپ، هم‌مسیرهای نزدیک خبر می‌شوند.</small></span><span class="gd-cta">۲ دقیقه ${ic('back', 'i flip')}</span></button>`;
+  return `<div class="home-grid"><section class="hero-g hero-sl" aria-roledescription="اسلاید"><div class="sl-track" id="sl-track"><div class="sl"><span class="small" style="font-weight:800">${ORG ? 'هم‌مسیر، نه غریبه!' : 'سرویس مشارکتی!'}</span><h1>${ORG ? 'همکار، همسایه،<br>رسیدیم!' : 'مامان، بابا،<br>رسیدیم!'}</h1>
+    <p>${ORG ? 'هم‌مسیرِ همکار و هم‌محله‌تان را پیدا کنید؛ با یک تپ «دارم می‌روم» یا یک تیمِ ثابت، با هم بروید و برسید. برای محل کار، دانشگاه، و مدرسه‌ی بچه‌ها.' : 'هم‌مسیرهای نزدیک‌تان را پیدا کنید، تیم شوید و نوبتی ببرید و بیاورید؛ برای مدرسه، مهد، آموزشگاه، باشگاه، محل کار و دانشگاه.'}</p>
     <div class="row wrap">${dr ? `<button class="btn" data-a="resume-draft">ادامه‌ی ثبت‌نام «${esc(dr.label || 'مسیر')}»</button>` : `<button class="btn" data-a="new-profile">شروع کنیم؛ ۲ دقیقه</button>`}<button class="btn line" data-a="login">قبلاً ثبت‌نام کرده‌ام</button></div>${artCar('deco')}</div>${SLIDES.map((x, i) => `<div class="sl sl-${i + 1}">${typeof x.html === 'function' ? x.html() : x.html}${x.b ? `<button class="btn" data-a="${x.a}">${x.b}</button>` : ''}</div>`).join('')}</div>
     <div class="sl-dots" role="tablist">${[0, ...SLIDES.keys()].map((_, i) => `<button data-a="sl-go" data-v="${i}" aria-label="اسلاید ${fa(i + 1)}" ${i ? '' : 'aria-current="true"'}></button>`).join('')}</div></section>
-  <section class="card stack h-map">${cityAnim('نوبتی می‌بریم، نوبتی می‌آوریم')}<button class="map-entry" id="peek-home" data-a="peek-home">${ic('pin')}<span class="grow"><b>کسی نزدیک من هست؟</b><small>بی‌نام می‌شماریم؛ نه نامی، نه خانه‌ای. موقعیتتان ذخیره نمی‌شود.</small></span>${ic('back')}</button></section>
+  <section class="card stack h-map">${cityAnim(orgAud() ? 'با همکارها می‌رویم، با هم می‌رسیم' : 'نوبتی می‌بریم، نوبتی می‌آوریم')}<button class="map-entry" id="peek-home" data-a="peek-home">${ic('pin')}<span class="grow"><b>کسی نزدیک من هست؟</b><small>بی‌نام می‌شماریم؛ نه نامی، نه خانه‌ای. موقعیتتان ذخیره نمی‌شود.</small></span>${ic('back')}</button></section>
+  ${ORG ? DOOR : ''}
   <button class="school-main" data-a="new-profile" data-kind="school">
     <span class="sm-top">${kindIc('school', true)}<span class="sm-tag">بیشترین درخواست</span></span>
     <b>سرویس مشارکتی مدرسه</b>
     <span class="sm-txt">با خانواده‌های هم‌محله‌ی همان مدرسه، بچه‌ها را نوبتی ببرید و بیاورید. هر روز یک نفر می‌برد، بقیه وقت آزاد دارند؛ خرج نصف، خیال راحت.</span>
     <span class="sm-pts"><span>${ic('check')}دختر با دختر، پسر با پسر</span><span>${ic('check')}نزدیک‌ترین‌ها روی نقشه</span><span>${ic('check')}حساب شفاف</span></span>
     <span class="btn sm-cta">ثبت‌نام مدرسه؛ ۲ دقیقه ${ic('back')}</span></button>
-  ${CFG.flags && CFG.flags.go_on === false ? '' : `<button class="go-door" data-a="intro-now"><span class="gd-ic" aria-hidden="true">⚡</span><span class="grow"><b>هر روز بین خانه و کار یا دانشگاه؟</b><small>«دارم می‌روم»: یک بار خانه و مقصد را بگذارید؛ بعد با یک تپ، هم‌مسیرهای نزدیک خبر می‌شوند.</small></span><span class="gd-cta">۲ دقیقه ${ic('back', 'i flip')}</span></button>`}
+  ${ORG ? '' : DOOR}
   <section class="card stack h-code"><h2>کد مدرسه یا مکان دارید؟</h2><p class="muted small">روی پوستر هر مدرسه، آموزشگاه یا شرکت یک کد ۸ حرفی و لینکی مثل <b dir="ltr">residim.ir/ABCD2345</b> هست. کد را بزنید تا مستقیم به ثبت‌نام همان‌جا بروید؛ مکانش از قبل تنظیم شده و فقط بقیه را پر می‌کنید.</p><div class="row"><div class="field grow"><label for="code" class="hide">کد</label><input id="code" dir="ltr" placeholder="ABCD2345 یا لینک کامل" maxlength="60"></div><button class="btn" data-a="go-code">برو</button></div></section>
   <section class="card stack h-chips"><h2 style="font-size:1rem">برای جاهای دیگر هم هم‌مسیر پیدا کنید</h2>
     <div class="chips">${Object.entries(KINDS).filter(([k]) => k !== 'other' && k !== 'school' && (k !== 'station' || CFG.flags.station_on)).map(([k, v]) => `<button class="chip kchip" data-a="new-profile" data-kind="${k}">${ic(v.ic, 'i')}${k === 'station' ? 'برگشت از سفر' : v.n}</button>`).join('')}</div></section>
@@ -981,9 +983,9 @@ function moneyTab(p) {
 function renderTop() {
   const p = active();
   let t;
-  if (ui.admin) t = `<img src="assets/icon.svg?v=61" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
+  if (ui.admin) t = `<img src="assets/icon.svg?v=62" alt=""><span><b>پیشخوان مدیریت</b><small>رسیدیم</small></span>`;
   else if (p) { const c = profColor(p); t = `<span class="kind-ic" style="--kc:${c.c};--ki:${c.i}">${ic(KINDS[p.kind] ? KINDS[p.kind].ic : 'dots', '')}</span><span class="grow tt" style="min-width:0"><span class="tt-r"><b class="mqw"><span>${esc(p.label)}</span></b><span class="pchip">${ic('down', '')}</span></span><small class="mqw"><span>${p.team ? esc(teamName(p.team)) + ' – ' : ''}${esc(placeName(p) || 'مکان انتخاب نشده')}</span></small></span>`; }
-  else t = `<img src="assets/icon.svg?v=61" alt=""><span><b>رسیدیم</b><small>سرویس مشارکتی والدین</small></span>`;
+  else t = `<img src="assets/icon.svg?v=62" alt=""><span><b>رسیدیم</b><small>${orgAud() ? 'هم‌مسیرِ همکار و همسایه' : 'سرویس مشارکتی والدین'}</small></span>`;
   $('#title').innerHTML = t; requestAnimationFrame(() => mqFit($('#title'))); $('#title').dataset.a = p && !ui.admin ? 'switcher' : '';
   $('#title').setAttribute('role', p ? 'button' : ''); $('#title').tabIndex = p ? 0 : -1;
   paintBell();
@@ -1017,7 +1019,13 @@ function renderMain(anim) {
   slideWatch(); peekWatch(); sceneAnimate(); trustPaint();
   { const cb = dock.querySelector('[data-a="chat"]'); if (cb) cb.classList.toggle('dim', !(p && p.team)); }
 }
-function render(anim) { renderTop(); renderMain(anim); renderSide(); paintNotice(); }
+/* v62 Android widget bridge: save the likely trip for the home-screen widget; act on a widget tap */
+function widgetSync() { if (!NATIVE || !NP.Preferences) return; try { const p = goProf(), pl = p && p.place; const v = pl ? JSON.stringify({ place: (p.label || pl.name || '').slice(0, 28), in: pl.in || '', out: pl.out || '' }) : '';
+    if (v !== ui.wdgLast) { ui.wdgLast = v; NP.Preferences.set({ key: 'widget', value: v || '{}' }); } } catch (e) {} }
+async function widgetTap() { if (!NATIVE || !NP.Preferences) return; try { const r = await NP.Preferences.get({ key: 'widget_tap' }); if (!r || !r.value) return; await NP.Preferences.remove({ key: 'widget_tap' });
+    const [dir, at] = String(r.value).split('|'); if (Date.now() - (+at || 0) > 120000) return; if (dir === 'setup') return act('intro-now');
+    const pp = goProf(); if (pp && pp.complete && (dir === 'work' || dir === 'home')) setTimeout(() => goQuick(dir, false), 300); } catch (e) {} }
+function render(anim) { try { const au = orgAud() ? 'org' : ''; if ((S.aud || '') !== au) { S.aud = au; persist(); } } catch (e) {} widgetSync(); renderTop(); renderMain(anim); renderSide(); paintNotice(); }
 function paintNotice() { const n = CFG.notice || '', el = $('#notice'); if (!el) return; const show = n && S.noticeHid !== n && !ui.admin; el.classList.toggle('hide', !show); if (show) el.innerHTML = `${ic('bell')}<span class="grow">${esc(n)}</span><button class="icon-btn" data-a="notice-x" aria-label="بستن">${ic('close')}</button>`; }
 function renderSide() {
   const el = $('#side'); if (!el) return; if (!isDesk() || ui.admin) { el.innerHTML = ''; return; }
@@ -1072,10 +1080,10 @@ function drawer(keep) {
   const old = keep && $('.drawer'), st = old ? old.scrollTop : 0;
   const grp = (k, i, t, body) => `<div class="grp"><button class="sec-h" data-a="toggle" data-v="${k}" aria-expanded="${!!ui.open[k]}"><span>${ic(i, 'i')} ${t}</span>${ic('down', 'i chev' + (ui.open[k] ? ' open' : ''))}</button><div class="plist ${ui.open[k] ? '' : 'closed'}" style="max-height:${ui.open[k] ? 700 : 0}px">${body}</div></div>`;
   const html = `
-    <div class="dr-head"><img src="assets/icon.svg?v=61" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
+    <div class="dr-head"><img src="assets/icon.svg?v=62" width="40" height="40" alt=""><div class="dr-title"><b>رسیدیم <span class="beta-t">(آزمایشی)</span></b><small dir="auto">${S.phone ? esc(fa(S.phone.replace(/^(\d{4})\d{3}/, '$1•••'))) : S.token ? 'مهمان – شماره تأیید نشده' : 'هنوز وارد نشده‌اید'}</small></div>${S.token ? `<button class="icon-btn sq" data-a="my-info" aria-label="اطلاعات من" title="اطلاعات من">${ic('user')}</button>` : ''}<button class="icon-btn sq" data-a="theme" aria-label="${isDark() ? 'حالت روز' : 'حالت شب'}">${ic(isDark() ? 'sun' : 'moon')}</button><button class="icon-btn sq" data-a="close" aria-label="بستن">${ic('close')}</button></div>
     ${S.token ? `<div class="dr-duo">${goAllowed() ? (S.go ? `<button class="dr-go" data-a="go-exit"><span class="gch-ic">${ic('team')}</span><span class="grow"><b>سرویس ثابت</b><small>هم‌مسیرها، تیم، حساب</small></span></button>` : `<button class="dr-go ${ui.goHot ? 'hot' : ''}" data-a="go-open"><span class="gch-ic">${ic('now')}</span><span class="grow"><b>دارم می‌روم</b><small>${ui.goHot ? 'الان به کارتان می‌آید' : 'نقشه و رفتن با یک تپ'}</small></span></button>`) : ''}<button class="dr-me" data-a="my-info">${ic('user')}<span>اطلاعات من</span></button></div>` : ''}
     <div class="sec-h"><span>مسیرهای من <button class="q-mark" data-a="glossary" aria-label="مسیر یعنی چه؟">؟</button></span><button class="link small" data-a="new-profile">${ic('plus')}تازه</button></div>
-    <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}">${profRow(x)}${!x.complete && !x.shared ? `<button class="pdel" data-a="prof-del" data-id="${x.id}" aria-label="پاک کردن «${esc(x.label)}»">${ic('close')}</button>` : ''}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیر را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
+    <div class="pgroup">${ps.length ? ps.map(x => `<div class="pwrap ${x.id === S.active ? 'on' : ''}${x.id === S.active && ui.pcol ? ' col' : ''}">${profRow(x)}${!x.complete && !x.shared ? `<button class="pdel" data-a="prof-del" data-id="${x.id}" aria-label="پاک کردن «${esc(x.label)}»">${ic('close')}</button>` : ''}${x.id === S.active ? profPanel(x) : ''}</div>`).join('') : `<button class="p-empty" data-a="new-profile">${ic('plus')}<span><b>اولین مسیر را بسازید</b><small>مدرسه، مهد، محل کار…؛ ۲ دقیقه</small></span></button>`}</div>
     ${ps.length === 1 && p && p.complete ? `<div class="nudge"><span class="small">یک مسیر دیگر هم دارید؟</span><div class="chips">${[['institute', 'کلاس زبان'], ['club', 'باشگاه'], ['work', 'محل کار'], ['kinder', 'مهد']].filter(([k]) => k !== p.kind).map(([k, v]) => `<button class="chip" data-a="quick-new" data-kind="${k}">+ ${v}</button>`).join('')}</div></div>` : ''}
     ${S.token && !S.phone ? `<div class="hint warn" style="margin:6px 0">${ic('phone')}<span class="grow small">شماره‌تان هنوز تأیید نشده؛ تا تأیید، شماره‌ی دیگران را نمی‌بینید.</span><button class="btn sm" data-a="verify">تأیید</button></div>` : ''}
     ${p && p.team && leagueOn(p) ? `<div class="tiles"><button class="tile" data-a="quiz">${ic('trophy')}<span>لیگ راه ${esc(destWord(p))}</span></button></div>` : ''}
@@ -1083,8 +1091,8 @@ function drawer(keep) {
     ${(ME.staff || []).filter(x => x.admin).map(x => `<button class="mi schools-mi" data-a="staff-panel" data-id="${x.place_id}"><span class="dong-ic">${ic('school')}</span><span class="grow"><b>پنل ${esc(x.name)}</b><small>شما مدیرِ پنل این مدرسه‌اید</small></span>${ic('back')}</button>`).join('')}
     <div class="sep"></div>
     <div class="qtiles">${CFG.flags.ads !== false ? `<a class="qt q-ads" href="/ads/">${ic('list')}<span>آگهی‌ها</span></a>` : ''}${CFG.flags.stories !== false ? `<a class="qt q-st" href="stories/">${ic('spark')}<span>قصه‌ها</span></a>` : ''}${CFG.donate && (CFG.donate.card || CFG.donate.gateway) ? `<button class="qt q-dg" data-a="donate">${ic('heart')}<span>دنگ خیر</span></button>` : ''}</div>
-    ${(() => { const sc = `<a class="mi schools-mi" href="schools/"><span class="dong-ic">${ic('school')}</span><span class="grow"><b>رسیدیم مدرسه</b><small>پنل مدرسه، اردو، پیام به همه</small></span>${ic('back')}</a>`,
-      og = `<a class="mi schools-mi orgs-mi" href="orgs/"><span class="dong-ic">${ic('brief')}</span><span class="grow"><b>رسیدیم سازمان</b><small>ایاب‌وذهاب همکاران، پایلوت رایگان</small></span>${ic('back')}</a>`;
+    ${(() => { const sc = `<a class="lux lux-sc schools-mi" href="schools/"><span class="lux-k">برای مدیر و انجمن اولیا</span><b>رسیدیم مدرسه</b><small>پنل مدرسه، اردو، پیام به همه</small><span class="lux-art" aria-hidden="true">🏫</span><span class="lux-go">ببینید ${ic('back', 'i flip')}</span></a>`,
+      og = `<a class="lux lux-og schools-mi orgs-mi" href="orgs/"><span class="lux-k">برای منابع انسانی</span><b>رسیدیم سازمان</b><small>ایاب‌وذهاب همکاران، پایلوت رایگان</small><span class="lux-art" aria-hidden="true">🏢</span><span class="lux-go">ببینید ${ic('back', 'i flip')}</span></a>`;
       return `<div class="dr-cap">برای مدرسه و سازمان</div><div class="dr-biz">${sceneOrg() ? og + sc : sc + og}</div>`; })()}
     ${standalone() || NATIVE || S.installed ? '' : `<button class="mi slim" data-a="install-pwa">${ic('install')}<span class="grow">نصب رسیدیم روی این دستگاه</span></button>`}
     <button class="mi slim" data-a="bug">${ic('flag')}<span class="grow">گزارش مشکل</span><small>مستقیم به سازنده‌ها</small></button>
@@ -1099,7 +1107,7 @@ function drawer(keep) {
       ${mi('t-reset', 'logout', 'بازنشانی کامل (از صفر)')}
       ${mi('admin', 'gear', 'پیشخوان مدیریت')}</div></div>` : ''}
     <div class="trust-slot"></div>
-    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۶۱</small></span>` : `<span>نسخه‌ی وب ۶۱${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
+    <div class="ver-box">${NATIVE ? `${ic('install')}<span>اپ اندروید رسیدیم${APPVER ? ' – نسخه ' + fa(APPVER) : ''}<br><small>نسخه‌ی وب ۶۲</small></span>` : `<span>نسخه‌ی وب ۶۲${ui.apk && ui.apk.ver ? ' – اپ اندروید ' + fa(ui.apk.ver) : ''}</span>${ui.apk && ui.apk.url ? `<a class="btn sm ac" href="${esc(ui.apk.url)}" download>${ic('install')}دانلود اپ اندروید</a>` : ''}`}<small class="muted">${CFG.service ? 'فاصله‌ها از نقشه‌ی نشان' : 'فاصله‌ها تقریبی'}</small></div>`;
   if (keep === 'html') { ui.inDrawer = false; return html; }
   if (old) { old.innerHTML = html; old.scrollTop = st; }
   else { $('#layer').innerHTML = `<div class="scrim" data-a="close"></div><nav class="drawer" aria-label="منوی کناری" tabindex="-1">${html}</nav>`; $('.drawer').focus(); }
@@ -1168,7 +1176,7 @@ async function ambView() {
       <div class="row"><input id="amb-pl" dir="ltr" placeholder="WPXJUG5A" maxlength="8" style="flex:1"><button class="btn ac" data-a="amb-make">ساختن</button></div><div id="amb-out"></div></section>
     <section class="card stack"><h2>ایده‌های سریع</h2><ol class="steps3"><li>پوستر A5 را روی تابلوی اعلانات مدرسه (با اجازه‌ی مدرسه) بچسبانید.</li><li>متن آماده و لینک را در گروه کلاس و کانال مدرسه بگذارید؛ صبح‌های شنبه بهترین زمان است.</li><li>از ۲ خانواده‌ی هم‌محله بخواهید با هم ثبت‌نام کنند؛ تیم زودتر شکل می‌گیرد.</li></ol></section>
     ${A.list.length ? `<section class="card"><h2>ثبت‌شده‌ها</h2><table><tr><th>تاریخ</th><th>مکان</th><th>نوع</th><th>مبلغ</th></tr>${A.list.slice(0, 60).map(x => `<tr><td>${jLabel(new Date(x.created * 1000))}</td><td>${esc(x.place || '—')}</td><td>${x.kind === 'team' ? 'تیم شد' : 'ثبت‌نام'}</td><td>${money(x.amount)}${+x.paid ? ' ✓' : ''}</td></tr>`).join('')}</table></section>` : ''}</div>`;
-  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=61" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
+  $('#dock').classList.add('hide'); document.body.classList.add('amb-mode'); $('#title').innerHTML = `<img src="assets/icon.svg?v=62" alt=""><span><b>رسیدیم</b><small>صفحه‌ی سفیران</small></span>`;
 }
 function reportHtml(p, T) {
   const H = (ui.hist && ui.hist.trips) || [], done = H.filter(x => x.status === 'done').sort((a, b) => a.date < b.date ? -1 : 1), b = balances(T), now = new Date();
@@ -1202,7 +1210,7 @@ async function saveBlob(blob, name, title, text) {
 }
 /** Render an element (inside #print-root) to a PNG or a paged A4 PDF that never cuts through a row or a line. */
 async function elToFile(el, kind, name, title) {
-  try { await loadJs('assets/html2canvas.min.js?v=61', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=61', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
+  try { await loadJs('assets/html2canvas.min.js?v=62', () => !!window.html2canvas, 20000); if (kind === 'pdf') await loadJs('assets/jspdf.umd.min.js?v=62', () => !!(window.jspdf && window.jspdf.jsPDF), 20000); } catch (e) { toast('بارگذاری ابزار ساخت فایل نشد؛ اینترنت را بررسی کنید.'); return false; }
   try { await document.fonts.ready; } catch (e) {}
   const cv = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }); let blob;
   if (kind === 'png') blob = await new Promise(res => cv.toBlob(res, 'image/png'));
@@ -1610,13 +1618,14 @@ function watchScrollHint() {
   const upd = () => { const more = b.scrollHeight - b.clientHeight - b.scrollTop > 60; h.classList.toggle('on', more); };
   b.addEventListener('scroll', upd, { passive: true }); setTimeout(upd, 350); upd();
 }
-function cityAnim(label) {
+const orgAud = () => { const p = active(); return p ? LV_KINDS.includes(p.kind) : (['work', 'now'].includes(S.intent) || (!S.intent && S.aud === 'org')); };
+function cityAnim(label, org = orgAud()) {
   return `<div class="city" aria-hidden="true"><svg viewBox="0 0 360 170" preserveAspectRatio="xMidYMid slice">
     <defs><pattern id="blk" width="60" height="60" patternUnits="userSpaceOnUse"><rect width="60" height="60" fill="#E9F6EE"/><rect x="6" y="6" width="22" height="18" rx="4" fill="#D3EEDC"/><rect x="34" y="6" width="20" height="26" rx="4" fill="#CFE8F7"/><rect x="6" y="30" width="22" height="24" rx="4" fill="#FCE7C8"/><rect x="34" y="38" width="20" height="16" rx="4" fill="#D3EEDC"/><path d="M0 .5H60M.5 0V60" stroke="#fff" stroke-width="3"/></pattern></defs>
     <g class="city-pan"><rect x="-60" y="-60" width="540" height="300" fill="url(#blk)"/></g>
     <path d="M-10 128H370" stroke="#fff" stroke-width="22"/><path d="M-10 128H370" stroke="#B9C7BF" stroke-width="2" stroke-dasharray="10 12"/>
     ${[300, 215, 130].map((x, i) => `<g transform="translate(${x} 96)"><path d="M-14 18V2l14-12L14 2v16Z" fill="#fff" stroke="#04140B" stroke-width="2"/><rect x="-4" y="7" width="8" height="11" fill="#FFD84D" stroke="#04140B" stroke-width="1.6"/><g class="kid k${i}"><circle cx="20" cy="10" r="4" fill="#fff" stroke="#04140B" stroke-width="1.6"/><path d="M20 14l-5 9h10Z" fill="${['#FF8FA3', '#7FD8FF', '#FFD84D'][i]}" stroke="#04140B" stroke-width="1.6"/></g></g>`).join('')}
-    <g transform="translate(40 92)"><path d="M-22 18V0l22-14L22 0v18Z" fill="#fff" stroke="#04140B" stroke-width="2"/><path d="M-6 -2h12" stroke="#04140B" stroke-width="2"/><path d="M0 -14v-10l10 4-10 4" fill="#1DBF73" stroke="#04140B" stroke-width="1.6"/><g class="kid kin">${[-12, 0, 12].map((dx, i) => `<circle cx="${dx}" cy="30" r="3.4" fill="#fff" stroke="#04140B" stroke-width="1.4"/><path d="M${dx} 33l-4 7h8Z" fill="${['#FF8FA3', '#7FD8FF', '#FFD84D'][i]}" stroke="#04140B" stroke-width="1.4"/>`).join('')}</g></g>
+${org ? `    <g transform="translate(40 92)"><rect x="-20" y="-34" width="40" height="52" rx="3" fill="#fff" stroke="#04140B" stroke-width="2"/>${[-26, -14, -2].map(y => [-12, -2, 8].map(x => `<rect x="${x}" y="${y}" width="6" height="7" rx="1" fill="#CFE8F7" stroke="#04140B" stroke-width="1"/>`).join('')).join('')}<rect x="-5" y="8" width="10" height="10" fill="#FFD84D" stroke="#04140B" stroke-width="1.6"/><g class="kid kin">${[-14, 0, 14].map((dx, i) => `<circle cx="${dx}" cy="27" r="3.8" fill="#FFE1C4" stroke="#04140B" stroke-width="1.4"/><path d="M${dx - 4} 31h8l1 10h-10Z" fill="${['#3B5BDB', '#fff', '#0B6B3A'][i]}" stroke="#04140B" stroke-width="1.4"/>`).join('')}</g></g>` : `    <g transform="translate(40 92)"><path d="M-22 18V0l22-14L22 0v18Z" fill="#fff" stroke="#04140B" stroke-width="2"/><path d="M-6 -2h12" stroke="#04140B" stroke-width="2"/><path d="M0 -14v-10l10 4-10 4" fill="#1DBF73" stroke="#04140B" stroke-width="1.6"/><g class="kid kin">${[-12, 0, 12].map((dx, i) => `<circle cx="${dx}" cy="30" r="3.4" fill="#fff" stroke="#04140B" stroke-width="1.4"/><path d="M${dx} 33l-4 7h8Z" fill="${['#FF8FA3', '#7FD8FF', '#FFD84D'][i]}" stroke="#04140B" stroke-width="1.4"/>`).join('')}</g></g>`}
     <g class="city-car"><g transform="translate(0 112)"><path d="M-20 16V6c0-3 2-5 5-5l6-2 6-8c1-2 3-3 5-3h12c2 0 4 1 5 3l5 8 5 1c3 1 4 3 4 6v10Z" fill="#fff" stroke="#04140B" stroke-width="2.2" stroke-linejoin="round"/><circle cx="-12" cy="17" r="5" fill="#04140B"/><circle cx="14" cy="17" r="5" fill="#04140B"/><circle cx="-2" cy="-1" r="3.2" fill="#FFE1C4" stroke="#04140B" stroke-width="1.2"/></g></g>
   </svg>${label ? `<span class="city-label">${label}</span>` : ''}</div>`;
 }
@@ -2685,7 +2694,7 @@ function jrView(J) {
   <section class="card jr-dx"><h3>🩺 تشخیص</h3><ul>${D.map(f => `<li class="is-${f.lv}"><span class="jr-dxi">${f.ic}</span><span><b>${esc(f.t)}</b>${f.fix ? `<small>${esc(f.fix)}</small>` : ''}</span></li>`).join('')}</ul></section>
   ${J.profiles.length > 1 ? `<div class="jr-ptabs no-print">${J.profiles.map((p, i) => `<button data-a="jr-prof" data-v="${i}" aria-pressed="${p === P}">${kindIc(p.kind)}<span>${esc(p.place ? p.place.name : p.label)}</span>${p.team ? '<i>تیم</i>' : ''}</button>`).join('')}</div>` : ''}
   <section class="card jr-swc"><h3>🗺️ مسیر در فرایند رسیدیم ${P && P.place ? `<small>${esc(P.place.name)}${P.place.city ? '، ' + esc(P.place.city) : ''}</small>` : ''}</h3>
-    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=61" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
+    <div class="jr-sw"><div class="jr-lanes"><span></span>${JR_LANES.map(([k, t], i) => `<span class="ln-h l${i}">${i === 0 ? shapeAv(P ? P.id : u.id, 28) + esc(fams[0] || t) : i === 1 ? `<img src="assets/icon.svg?v=62" alt="" width="26" height="26">${t}` : `<span class="jr-stack">${T ? T.members.filter(m => !m.me).slice(0, 3).map(m => shapeAv(m.id, 24)).join('') : '👥'}</span>${t}`}</span>`).join('')}</div>
       <div class="jr-grid" style="--n:${S.length}">${[0, 1, 2].map(l => `<i class="jr-lane l${l}" style="grid-column:${l + 2}"></i>`).join('')}<svg class="jr-wires" aria-hidden="true"></svg>
         ${S.map((s, i) => `<span class="jr-no is-${s.st}" style="grid-row:${i + 1}">${fa(i + 1)}</span><div class="jr-node is-${s.st} l${s.lane}" style="grid-row:${i + 1};grid-column:${s.lane + 2};--d:${i}" data-i="${i}">${i === cur ? `<span class="jr-here">${shapeAv(P ? P.id : u.id, 30)}<em>اینجاست</em></span>` : ''}<b><i>${s.ic}</i>${s.t}</b><small>${esc(s.sub || '')}</small>${s.at ? `<time>${jrAgo(s.at)}</time>` : ''}</div>`).join('')}
       </div></div>
@@ -3161,6 +3170,20 @@ async function act(a, el) {
     case 'in-jump': if (ui.intro) { ui.intro.jump = 1; ui.intro.say = ''; ui.intro.i = inSteps(ui.intro).indexOf(el.dataset.v); introRender(); } return;
     case 'in-peek': return inPeek();
     case 'in-peek-done': if (ui.intro) { ui.intro.peeked = 1; ui.intro.peekNow = 0; ui.intro.say = ui.intro.peek && ui.intro.peek.n > 0 ? 'دیدید؟ هم‌مسیر نزدیک است 😉 حالا بگویید برای کدام رفت‌وآمد.' : 'خب! حالا بگویید برای کدام رفت‌وآمد آمده‌اید.'; ui.intro.i = inSteps(ui.intro).indexOf('who'); introRender(); } return;
+    case 'in-name': if (ui.intro) { const v = (($('#in-fam') || {}).value || '').trim(); if (v.length < 2) return toast('نام خانوادگی را بنویسید 🙂'); ui.intro.a.fam = v; ui.intro.say = `خوشبختم، ${ui.intro.a.who === 'kids' ? 'خانواده‌ی' : ui.intro.a.g === 'f' ? 'خانم' : 'آقای'} ${v}! 🤝`; ui.intro.i = ui.intro.jump ? inSteps(ui.intro).indexOf('guess') : ui.intro.i + 1; ui.intro.jump = 0; introRender('land'); } return;
+    case 'in-loc': return inLoc();
+    case 'in-loc-skip': if (ui.intro) { ui.intro.a.home = 'no'; ui.intro.say = 'باشد؛ بعداً خانه را روی نقشه می‌زنید.'; ui.intro.i++; introRender(); } return;
+    case 'in-home': if (ui.intro) { ui.intro.a.home = el.dataset.v; ui.intro.say = el.dataset.v === 'yes' ? 'عالی! خانه ثبت شد 🏠 حالا مقصد.' : 'باشد؛ بعداً روی نقشه.'; if (ui.intro.a.who === 'kids') ui.intro.say = el.dataset.v === 'yes' ? 'عالی! خانه ثبت شد 🏠' : 'باشد؛ در فرم روی نقشه می‌زنید.'; const L = inSteps(ui.intro); setTimeout(() => { if (!ui.intro) return; ui.intro.i = ui.intro.jump ? L.indexOf('guess') : L.indexOf('loc') + 1; ui.intro.jump = 0; introRender('land'); }, 240); } return;
+    case 'in-pl': if (ui.intro) { const x = (ui.intro.res || [])[+el.dataset.i]; if (!x) return; ui.intro.pl = Object.assign({}, x); introRender(); } return;
+    case 'in-pl-x': if (ui.intro) { ui.intro.pl = null; introRender(); } return;
+    case 'in-pl-skip': if (ui.intro) { ui.intro.pl = null; ui.intro.say = 'اشکالی ندارد؛ بعداً روی نقشه می‌زنید.'; ui.intro.i = inSteps(ui.intro).indexOf('guess'); introRender(); } return;
+    case 'in-pl-ok': if (ui.intro && ui.intro.pl) { const I = ui.intro, n0 = $('#in-pln'); if (n0 && n0.value.trim().length >= 3) I.pl.label = n0.value.trim(); I.say = I.pl.n ? `🎉 در «${I.pl.label || I.pl.name}» الان ${fa(I.pl.n)} نفر در رسیدیم هستند!` : `🏅 شما پیشگامِ «${I.pl.label || I.pl.name}» می‌شوید!`; I.jump = 0; I.i = inSteps(I).indexOf('guess'); introRender('land'); } return;
+    case 'in-sms': if (ui.intro) { const I = ui.intro; I.rules = !!($('#in-rules') || {}).checked; if (!I.rules) return toast('برای ادامه، قانون هم‌مسیری را بپذیرید.'); const ph = normPhone(($('#in-ph') || {}).value || ''); if (!ph) return toast('شماره را درست بنویسید؛ مثلاً ۰۹۱۲۱۲۳۴۵۶۷.');
+      I.ph = { ph, busy: 1 }; introRender(); try { const r = await api('otp_send', { phone: ph, channel: 'sms' }); I.ph = { ph, sent: 1, dev: r.dev_code }; introRender(); setTimeout(() => otpAuto('#in-otp'), 300); } catch (e) { I.ph = { ph }; introRender(); toast(e.code === 'sms' ? `پیامک نرسید (کد ${fa(e.pcode || 0)})؛ کمی بعد دوباره.` : e.message); } } return;
+    case 'in-otp': if (ui.intro) { const I = ui.intro, code = en((($('#in-otp') || {}).value || '').trim()); if (code.length < 4) return toast('کد را بنویسید.'); I.ph.busy = 1; introRender();
+      try { const r = await api('otp_verify', { phone: I.ph.ph, code }); S.token = r.token; S.phone = r.phone; persist(); await introSetup(); } catch (e) { I.ph.busy = 0; introRender(); toast(e.message || 'کد درست نیست.'); } } return;
+    case 'pio-share': { const p = active(), pl = (p && p.place) || {}; const t = `سلام 👋 من برای رفت‌وآمدِ «${pl.name || 'محل کار'}» در «رسیدیم» عضو شدم؛ هم‌مسیرِ همکار و هم‌محله، هم‌جنس، رایگان.\nاگر شما هم از سمت ما می‌آیید، با هم برویم و بیاییم:\n${SITE}/${pl.code || ''}`;
+      try { if (navigator.share) { await navigator.share({ text: t }); return; } } catch (e) { return; } try { await navigator.clipboard.writeText(t); toast('متن کپی شد؛ در گروه همکارها بفرستید 📣'); } catch (e) { sheet('پیام آماده', `<textarea readonly rows="6">${esc(t)}</textarea>`); } return; }
     case 'in-go': return introGo();
     case 'peek-home': { const bt = $('#peek-home'); if (!bt || bt.dataset.busy) return; bt.dataset.busy = 1; const sm = bt.querySelector('small'), bb = bt.querySelector('b'); bb.textContent = 'دارم نگاه می‌کنم… 👀'; let me = null; try { me = await here(); } catch (e) {}
       if (!me) { bb.textContent = 'موقعیت در دسترس نبود'; sm.textContent = 'اشکالی ندارد؛ با ثبت محله هم نزدیک‌ترین‌ها پیدا می‌شوند.'; delete bt.dataset.busy; return; }
@@ -3534,7 +3557,7 @@ const IN_ASK = {
   now: [['📍', 'خانه', 'مبدأ هر روزتان؛ فقط برای فاصله حساب می‌شود.'], ['🏢', 'محل کار یا دانشگاه', 'مقصدی که هم‌مسیرها هم آن‌جا می‌روند.'], ['⚡', 'و تمام!', 'از آن به بعد هر بار فقط «دارم می‌روم» را بزنید.']] };
 const KNAME = { school: 'مدرسه', kinder: 'مهد', institute: 'کلاس', club: 'باشگاه', work: 'محل کار', uni: 'دانشگاه' };
 function inSteps(I) { const s = ['hello', 'value', 'who'], w = I.a.who; if (I.peekNow) s.push('peek'); if (!w) return s;
-  s.push('g'); s.push(...(w === 'kids' ? ['kkind', 'kn', 'car', 'pain'] : w === 'work' ? ['wkind', 'car', 'pain'] : ['wkind', 'car', 'pain'])); s.push('guess', 'plan'); return s; }
+  s.push('g'); s.push(...(w === 'kids' ? ['kkind', 'kn', 'car', 'pain'] : ['wkind', 'car', 'pain'])); s.push('name', 'loc'); if (w !== 'kids') s.push('place'); s.push('guess', w === 'kids' ? 'plan' : 'ready'); return s; }
 function inGuess() { const q = new URLSearchParams(location.search), f = (q.get('for') || '').toLowerCase(), r = (document.referrer || '') + ' ' + location.pathname;
   if (/school|kinder|madrese|mahd/.test(f) || /\/(schools|kinder)\b/.test(r)) return 'kids'; if (/work|org|uni|office/.test(f) || /\/orgs\b/.test(r)) return 'work'; if (/go|now/.test(f)) return 'now'; return ''; }
 function introWanted() { try { return !!(CFG.flags && CFG.flags.intro2 !== false) && !S.token && !S.intro2 && !allProfiles().length && !(S.drafts || []).length && !ui.wiz && !(navigator.webdriver && !/[?&]intro=1/.test(location.search)); } catch (e) { return false; } }
@@ -3548,7 +3571,7 @@ function inPin(mood) { return `<div class="in-pin go-pin${ui.intro && ui.intro.a
 function introRender(mood) { const I = ui.intro; if (!I) return; let el = $('#intro'); if (!el) { el = document.createElement('div'); el.id = 'intro'; el.className = 'intro'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'آشنایی با رسیدیم'); document.body.appendChild(el); document.body.classList.add('intro-on'); inSwipe(el); }
   const L = inSteps(I), st = L[I.i] || 'hello', pct = Math.round(I.i / Math.max(L.length - 1, 8) * 100);
   const back = S.phone ? `<button class="in-login hot" data-a="in-login"><span>👋 خوش برگشتید! ورود با ${fa(String(S.phone).slice(0, 4))}•••</span><i class="in-hand" aria-hidden="true">👆</i></button>` : `<button class="in-login" data-a="in-login">قبلاً عضو شده‌ام؟ <b>ورود</b><i class="in-hand" aria-hidden="true">👆</i></button>`;
-  const top = `<div class="in-top">${st === 'hello' ? back : ''}<button class="in-skip" data-a="in-skip">بعداً</button><div class="in-meter" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="سنجاقک دارد حدس می‌زند"><i style="width:${Math.max(4, pct)}%"></i>${I.i >= 2 ? `<span>${st === 'guess' || st === 'plan' ? '🎯 حدس زد!' : '🤔 سنجاقک دارد حدس می‌زند…'}</span>` : ''}</div></div>`;
+  const top = `<div class="in-top">${st === 'hello' ? back : ''}<button class="in-skip" data-a="in-skip">بعداً</button><div class="in-meter" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="سنجاقک دارد حدس می‌زند"><i style="width:${Math.max(4, pct)}%"></i>${I.i >= 2 ? `<span>${st === 'guess' || st === 'plan' || st === 'ready' ? '🎯 حدس زد!' : '🤔 سنجاقک دارد حدس می‌زند…'}</span>` : ''}</div></div>`;
   const say = I.say ? `<div class="in-say" role="status">${inPin(mood || 'land')}<p class="in-bub">${esc(I.say)}</p></div>` : '';
   let body = '', foot = '';
   if (st === 'hello') { body = `<div class="in-art in-meet" aria-hidden="true"><span class="in-home a">🏠</span><span class="in-road"></span><span class="in-home b">🏠</span><div class="in-mid">${inPin('land')}</div></div>
@@ -3564,9 +3587,35 @@ function introRender(mood) { const I = ui.intro; if (!I) return; let el = $('#in
     body = `${inPin(P.n > 0 ? 'land' : '')}<h1 class="in-h sm">${P.busy ? 'دارم نگاه می‌کنم… 👀' : P.n > 0 ? `حدود ${fa(P.n)}${P.n >= 50 ? '+' : ''} نفر نزدیکتان در رسیدیم هستند 🎉` : P.n === 0 ? 'هنوز کسی این نزدیکی ثبت نشده' : 'ببینیم چه کسی نزدیکتان است؟'}</h1>
       <p class="in-p sm">${P.n > 0 ? 'بی‌نام شمردیم؛ نام و خانه‌ی هیچ‌کس دیده نمی‌شود. حالا بگویید برای کدام رفت‌وآمد تا نزدیک‌ترین‌ها را پیدا کنیم.' : P.n === 0 ? 'یعنی شما می‌توانید اولین هم‌مسیرِ محله باشید 🌱 با یک لینک، همسایه‌ها و همکارها را دعوت می‌کنید.' : P.err ? esc(P.err) : 'فقط تعداد را می‌گوییم، بی‌نام؛ موقعیتتان ذخیره نمی‌شود.'}</p>`;
     foot = P.n == null && !P.err ? `<button class="btn ac block in-next" data-a="in-peek" ${P.busy ? 'disabled' : ''}>📍 نشانم بده</button>` : `<button class="btn ac block in-next" data-a="in-peek-done">ادامه‌ی بازی ${ic('back', 'i flip')}</button>`; }
+  else if (st === 'name') { const t = I.a.who === 'kids' ? 'خانواده‌ی' : I.a.g === 'f' ? 'خانم' : 'آقای';
+    body = `${say}<h1 class="in-h sm">سنجاقک شما را چه صدا کند؟</h1><p class="in-p sm">فقط نام خانوادگی؛ هم‌مسیرها شما را با همین می‌شناسند. اسم کوچک لازم نیست.</p>
+      <label class="in-name"><span>${t}</span><input id="in-fam" maxlength="30" autocomplete="family-name" placeholder="مثلاً آسمان" value="${esc(I.a.fam || '')}"></label><p class="in-tag" id="in-hi" ${I.a.fam ? '' : 'hidden'}>🤝 خوشبختم، ${t} <b>${esc(I.a.fam || '')}</b>!</p>`;
+    foot = `<button class="btn ac block in-next" data-a="in-name">همین است ${ic('back', 'i flip')}</button>`; }
+  else if (st === 'loc') { const L = I.loc || {};
+    if (L.st === 'ok') { body = `${inPin('land')}<h1 class="in-h sm">پیدایتان کردم! 📍 الان خانه‌اید؟</h1><p class="in-p sm">اگر خانه‌اید، همین‌جا را خانه می‌گذارم و دیگر لازم نیست روی نقشه بگردید. نقطه‌ی دقیق خانه به هیچ‌کس نشان داده نمی‌شود${L.hood ? `؛ فقط محله: <b>${esc(L.hood)}</b>` : ''}.</p>
+        <div class="in-opts">${[['yes', '🏠', 'بله، همین‌جا خانه است'], ['no', '🚶', 'نه؛ بعداً خانه را روی نقشه می‌زنم']].map(([v, e, t], k) => `<button class="in-opt${I.a.home === v ? ' on' : ''}" style="--d:${k * 70}ms" data-a="in-home" data-v="${v}"><span class="in-oe">${e}</span><span class="grow"><b>${t}</b></span></button>`).join('')}</div>`; }
+    else { const den = L.st === 'denied' || L.st === 'err', and = /android/i.test(navigator.userAgent);
+      body = `${say}<h1 class="in-h sm">${den ? 'موقعیت خاموش است 🙈' : '📍 سنجاقک بدون موقعیت، کور است!'}</h1>
+        <p class="in-p sm">${den ? 'رسیدیم بدون موقعیت نمی‌تواند هم‌مسیرِ نزدیک پیدا کند. این‌طوری روشنش کنید:' : 'رسیدیم با موقعیت کار می‌کند: نزدیک‌ترین هم‌مسیرها، حدس مقصد و «کنار در هستم» همه از همین است. فقط برای فاصله است و به هیچ‌کس نشان داده نمی‌شود.'}</p>
+        ${den ? `<ol class="in-asks in-help">${(NATIVE ? [['⚙️', 'تنظیمات گوشی ← برنامه‌ها ← رسیدیم ← مجوزها ← موقعیت ← «فقط هنگام استفاده»']] : and ? [['🔒', 'روی قفلِ کنار آدرس سایت بزنید ← مجوزها ← موقعیت ← اجازه'], ['📶', 'نوار بالای گوشی را پایین بکشید و «موقعیت/GPS» را روشن کنید']] : [['🔒', 'روی قفلِ کنار آدرس سایت بزنید ← موقعیت ← اجازه'], ['🍎', 'آیفون: تنظیمات ← حریم خصوصی ← خدمات موقعیت ← سافاری ← هنگام استفاده']]).map(([e, t], k) => `<li style="--d:${k * 100}ms"><span class="in-ae">${e}</span><span class="grow"><small>${t}</small></span></li>`).join('')}</ol>` : `<p class="in-tag">💡 جی‌پی‌اس (موقعیت) گوشی هم باید روشن باشد.</p>`}`;
+      foot = `<button class="btn ac block in-next" data-a="in-loc" ${L.st === 'busy' ? 'disabled' : ''}>${L.st === 'busy' ? 'دارم پیدا می‌کنم…' : den ? 'دوباره امتحان کن' : '📍 روشن کن'}</button>${den ? '<button class="btn line in-later" data-a="in-loc-skip">بعداً</button>' : ''}`; } }
+  else if (st === 'place') { const R = I.res || [], pl = I.pl;
+    body = `${say}<h1 class="in-h sm">${I.a.wkind === 'uni' ? 'کدام دانشگاه؟' : 'محل کارتان کجاست؟'}</h1><p class="in-p sm">شرکت، دفتر، مؤسسه، اداره، بیمارستان، حوزه… هر چه صدایش می‌کنید بنویسید؛ روی نقشه‌ی شهر پیدایش می‌کنیم.</p>
+      <div class="in-search">${ic('search')}<input id="in-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="${I.a.wkind === 'uni' ? 'مثلاً دانشگاه تهران' : 'نام محل کار'}" value="${esc(I.q || '')}"></div>
+      ${pl ? `<div class="in-pick"><span>${pl.src === 'r' ? '🏢' : '📍'}</span><span class="grow"><b>${esc(pl.name)}</b><small>${esc(pl.sub || '')}</small></span><button class="in-chip" data-a="in-pl-x">عوض کن</button></div>
+        ${pl.src !== 'r' ? `<label class="in-name sm"><span>اسمش را چه می‌گذارید؟</span><input id="in-pln" maxlength="60" value="${esc(pl.label || pl.name)}"></label>` : ''}`
+      : `<div class="in-res" id="in-res" aria-live="polite">${I.busy ? '<p class="in-p sm">دارم می‌گردم… 🔎</p>' : R.map((x, k) => `<button class="in-opt" style="--d:${k * 40}ms" data-a="in-pl" data-i="${k}"><span class="in-oe">${x.src === 'r' ? '🏢' : '📍'}</span><span class="grow"><b>${esc(x.name)}</b><small>${esc(x.sub || '')}${x.n ? ` · <em class="in-n">${fa(x.n)} نفر در رسیدیم</em>` : ''}</small></span></button>`).join('') || (I.q && I.q.length > 1 ? '<p class="in-p sm">چیزی پیدا نشد؛ شکل دیگری بنویسید، یا بعداً روی نقشه بزنید.</p>' : '')}</div>`}`;
+    foot = pl ? `<button class="btn ac block in-next" data-a="in-pl-ok">همین است ${ic('back', 'i flip')}</button>` : `<button class="btn line block in-later" data-a="in-pl-skip">پیدا نکردم؛ بعداً روی نقشه</button>`; }
+  else if (st === 'ready') { const pl = I.pl, home = I.a.home === 'yes' && I.loc && I.loc.lat, Ph = I.ph || {};
+    body = `<div class="in-route"><span><i>🏠</i>${home ? esc(I.loc.hood || 'خانه') : '<em>خانه: بعداً روی نقشه</em>'}</span><b class="in-dash" aria-hidden="true"></b><span><i>${I.a.wkind === 'uni' ? '🎓' : '🏢'}</i>${pl ? esc(pl.label || pl.name) : '<em>مقصد: بعداً روی نقشه</em>'}</span></div>
+      <h1 class="in-h sm">${home && pl ? 'مسیرتان آماده است! فقط ورود مانده' : 'یک قدم تا شروع: ورود'}</h1>
+      <label class="in-rule"><input type="checkbox" id="in-rules" ${I.rules ? 'checked' : ''}><span>قانون هم‌مسیری را می‌پذیرم: هم‌جنس، محترمانه و وقت‌شناس. رسیدیم حمل‌کننده نیست و پولی جابه‌جا نمی‌کند؛ هر کس مسئول سفر خودش است.</span></label>
+      ${Ph.sent ? `<div class="field"><label for="in-otp">کدی که به <b dir="ltr">${esc(fa(Ph.ph))}</b> رفت</label><input id="in-otp" class="otp" inputmode="numeric" autocomplete="one-time-code"></div>${Ph.dev ? `<p class="note">${ic('flask')}کد آزمایشی: <b dir="ltr">${fa(Ph.dev)}</b></p>` : ''}`
+        : `<div class="field"><label for="in-ph">شماره همراه (فقط برای ورود؛ به کسی نشان داده نمی‌شود)</label><input id="in-ph" type="tel" inputmode="tel" dir="ltr" placeholder="0912 123 4567" autocomplete="tel" value="${esc(Ph.ph || '')}"></div>`}`;
+    foot = Ph.busy ? `<button class="btn ac block in-next" disabled>${Ph.sent ? 'دارم می‌سازم… ✨' : 'در حال ارسال…'}</button>` : Ph.sent ? `<button class="btn ac block in-next" data-a="in-otp">تأیید و ${I.a.who === 'now' ? 'برو سراغ «دارم می‌روم»' : 'بساز'} ${ic('back', 'i flip')}</button>` : `<button class="btn ac block in-next" data-a="in-sms">ارسال کد ${ic('back', 'i flip')}</button>`; }
   else if (st === 'guess') { const P = inPersona(I);
     body = `<div class="in-guess">${inPin('up')}<p class="in-k">🎯 حدس زدم! شما…</p><h1 class="in-h">${P.e} ${esc(P.t)}</h1><p class="in-big">${esc(P.v)}</p>
-      <div class="in-chips">${['g', 'kkind', 'kn', 'wkind', 'car', 'pain'].filter(k => I.a[k]).map(k => `<button class="in-chip" data-a="in-jump" data-v="${k}">${(INQ[k].o(I).find(o => o[0] === I.a[k]) || [])[1] || ''} ${esc((INQ[k].o(I).find(o => o[0] === I.a[k]) || [])[2] || '')} <i>✎</i></button>`).join('')}</div></div>`;
+      <div class="in-chips">${I.a.fam ? `<button class="in-chip" data-a="in-jump" data-v="name">🙂 ${esc(I.a.fam)} <i>✎</i></button>` : ''}${I.a.home === 'yes' ? `<button class="in-chip" data-a="in-jump" data-v="loc">🏠 ${esc((I.loc || {}).hood || 'خانه ثبت شد')} <i>✎</i></button>` : ''}${I.pl ? `<button class="in-chip" data-a="in-jump" data-v="place">🏢 ${esc(I.pl.label || I.pl.name)} <i>✎</i></button>` : ''}${['g', 'kkind', 'kn', 'wkind', 'car', 'pain'].filter(k => I.a[k]).map(k => `<button class="in-chip" data-a="in-jump" data-v="${k}">${(INQ[k].o(I).find(o => o[0] === I.a[k]) || [])[1] || ''} ${esc((INQ[k].o(I).find(o => o[0] === I.a[k]) || [])[2] || '')} <i>✎</i></button>`).join('')}</div></div>`;
     foot = `<button class="btn ac block in-next" data-a="in-next">درست است! بسازیمش ${ic('back', 'i flip')}</button>`; }
   else { const A = IN_ASK[I.a.who] || IN_ASK.work;
     body = `${inPin('land')}<h1 class="in-h sm">${I.a.who === 'now' ? 'یک بار، حدود ۲ دقیقه؛ بعد همیشه یک تپ' : 'آخرین قدم: حدود ۲ دقیقه'}</h1><p class="in-p sm">جواب‌هایتان را از قبل در فرم گذاشته‌ایم. این‌ها می‌ماند، با دلیلش:</p>
@@ -3574,7 +3623,9 @@ function introRender(mood) { const I = ui.intro; if (!I) return; let el = $('#in
       <p class="in-p sm">🔒 شماره‌تان فقط برای ورود است و به هیچ‌کس نشان داده نمی‌شود.</p>`;
     foot = `<button class="btn ac block in-next" data-a="in-go">شروع کنیم ${ic('back', 'i flip')}</button>`; }
   el.innerHTML = `${top}<div class="in-body" data-step="${st}">${body}</div><div class="in-foot">${I.i > 0 ? `<button class="btn line in-prev" data-a="in-prev" aria-label="قبلی">${ic('back')}</button>` : ''}${foot}</div>`;
-  const f = el.querySelector('.in-next:not([disabled])'); if (f && !el.querySelector('.in-opt')) setTimeout(() => f.focus({ preventScroll: true }), 60); }
+  const q = el.querySelector('#in-q'); if (q) { q.addEventListener('input', () => { I.q = q.value; clearTimeout(I.qt); I.qt = setTimeout(inSearch, 380); }); if (!I.pl) setTimeout(() => q.focus({ preventScroll: true }), 80); }
+  const fm = el.querySelector('#in-fam'); if (fm) { fm.addEventListener('input', () => { I.a.fam = fm.value.trim(); const h = el.querySelector('#in-hi'); if (h) { h.hidden = !I.a.fam; const b0 = h.querySelector('b'); if (b0) b0.textContent = I.a.fam; } }); fm.addEventListener('keydown', e => { if (e.key === 'Enter') act('in-name'); }); setTimeout(() => fm.focus({ preventScroll: true }), 80); }
+  const f = el.querySelector('.in-next:not([disabled])'); if (f && !el.querySelector('.in-opt') && !fm && !q) setTimeout(() => f.focus({ preventScroll: true }), 60); }
 function inSwipe(el) { let x0 = null, y0 = 0; el.addEventListener('touchstart', e => { const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; }, { passive: true });
   el.addEventListener('touchend', e => { if (x0 == null || !ui.intro) return; const t = e.changedTouches[0], dx = t.clientX - x0, dy = Math.abs(t.clientY - y0); x0 = null; if (Math.abs(dx) < 60 || dy > 50) return;
     const st = inSteps(ui.intro)[ui.intro.i]; if (dx > 0 && (st === 'hello' || st === 'value' || st === 'guess')) act('in-next'); else if (dx < 0 && ui.intro.i > 0) act('in-prev'); }, { passive: true }); }
@@ -3585,11 +3636,39 @@ function inAnswer(q, v) { const I = ui.intro; if (!I) return; if (q === 'who' &&
 async function inPeek() { const I = ui.intro; if (!I) return; I.peek = { busy: 1 }; introRender(); let me = null; try { me = await here(); } catch (e) {}
   if (!ui.intro) return; if (!me) { I.peek = { err: 'موقعیت در دسترس نبود؛ اشکالی ندارد، بازی را ادامه می‌دهیم.' }; return introRender(); }
   try { const r = await api('near_peek', { lat: me.lat, lng: me.lng }); I.peek = { n: r.n < 0 ? null : r.n, err: r.n < 0 ? 'امروز زیاد نگاه کردید 🙂 بعد از ثبت‌نام دقیق‌تر نشان می‌دهیم.' : '' }; } catch (e) { I.peek = { err: 'الان نشد؛ بعداً دوباره.' }; } introRender(); }
+async function inSearch() { const I = ui.intro; if (!I) return; const qq = (I.q || '').trim(); if (qq.length < 2) { I.res = []; return inResPaint(); } I.busy = 1; inResPaint();
+  try { const L = I.loc || {}; const r = await api('poi_search', { q: qq, lat: L.lat || 0, lng: L.lng || 0 }); if (ui.intro !== I || (I.q || '').trim() !== qq) return; I.res = r.list || []; } catch (e) { I.res = []; } I.busy = 0; inResPaint(); }
+function inResPaint() { const I = ui.intro, el = $('#in-res'); if (!I || !el) return; const q0 = $('#in-q'), pos = q0 ? q0.selectionStart : 0; introRender(); const q1 = $('#in-q'); if (q1) { q1.focus({ preventScroll: true }); try { q1.setSelectionRange(pos, pos); } catch (e) {} } }
+async function inLoc() { const I = ui.intro; if (!I) return; I.loc = { st: 'busy' }; introRender(); let me = null; try { me = await here(); } catch (e) {} if (ui.intro !== I) return;
+  if (!me) { I.loc = { st: ui.geoErr === 'denied' ? 'denied' : 'err' }; I.say = ''; return introRender(); }
+  I.loc = { st: 'ok', lat: me.lat, lng: me.lng }; S.geoOk = 1; persist(); introRender('land');
+  try { const r = await api('reverse', { lat: me.lat, lng: me.lng }); if (ui.intro === I && I.loc) { I.loc.hood = r.hood || ''; I.loc.city = r.city || ''; if (inSteps(I)[I.i] === 'loc') introRender(); } } catch (e) {} }
+/* sign in, then build the whole route in one go: my info (name + home) → the place (ours, or a new one from the city map) → a complete «مسیر» → land where the visitor wanted to be */
+async function introSetup() { const I = ui.intro; if (!I) return; const a = I.a, pl = I.pl, home = a.home === 'yes' && I.loc && I.loc.lat ? I.loc : null; let made = null, fam0 = 0;
+  try { await refreshMe(); } catch (e) {}
+  if (!allProfiles().length) { try { await api('my_info', Object.assign({ save: 1 }, a.fam ? { family: a.fam } : {}, home ? { lat: home.lat, lng: home.lng, hood: home.hood || '' } : {})); } catch (e) {}
+    if (home && pl) { try { let place = null; const kind = a.wkind || 'work';
+        if (pl.src === 'r') place = { id: pl.id, name: pl.name, lat: pl.lat, lng: pl.lng, city: pl.sub, families: pl.n || 0 };
+        else { const nm = (pl.label || pl.name).slice(0, 60), r = await api('place_create', { kind, name: nm, city: home.city || pl.city || 'تهران', gender: 'fm', lat: pl.lat, lng: pl.lng, in: '08:00', out: '16:00', days: [0, 1, 2, 3, 4] }); place = r.place || (r.dups && r.dups[0]) || null; }
+        if (place) { fam0 = place.families || 0; let est = 0; try { est = (await api('route', { a: [home.lat, home.lng], b: [place.lat, place.lng], city: place.city || '' })).est || 0; } catch (x) {}
+          const d = { family: a.fam || 'هم‌مسیر', pg: a.g, lat: home.lat, lng: home.lng, hood: home.hood || 'محله‌ی من', role: a.car === 'drive' ? 'drive' : 'pay', seats: 3, days: [0, 1, 2, 3, 4], snapp: est || 60000, rules_at: Math.floor(Date.now() / 1000), intro: { who: a.who, pain: a.pain || '' } };
+          const r = await api('profile_save', { id: '', label: (pl.label || place.name || '').slice(0, 60), kind, color: 0, place_id: place.id, data: d, step: 0, complete: 1 }); made = r.profile; P.push(made); S.active = made.id; persist(); } } catch (e) { toast(e.message || 'ساختن مسیر نشد؛ از «دارم می‌روم» ادامه دهید.'); } } }
+  try { ME.info = (await api('my_info', {})).info || ME.info; } catch (e) {}
+  S.intent = a.who; S.aud = 'org'; persist(); introClose(); render(true);
+  if (a.who === 'now' || !made) { setTimeout(() => act('go-open'), 250); if (!made) setTimeout(() => toast(!home ? 'فقط خانه مانده: «خانه» را بزنید و روی نقشه بگذارید.' : 'فقط مقصد مانده: «محل کار یا دانشگاه» را بزنید.'), 900); }
+  else { ui.tab = 'peers'; toast('🎉 مسیرتان ساخته شد! هم‌مسیرهای محل کار را همین‌جا می‌بینید.'); }
+  if (made && fam0 < 2) setTimeout(() => pioneerSheet(made), a.who === 'now' ? 2600 : 1400); }
+/* nobody here yet → make it a game: be the pioneer, bring colleagues (poster for the notice board, a ready post for work groups), install the app */
+function pioneerSheet(p) { const pl = (p && p.place) || {}, and = /android/i.test(navigator.userAgent) && !NATIVE;
+  sheet('🏅 شما پیشگامید!', `<div class="pio">${inPin('land')}<p class="in-p"><b>«${esc(pl.name || 'محل کارتان')}»</b> هنوز هم‌مسیرِ دیگری در رسیدیم ندارد؛ یعنی شما اولین نفرید! با ۲ همکارِ دیگر، تیمِ اول ساخته می‌شود.</p>
+    <div class="pio-steps"><span class="on">🙋 شما</span><span>👤 همکار ۱</span><span>👤 همکار ۲</span><span>🏆 تیم</span></div></div>
+    <div class="row2"><button class="btn ac" data-a="poster">🖼️ پوستر برای تابلو اعلانات</button><button class="btn line" data-a="pio-share">📣 پیام آماده برای گروه همکارها</button></div>
+    ${and && ui.apk && ui.apk.url ? `<div class="hint">${ic('install')}<span><b>دوستان اندرویدی:</b> اپ رسیدیم را هم نصب کنید تا اعلان‌ها با صدا، حتی وقتی اپ بسته است، برسند. چون از کافه‌بازار نیست، گوشی ممکن است بپرسد؛ «اجازه‌ی نصب از این منبع» را بدهید. <button class="linkish" data-a="install">دانلود اپ</button></span></div>` : ''}`); }
 function introGo() { const I = ui.intro; if (!I) return; const a = I.a, kind = a.who === 'kids' ? (a.kkind || 'school') : (a.wkind || 'work'); introClose();
   S.intent = a.who; if (a.who === 'now') S.afterGo = 1; persist(); ui.linkPlace = null; wizOpen(null, { mode: 'new', kind, at: 'family' });
   try { const w = ui.wiz; if (w && w.d) { if (a.g) { w.d.pg = a.g; if (a.who === 'kids') w.d.rel = a.g === 'f' ? 'mother' : 'father'; }
       if (a.car && (a.who === 'kids' || a.car !== 'both')) w.d.role = a.car; if (a.who === 'kids' && a.kn && !(w.d.kids || []).length) w.d.kids = Array.from({ length: Math.min(3, +a.kn) }, () => ({ first: '', g: '', by: '' }));
-      w.d.intro = { who: a.who, pain: a.pain || '' }; wizRender(); } } catch (e) {} }
+      w.d.intro = { who: a.who, pain: a.pain || '' }; if (a.fam && !w.d.family) w.d.family = a.fam; if (a.home === 'yes' && I.loc && I.loc.lat && !w.d.lat) { w.d.lat = I.loc.lat; w.d.lng = I.loc.lng; if (I.loc.hood && !w.d.hood) w.d.hood = I.loc.hood; } wizRender(); } } catch (e) {} }
 /* ═════════ events ═════════ */
 document.addEventListener('click', e => {
   const tab = e.target.closest('[data-tab]');
@@ -3697,6 +3776,7 @@ async function nativeInit() { if (!NATIVE) return; document.body.classList.add('
   render(true);
   { const nk = location.hash.match(/^#new-(school|kinder|institute|club|work|uni|other|station)$/); if (nk) { history.replaceState(null, '', BASE); wizOpen(null, { mode: 'new', kind: nk[1] }); } }
   if (!rd && !ui.famCode && !ui.trustCode && !ui.amb && !/[?&](gp|go|code)=/.test(location.search) && !location.hash) setTimeout(() => introOpen(), 900);
+  if (NATIVE) { setTimeout(widgetTap, 700); document.addEventListener('visibilitychange', () => { if (!document.hidden) widgetTap(); }); }
   navTrap();
   if (ui.famCode) famJoin(ui.famCode);
   if (ui.trustCode) { if (!S.phone) { toast('برای پیوستن به‌عنوان راننده‌ی معتمد، با شماره‌ی خودتان وارد شوید.'); act('login'); } else { try { const r = await api('trust_join', { code: ui.trustCode }); ui.trustCode = null; history.replaceState(null, '', location.pathname); await refreshMe(); S.active = r.profile_id; persist(); render(true); toast('به تیم پیوستید؛ خوش آمدید!'); } catch (e) { fail(e); } } }

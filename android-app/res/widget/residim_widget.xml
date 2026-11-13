@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:gravity="center" android:padding="12dp" android:layoutDirection="rtl"
+    android:background="@drawable/residim_widget_bg">
+    <TextView android:id="@+id/w_cta" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:background="@drawable/residim_widget_btn" android:gravity="center" android:paddingTop="12dp" android:paddingBottom="12dp"
+        android:paddingLeft="12dp" android:paddingRight="12dp" android:maxLines="2" android:ellipsize="end"
+        android:text="دارم می‌روم" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold" />
+    <TextView android:id="@+id/w_sub" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp"
+        android:gravity="center" android:maxLines="1" android:ellipsize="end" android:text="رسیدیم" android:textColor="#04140B" android:textSize="12sp" />
+</LinearLayout>
